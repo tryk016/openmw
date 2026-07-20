@@ -16,7 +16,7 @@ jobs:
   build-validate-package:
     name: iOS 16.4 device + simulator
     runs-on: macos-15
-    timeout-minutes: 90
+    timeout-minutes: 15
 
     defaults:
       run:

@@ -46,7 +46,12 @@ device_name="${device_name//_/ }"
 echo "Selected simulator: ${device_name} (${udid}), initial state: ${initial_state}"
 
 booted_here=0
+bootstatus_pid=0
 cleanup() {
+    if [[ "$bootstatus_pid" -ne 0 ]]; then
+        kill "$bootstatus_pid" >/dev/null 2>&1 || true
+        wait "$bootstatus_pid" >/dev/null 2>&1 || true
+    fi
     xcrun simctl terminate "$udid" "$bundle_id" >/dev/null 2>&1 || true
     if [[ "$booted_here" -eq 1 ]]; then
         xcrun simctl shutdown "$udid" >/dev/null 2>&1 || true
@@ -58,7 +63,28 @@ if [[ "$initial_state" != "Booted" ]]; then
     xcrun simctl boot "$udid"
     booted_here=1
 fi
-xcrun simctl bootstatus "$udid" -b
+
+bootstatus_log="${log_dir}/simulator-bootstatus.log"
+xcrun simctl bootstatus "$udid" -b >"$bootstatus_log" 2>&1 &
+bootstatus_pid=$!
+boot_deadline=$((SECONDS + 300))
+
+while kill -0 "$bootstatus_pid" >/dev/null 2>&1; do
+    if ((SECONDS >= boot_deadline)); then
+        echo "Simulator did not finish booting within 300 seconds" >&2
+        cat "$bootstatus_log" >&2
+        exit 1
+    fi
+    sleep 5
+done
+
+if ! wait "$bootstatus_pid"; then
+    echo "simctl bootstatus failed" >&2
+    cat "$bootstatus_log" >&2
+    exit 1
+fi
+bootstatus_pid=0
+cat "$bootstatus_log"
 
 xcrun simctl install "$udid" "$app"
 xcrun simctl get_app_container "$udid" "$bundle_id" app \

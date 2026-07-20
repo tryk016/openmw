@@ -54,8 +54,9 @@ foreach(archive IN ITEMS
     endif()
 endforeach()
 
-set(FREETYPE_INCLUDE_DIR_ft2build "${IOS_DEPS_PREFIX}/include/freetype2")
-set(FREETYPE_INCLUDE_DIR_freetype2 "${IOS_DEPS_PREFIX}/include/freetype2")
+# The pinned vcpkg port intentionally flattens include/freetype2 into include.
+set(FREETYPE_INCLUDE_DIR_ft2build "${IOS_DEPS_PREFIX}/include")
+set(FREETYPE_INCLUDE_DIR_freetype2 "${IOS_DEPS_PREFIX}/include")
 set(FREETYPE_LIBRARY "${freetype_archive}")
 set(FREETYPE_LIBRARY_RELEASE "${freetype_archive}")
 find_package(Freetype 2.13.3 REQUIRED)

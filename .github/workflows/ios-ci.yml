@@ -72,6 +72,11 @@ jobs:
             xcrun simctl list runtimes
           } 2>&1 | tee artifacts/logs/toolchain.log
 
+      - name: Validate full-product profile contract
+        run: |
+          cmake -P CI/ios/validate-product-profile.cmake \
+            2>&1 | tee artifacts/logs/product-profile-contract.log
+
       - name: Configure device
         run: |
           cmake --preset ios-device \

@@ -1,0 +1,144 @@
+name: iOS dependencies
+
+on:
+  pull_request:
+    branches:
+      - ios/main
+    paths:
+      - ".github/workflows/ios-deps-ci.yml"
+      - "CI/ios/deps/**"
+      - "ios-deps/**"
+      - "docs/ios-port/DEPENDENCY_LOCK.md"
+      - "docs/ios-port/ROADMAP.md"
+  push:
+    branches:
+      - ios/main
+    paths:
+      - ".github/workflows/ios-deps-ci.yml"
+      - "CI/ios/deps/**"
+      - "ios-deps/**"
+      - "docs/ios-port/DEPENDENCY_LOCK.md"
+      - "docs/ios-port/ROADMAP.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-deps-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lock:
+    name: Lock and source policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Validate lock schema
+        run: cmake -P CI/ios/deps/validate-lock.cmake
+      - name: Validate shell syntax
+        run: bash -n CI/ios/deps/*.sh
+
+  bootstrap:
+    name: zlib ${{ matrix.platform }}
+    needs: lock
+    runs-on: macos-15
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - iphoneos
+          - iphonesimulator
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      IOS_DEPLOYMENT_TARGET: "16.4"
+      VCPKG_DISABLE_METRICS: "1"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Select pinned Xcode 16.4
+        run: |
+          test -d "$DEVELOPER_DIR"
+          test "$(xcodebuild -version | sed -n '1p')" = "Xcode 16.4"
+
+      - name: Cache immutable downloads
+        uses: actions/cache@v5
+        with:
+          path: |
+            build/ios-deps/downloads
+            build/ios-deps/asset-cache
+            build/ios-deps/source-cache
+            build/ios-deps/tooling
+          key: ios-deps-sources-${{ hashFiles('ios-deps/dependencies.lock.json') }}
+
+      - name: Build clean online prefix
+        id: online
+        run: |
+          prefix="$(
+            bash CI/ios/deps/build.sh \
+              --platform "${{ matrix.platform }}" \
+              --feature bootstrap \
+              --clean
+          )"
+          echo "prefix=$prefix" >>"$GITHUB_OUTPUT"
+
+      - name: Validate every online archive member
+        run: |
+          bash CI/ios/deps/validate-prefix.sh \
+            "${{ matrix.platform }}" \
+            "${{ steps.online.outputs.prefix }}"
+
+      - name: Link minimal application
+        run: |
+          bash CI/ios/deps/build-smoke.sh \
+            "${{ matrix.platform }}" \
+            "${{ steps.online.outputs.prefix }}"
+
+      - name: Rebuild clean without network sources
+        id: offline
+        run: |
+          prefix="$(
+            bash CI/ios/deps/build.sh \
+              --platform "${{ matrix.platform }}" \
+              --feature bootstrap \
+              --clean \
+              --offline
+          )"
+          echo "prefix=$prefix" >>"$GITHUB_OUTPUT"
+
+      - name: Validate every offline archive member
+        run: |
+          bash CI/ios/deps/validate-prefix.sh \
+            "${{ matrix.platform }}" \
+            "${{ steps.offline.outputs.prefix }}"
+
+      - name: Collect SPDX and license evidence
+        run: |
+          bash CI/ios/deps/package-metadata.sh \
+            "${{ matrix.platform }}" \
+            "${{ steps.offline.outputs.prefix }}" \
+            "build/ios-deps/${{ matrix.platform }}/metadata"
+
+      - name: Upload bootstrap evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ios-deps-zlib-${{ matrix.platform }}-${{ github.sha }}
+          path: |
+            build/ios-deps/${{ matrix.platform }}/build-manifest.txt
+            build/ios-deps/${{ matrix.platform }}/metadata
+            build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWDepsSmoke.app
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/zlib
+            ios-deps/dependencies.lock.json
+          if-no-files-found: warn
+          retention-days: 7

@@ -1,0 +1,287 @@
+{
+  "schema": 1,
+  "deployment_target": "16.4",
+  "artifact_format": "separate-static-prefixes",
+  "architectures": {
+    "iphoneos": [
+      "arm64"
+    ],
+    "iphonesimulator": [
+      "arm64"
+    ]
+  },
+  "dependencies": [
+    {
+      "name": "vcpkg",
+      "version": "2026-02-24",
+      "revision": "6d332a018c433fad20822ff4b536e4ccdc3413bd",
+      "phase": 2,
+      "group": "base",
+      "archive": "vcpkg-6d332a018c433fad20822ff4b536e4ccdc3413bd.tar.gz",
+      "url": "https://codeload.github.com/microsoft/vcpkg/tar.gz/6d332a018c433fad20822ff4b536e4ccdc3413bd",
+      "sha256": "71b4cb4c25e2f0aae067b0a80edb35fc8012e3ecc6568fa8a072fb2913b20475",
+      "source_root": "vcpkg-6d332a018c433fad20822ff4b536e4ccdc3413bd",
+      "license": "MIT",
+      "license_files": [
+        "LICENSE.txt"
+      ]
+    },
+    {
+      "name": "sdl2",
+      "version": "2.32.10",
+      "phase": 2,
+      "group": "base",
+      "archive": "SDL2-2.32.10.tar.gz",
+      "url": "https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-2.32.10.tar.gz",
+      "sha256": "5f5993c530f084535c65a6879e9b26ad441169b3e25d789d83287040a9ca5165",
+      "source_root": "SDL2-2.32.10",
+      "license": "Zlib",
+      "license_files": [
+        "LICENSE.txt"
+      ]
+    },
+    {
+      "name": "boost",
+      "version": "1.87.0",
+      "phase": 2,
+      "group": "base",
+      "archive": "boost_1_87_0.tar.bz2",
+      "url": "https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.bz2",
+      "sha256": "af57be25cb4c4f4b413ed692fe378affb4352ea50fbe294a11ef548f4d527d89",
+      "source_root": "boost_1_87_0",
+      "license": "BSL-1.0",
+      "license_files": [
+        "LICENSE_1_0.txt"
+      ]
+    },
+    {
+      "name": "lz4",
+      "version": "1.10.0",
+      "phase": 2,
+      "group": "base",
+      "archive": "lz4-1.10.0.tar.gz",
+      "url": "https://codeload.github.com/lz4/lz4/tar.gz/refs/tags/v1.10.0",
+      "sha256": "537512904744b35e232912055ccf8ec66d768639ff3abe5788d90d792ec5f48b",
+      "source_root": "lz4-1.10.0",
+      "license": "BSD-2-Clause",
+      "license_files": [
+        "lib/LICENSE"
+      ]
+    },
+    {
+      "name": "zlib",
+      "version": "1.3.1",
+      "phase": 2,
+      "group": "base",
+      "archive": "zlib-1.3.1.tar.gz",
+      "url": "https://codeload.github.com/madler/zlib/tar.gz/refs/tags/v1.3.1",
+      "sha256": "17e88863f3600672ab49182f217281b6fc4d3c762bde361935e436a95214d05c",
+      "source_root": "zlib-1.3.1",
+      "license": "Zlib",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "yaml-cpp",
+      "version": "0.8.0+openmw-cmake4",
+      "revision": "c2680200486572baf8221ba052ef50b58ecd816e",
+      "phase": 2,
+      "group": "base",
+      "archive": "yaml-cpp-c2680200486572baf8221ba052ef50b58ecd816e.tar.gz",
+      "url": "https://codeload.github.com/jbeder/yaml-cpp/tar.gz/c2680200486572baf8221ba052ef50b58ecd816e",
+      "sha256": "7580fa585098e249d80dd6aae3efb6e48e80b5b1541109b7a708354c568443b1",
+      "source_root": "yaml-cpp-c2680200486572baf8221ba052ef50b58ecd816e",
+      "license": "MIT",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "sqlite",
+      "version": "3.41.1",
+      "revision": "3410100",
+      "phase": 2,
+      "group": "base",
+      "archive": "sqlite-amalgamation-3410100.zip",
+      "url": "https://www.sqlite.org/2023/sqlite-amalgamation-3410100.zip",
+      "sha256": "df0d54bf246521360c8148f64e7e5ad07a4665b4f902339e844f4c493d535ff5",
+      "source_root": "sqlite-amalgamation-3410100",
+      "license": "blessing",
+      "license_files": [],
+      "license_notice": "SQLite is dedicated to the public domain; see https://www.sqlite.org/copyright.html."
+    },
+    {
+      "name": "bullet",
+      "version": "3.17",
+      "phase": 2,
+      "group": "base",
+      "archive": "bullet3-3.17.tar.gz",
+      "url": "https://codeload.github.com/bulletphysics/bullet3/tar.gz/refs/tags/3.17",
+      "sha256": "baa642c906576d4d98d041d0acb80d85dd6eff6e3c16a009b1abf1ccd2bc0a61",
+      "source_root": "bullet3-3.17",
+      "license": "Zlib",
+      "license_files": [
+        "LICENSE.txt"
+      ]
+    },
+    {
+      "name": "recastnavigation",
+      "version": "openmw-03259f3",
+      "revision": "03259f3287ff8330f0d66fcd98d022edddffaa97",
+      "phase": 2,
+      "group": "base",
+      "archive": "recastnavigation-03259f3287ff8330f0d66fcd98d022edddffaa97.tar.gz",
+      "url": "https://codeload.github.com/OpenMW/recastnavigation/tar.gz/03259f3287ff8330f0d66fcd98d022edddffaa97",
+      "sha256": "6ecd4f0ff7153efde864cb993685039eadac94c2a17250f7272b21c96cee300a",
+      "source_root": "recastnavigation-03259f3287ff8330f0d66fcd98d022edddffaa97",
+      "license": "Zlib",
+      "license_files": [
+        "License.txt"
+      ]
+    },
+    {
+      "name": "mygui",
+      "version": "3.4.3",
+      "phase": 2,
+      "group": "base",
+      "archive": "mygui-MyGUI3.4.3.tar.gz",
+      "url": "https://codeload.github.com/MyGUI/mygui/tar.gz/refs/tags/MyGUI3.4.3",
+      "sha256": "33c91b531993047e77cace36d6fea73634b8c17bd0ed193d4cd12ac7c6328abd",
+      "source_root": "mygui-MyGUI3.4.3",
+      "license": "MIT",
+      "license_files": [
+        "COPYING.MIT"
+      ]
+    },
+    {
+      "name": "freetype",
+      "version": "2.13.3",
+      "phase": 2,
+      "group": "base",
+      "archive": "freetype-VER-2-13-3.tar.gz",
+      "url": "https://codeload.github.com/freetype/freetype/tar.gz/refs/tags/VER-2-13-3",
+      "sha256": "bc5c898e4756d373e0d991bab053036c5eb2aa7c0d5c67e8662ddc6da40c4103",
+      "source_root": "freetype-VER-2-13-3",
+      "license": "FTL OR GPL-2.0-only",
+      "license_files": [
+        "LICENSE.TXT",
+        "docs/FTL.TXT"
+      ]
+    },
+    {
+      "name": "libpng",
+      "version": "1.6.47",
+      "phase": 2,
+      "group": "base",
+      "archive": "libpng-1.6.47.tar.gz",
+      "url": "https://codeload.github.com/pnggroup/libpng/tar.gz/refs/tags/v1.6.47",
+      "sha256": "631a4c58ea6c10c81f160c4b21fa8495b715d251698ebc2552077e8450f30454",
+      "source_root": "libpng-1.6.47",
+      "license": "Libpng-2.0",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "libjpeg-turbo",
+      "version": "3.1.0",
+      "phase": 2,
+      "group": "base",
+      "archive": "libjpeg-turbo-3.1.0.tar.gz",
+      "url": "https://codeload.github.com/libjpeg-turbo/libjpeg-turbo/tar.gz/refs/tags/3.1.0",
+      "sha256": "35fec2e1ddfb05ecf6d93e50bc57c1e54bc81c16d611ddf6eff73fff266d8285",
+      "source_root": "libjpeg-turbo-3.1.0",
+      "license": "BSD-3-Clause AND IJG AND Zlib",
+      "license_files": [
+        "LICENSE.md"
+      ]
+    },
+    {
+      "name": "lua",
+      "version": "5.1.5",
+      "phase": 2,
+      "group": "language",
+      "archive": "lua-5.1.5.tar.gz",
+      "url": "https://www.lua.org/ftp/lua-5.1.5.tar.gz",
+      "sha256": "2640fc56a795f29d28ef15e13c34a47e223960b0240e8cb0a82d9b0738695333",
+      "source_root": "lua-5.1.5",
+      "license": "MIT",
+      "license_files": [],
+      "license_notice": "The Lua license is embedded in README.md and https://www.lua.org/license.html."
+    },
+    {
+      "name": "icu",
+      "version": "70.1",
+      "phase": 2,
+      "group": "language",
+      "archive": "icu-release-70-1.tar.gz",
+      "url": "https://codeload.github.com/unicode-org/icu/tar.gz/refs/tags/release-70-1",
+      "sha256": "f30d670bdc03ba999638a2d2511952ab94adf204d0e14898666f2e0cacb7fef1",
+      "source_root": "icu-release-70-1",
+      "license": "ICU",
+      "license_files": [
+        "icu4c/LICENSE"
+      ]
+    },
+    {
+      "name": "openal-soft",
+      "version": "1.24.3",
+      "phase": 2,
+      "group": "multimedia",
+      "archive": "openal-soft-1.24.3.tar.gz",
+      "url": "https://codeload.github.com/kcat/openal-soft/tar.gz/refs/tags/1.24.3",
+      "sha256": "7e1fecdeb45e7f78722b776c5cf30bd33934b961d7fd2a11e0494e064cc631ce",
+      "source_root": "openal-soft-1.24.3",
+      "license": "LGPL-2.0-or-later",
+      "license_files": [
+        "COPYING"
+      ]
+    },
+    {
+      "name": "ffmpeg",
+      "version": "7.1.1",
+      "phase": 2,
+      "group": "multimedia",
+      "archive": "ffmpeg-7.1.1.tar.xz",
+      "url": "https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz",
+      "sha256": "733984395e0dbbe5c046abda2dc49a5544e7e0e1e2366bba849222ae9e3a03b1",
+      "source_root": "ffmpeg-7.1.1",
+      "license": "LGPL-2.1-or-later",
+      "license_files": [
+        "COPYING.LGPLv2.1",
+        "COPYING.LGPLv3",
+        "LICENSE.md"
+      ]
+    },
+    {
+      "name": "gl4es",
+      "version": "1.1.6",
+      "phase": 4,
+      "group": "render",
+      "archive": "gl4es-1.1.6.tar.gz",
+      "url": "https://codeload.github.com/ptitSeb/gl4es/tar.gz/refs/tags/v1.1.6",
+      "sha256": "dca1d897e492a0cb163a3390f273fbd4cc7ab2367d236d93dc2b321ce108ed5c",
+      "source_root": "gl4es-1.1.6",
+      "license": "MIT",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "name": "osg",
+      "version": "openmw-01cc2b5",
+      "revision": "01cc2b585c8456a4ff843066b7e1a8715558289f",
+      "phase": 4,
+      "group": "render",
+      "archive": "osg-01cc2b585c8456a4ff843066b7e1a8715558289f.tar.gz",
+      "url": "https://codeload.github.com/OpenMW/osg/tar.gz/01cc2b585c8456a4ff843066b7e1a8715558289f",
+      "sha256": "5727b3e23fa376f7dd41b646e46a7c303ae710a3d250ab489ef5b0672cf355c3",
+      "source_root": "osg-01cc2b585c8456a4ff843066b7e1a8715558289f",
+      "license": "LicenseRef-OSGPL-1.0",
+      "license_files": [
+        "LICENSE.txt"
+      ]
+    }
+  ]
+}

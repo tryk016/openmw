@@ -91,6 +91,8 @@ zmienić architekturę i zakres.
   fizycznych urządzeń.
 - [G0_EVIDENCE.md](G0_EVIDENCE.md) — trwały zapis wyników CI, artefaktów i
   brakującego dowodu fizycznego urządzenia.
+- [DEPENDENCY_LOCK.md](DEPENDENCY_LOCK.md) — piny źródeł, hashe, format
+  artefaktów, cache offline i polityka licencji zależności iOS.
 - [PROJECT_MAP.md](PROJECT_MAP.md) — mapa repozytorium i zależności między
   subsystemami.
 - [ROADMAP.md](ROADMAP.md) — kanoniczna, szczegółowa lista prac z checkboxami.

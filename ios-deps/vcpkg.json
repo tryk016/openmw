@@ -1,0 +1,14 @@
+{
+  "name": "openmw-ios-dependencies",
+  "version-string": "0.1.0",
+  "description": "Hermetic static dependency graph for the OpenMW iOS fork",
+  "dependencies": [],
+  "features": {
+    "bootstrap": {
+      "description": "Small end-to-end superbuild proof",
+      "dependencies": [
+        "zlib"
+      ]
+    }
+  }
+}

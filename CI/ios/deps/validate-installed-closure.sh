@@ -129,15 +129,15 @@ if ! jq -er --arg target "$target_triplet" --arg host "$host_triplet" \
           any(.features[]; type != "string")) then
         error("Malformed vcpkg list --x-json record")
       else . end
-    | if .triplet == $target then
-        "target"
-      elif $strict == 1 and .triplet == $host then
-        "host"
-      elif $strict == 1 then
-        error("Unexpected installed vcpkg triplet: \(.triplet)")
-      else
-        empty
-      end as $scope
+    | (if .triplet == $target then
+          "target"
+        elif $strict == 1 and .triplet == $host then
+          "host"
+        elif $strict == 1 then
+          error("Unexpected installed vcpkg triplet: \(.triplet)")
+        else
+          empty
+        end) as $scope
     | . as $package
     | "\($scope)|\($package.package_name)|@core",
       ($package.features[] as $feature

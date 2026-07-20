@@ -38,7 +38,17 @@ if(POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)
 endif()
 
-project(OpenMW)
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    set(OPENMW_IOS TRUE)
+    # This cache entry must exist before language/compiler initialization.
+    if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "16.4" CACHE STRING "Minimum supported iOS version" FORCE)
+    endif()
+    project(OpenMW LANGUAGES C CXX OBJCXX)
+else()
+    set(OPENMW_IOS FALSE)
+    project(OpenMW)
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -51,7 +61,7 @@ if(OPENMW_GL4ES_MANUAL_INIT)
     add_compile_definitions(OPENMW_GL4ES_MANUAL_INIT)
 endif()
 
-if (APPLE OR WIN32)
+if ((APPLE AND NOT OPENMW_IOS) OR WIN32)
     set(DEPLOY_QT_TRANSLATIONS_DEFAULT ON)
 else ()
     set(DEPLOY_QT_TRANSLATIONS_DEFAULT OFF)
@@ -79,6 +89,10 @@ option(BUILD_OPENCS_TESTS       "Build OpenMW Construction Set tests" OFF)
 option(BUILD_OPENMW_TESTS       "Build OpenMW tests" OFF)
 option(PRECOMPILE_HEADERS_WITH_MSVC "Precompile most common used headers with MSVC (alternative to ccache)" ON)
 
+if(OPENMW_IOS)
+    include(cmake/OpenMWIOSProfile.cmake)
+endif()
+
 set(OpenGL_GL_PREFERENCE LEGACY)  # Use LEGACY as we use GL2; GLNVD is for GL3 and up.
 
 if (BUILD_LAUNCHER OR BUILD_OPENCS OR BUILD_WIZARD OR BUILD_OPENCS_TESTS)
@@ -95,12 +109,12 @@ IF(NOT CMAKE_BUILD_TYPE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS None Debug Release RelWithDebInfo MinSizeRel)
 ENDIF()
 
-if (APPLE)
+if (APPLE AND NOT OPENMW_IOS)
     set(CMAKE_FIND_FRAMEWORK LAST) # prefer dylibs over frameworks
     set(APP_BUNDLE_NAME "${CMAKE_PROJECT_NAME}.app")
 
     set(APP_BUNDLE_DIR "${OpenMW_BINARY_DIR}/${APP_BUNDLE_NAME}")
-endif (APPLE)
+endif ()
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/)
 
@@ -260,7 +274,9 @@ if (MSVC)
 endif()
 
 # Set up common paths
-if (APPLE)
+if (OPENMW_IOS)
+    set(OPENMW_RESOURCE_FILES "resources" CACHE PATH "location of OpenMW resources files")
+elseif (APPLE)
     set(OPENMW_RESOURCE_FILES "../Resources/resources" CACHE PATH "location of OpenMW resources files")
 elseif(UNIX)
     # Paths
@@ -292,7 +308,12 @@ if(MSVC)
 endif()
 
 # Dependencies
-if (APPLE)
+if (OPENMW_IOS)
+    # GL4ES supplies the desktop OpenGL ABI on top of OpenGL ES.  Its imported
+    # target is introduced by the dependency/rendering work, so do not resolve
+    # the macOS OpenGL framework for an iOS SDK here.
+    message(STATUS "OpenMW iOS: desktop OpenGL discovery is disabled; GL4ES will provide the GL ABI")
+elseif (APPLE)
     # Force CMake to use the installed version of OpenGL on macOS
     set(_SAVE_CMAKE_FIND_FRAMEWORK ${CMAKE_FIND_FRAMEWORK})
     set(CMAKE_FIND_FRAMEWORK ONLY)
@@ -556,15 +577,15 @@ if(MYGUI_STATIC)
     add_compile_definitions(MYGUI_STATIC)
 endif (MYGUI_STATIC)
 
-if (APPLE)
+if (APPLE AND NOT OPENMW_IOS)
     configure_file(${OpenMW_SOURCE_DIR}/files/mac/openmw-Info.plist.in
         "${APP_BUNDLE_DIR}/Contents/Info.plist")
 
     configure_file(${OpenMW_SOURCE_DIR}/files/mac/openmw.icns
         "${APP_BUNDLE_DIR}/Contents/Resources/OpenMW.icns" COPYONLY)
-endif (APPLE)
+endif ()
 
-if (NOT APPLE)  # this is modified for macOS use later in "apps/open[mw|cs]/CMakeLists.txt"
+if (NOT APPLE OR OPENMW_IOS)  # this is modified for macOS use later in "apps/open[mw|cs]/CMakeLists.txt"
     set(OPENMW_RESOURCES_ROOT ${OpenMW_BINARY_DIR})
 endif ()
 
@@ -572,7 +593,7 @@ add_subdirectory(files/)
 
 # Specify build paths
 
-if (APPLE)
+if (APPLE AND NOT OPENMW_IOS)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${APP_BUNDLE_DIR}/Contents/MacOS")
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${APP_BUNDLE_DIR}/Contents/MacOS")
 
@@ -580,7 +601,7 @@ if (APPLE)
 else (APPLE)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${OpenMW_BINARY_DIR}")
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OpenMW_BINARY_DIR}")
-endif (APPLE)
+endif ()
 
 # Other files
 
@@ -796,6 +817,9 @@ if (WIN32)
 endif()
 
 
+# Desktop packaging is intentionally absent from the sideloaded iOS product.
+# The iOS .app/.ipa assembly is owned by the dedicated bundle target instead.
+if(NOT OPENMW_IOS)
 # Core CPACK Setup
 set(CPACK_PACKAGE_VERSION ${OPENMW_VERSION})
 set(CPACK_PACKAGE_VERSION_MAJOR ${OPENMW_VERSION_MAJOR})
@@ -1116,6 +1140,7 @@ elseif(NOT APPLE)
         INSTALL(DIRECTORY "${INSTALL_SOURCE}/resources" DESTINATION "${DATADIR}" COMPONENT "Resources")
     endif(WIN32)
 endif(APPLE)
+endif()
 
 # what is necessary to build documentation
 if ( BUILD_DOCS )

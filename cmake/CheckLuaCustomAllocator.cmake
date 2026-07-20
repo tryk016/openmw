@@ -22,6 +22,23 @@ int main(void) {
 
 message(STATUS "Checking if Lua allows to provide a custom allocator")
 
+if(CMAKE_CROSSCOMPILING)
+    try_compile(COMPILE_RESULT_VAR
+        ${TMP_ROOT}/temp
+        ${TMP_ROOT}/checkluacustomallocator.c
+        CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${LUA_INCLUDE_DIR}"
+        LINK_LIBRARIES "${LUA_LIBRARIES}"
+        )
+    if(NOT COMPILE_RESULT_VAR)
+        message(WARNING
+            "Incorrect Lua library: can't compile custom allocator check")
+    else()
+        message(STATUS
+            "Lua custom allocator API compiled; runtime probe skipped while cross-compiling")
+    endif()
+    return()
+endif()
+
 try_run(RUN_RESULT_VAR COMPILE_RESULT_VAR
     ${TMP_ROOT}/temp
     ${TMP_ROOT}/checkluacustomallocator.c

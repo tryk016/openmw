@@ -72,7 +72,9 @@ for archive in "${archives[@]}"; do
     objects=()
     while IFS= read -r object; do
         objects+=("$object")
-    done < <(find "$extract_dir" -type f -print | sort)
+    done < <(
+        find "$extract_dir" -type f ! -name '__.SYMDEF*' -print | sort
+    )
     if ((${#objects[@]} == 0)); then
         echo "${archive}: archive is empty" >&2
         exit 1

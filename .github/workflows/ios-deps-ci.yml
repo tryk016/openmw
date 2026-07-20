@@ -41,14 +41,16 @@ jobs:
           persist-credentials: false
       - name: Validate lock schema
         run: cmake -P CI/ios/deps/validate-lock.cmake
+      - name: Test lock and manifest contract
+        run: node CI/ios/deps/test-lock-contract.js
       - name: Validate shell syntax
         run: bash -n CI/ios/deps/*.sh
 
-  base-foundation:
-    name: SDL2 + LZ4 + zlib ${{ matrix.platform }}
+  image-foundation:
+    name: SDL2 + image codecs ${{ matrix.platform }}
     needs: lock
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -87,7 +89,7 @@ jobs:
           prefix="$(
             bash CI/ios/deps/build.sh \
               --platform "${{ matrix.platform }}" \
-              --feature base-foundation \
+              --feature image-foundation \
               --clean
           )"
           echo "prefix=$prefix" >>"$GITHUB_OUTPUT"
@@ -110,7 +112,7 @@ jobs:
           prefix="$(
             bash CI/ios/deps/build.sh \
               --platform "${{ matrix.platform }}" \
-              --feature base-foundation \
+              --feature image-foundation \
               --clean \
               --offline
           )"
@@ -122,6 +124,12 @@ jobs:
             "${{ matrix.platform }}" \
             "${{ steps.offline.outputs.prefix }}"
 
+      - name: Relink application from offline prefix
+        run: |
+          bash CI/ios/deps/build-smoke.sh \
+            "${{ matrix.platform }}" \
+            "${{ steps.offline.outputs.prefix }}"
+
       - name: Collect SPDX and license evidence
         run: |
           bash CI/ios/deps/package-metadata.sh \
@@ -129,18 +137,25 @@ jobs:
             "${{ steps.offline.outputs.prefix }}" \
             "build/ios-deps/${{ matrix.platform }}/metadata"
 
-      - name: Upload base foundation evidence
+      - name: Upload image foundation evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: ios-deps-base-foundation-${{ matrix.platform }}-${{ github.sha }}
+          name: ios-deps-image-foundation-${{ matrix.platform }}-${{ github.sha }}
           path: |
             build/ios-deps/${{ matrix.platform }}/build-manifest.txt
             build/ios-deps/${{ matrix.platform }}/metadata
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWDepsSmoke.app
+            build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWJPEGProbe
+            build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWTurboJPEGProbe
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/sdl2
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/lz4
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/zlib
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/freetype
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/libpng
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/png
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/libjpeg-turbo
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/jpeg
             ios-deps/dependencies.lock.json
           if-no-files-found: warn
           retention-days: 7

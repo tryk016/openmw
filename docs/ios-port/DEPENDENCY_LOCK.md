@@ -35,14 +35,20 @@ Przed buildem skrypt pobiera archiwa wskazane przez profil i sprawdza SHA-256.
 Dla aktywnych portów z builtin registry dodatkowo:
 
 1. SHA-512 tych samych bajtów musi zgadzać się z lockiem;
-2. ten SHA-512 musi występować w portfile z przypiętego commita vcpkg;
-3. wersja zainstalowanego pakietu musi zgadzać się z lockiem.
+2. marker repozytorium i SHA-512 muszą wystąpić w tym samym bloku źródłowym
+   portfile z przypiętego commita vcpkg;
+3. content-addressed asset cache vcpkg musi zawierać plik o tym SHA-512;
+4. wersja zainstalowanego pakietu musi zgadzać się z lockiem.
 
 W ten sposób cache źródeł locka i niezależny asset cache vcpkg odnoszą się do
 identycznego archiwum, mimo że vcpkg zarządza własną kopią downloadu.
+Testy negatywne kontraktu odrzucają brakującą lub dodatkową funkcję portu,
+włączone default features, dodatkowy direct port i duplikaty funkcji.
 
 - `bootstrap`: zlib-only, mały test samego pipeline'u;
 - `base-foundation`: SDL2, LZ4 i zlib, pierwszy produkcyjny fragment grafu.
+- `image-foundation`: profil kumulatywny, który dodaje FreeType z funkcjami
+  `png,zlib`, libpng i libjpeg-turbo bez narzędzi ani emulacji ABI JPEG 7/8.
 
 Dodanie biblioteki do profilu przed pogodzeniem jej wersji z przypiętym
 registry albo portem overlay celowo kończy build błędem.
@@ -52,6 +58,10 @@ Smoke profilu `base-foundation` zachowuje własny `UIApplicationMain`, definiuje
 sam przenieść wymagane frameworki Apple; `-ObjC` wymusza uwzględnienie jego
 statycznych członów Objective-C. Test wywołuje centralną inicjalizację SDL oraz
 wykonuje pełny round-trip LZ4.
+
+Smoke profilu `image-foundation` dodatkowo inicjalizuje FreeType, tworzy i
+niszczy reader libpng oraz dekodery libjpeg i TurboJPEG. Sprawdza też w czasie
+kompilacji, że FreeType faktycznie używa zewnętrznego zlib i obsługi PNG.
 
 ## Pobieranie i tryb offline
 

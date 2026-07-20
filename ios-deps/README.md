@@ -34,19 +34,22 @@ On macOS with Xcode 16.4:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature base-foundation \
+  --feature image-foundation \
   --clean
 bash CI/ios/deps/build.sh \
   --platform iphonesimulator \
-  --feature base-foundation \
+  --feature image-foundation \
   --clean
 ```
 
 `base-foundation` contains the first production slice: SDL2, LZ4 and zlib.
+`image-foundation` is cumulative and adds FreeType, libpng and libjpeg-turbo.
 `bootstrap` remains available as the smaller zlib-only pipeline proof. The
 profile-to-source mapping lives in `dependencies.lock.json`; every profile must
 have a matching vcpkg manifest feature. After installation, the build also
-compares each selected package version with the lock.
+compares each selected package version with the lock and rejects any target
+package outside the exact profile. Host-only vcpkg helper ports remain governed
+by the pinned registry commit.
 
 The returned path is the selected prefix. Validate every archive member and
 link the smoke app:
@@ -62,7 +65,7 @@ access:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature base-foundation \
+  --feature image-foundation \
   --clean \
   --offline
 ```

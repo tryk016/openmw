@@ -24,6 +24,13 @@ esac
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/../../.." && pwd)"
 build_dir="${repo_root}/build/ios-deps/${platform}/smoke"
+case "$build_dir" in
+    "${repo_root}/build/ios-deps/"*) rm -rf "$build_dir" ;;
+    *)
+        echo "Refusing to clean smoke output outside build/ios-deps" >&2
+        exit 1
+        ;;
+esac
 
 cmake -S "${repo_root}/ios-deps/smoke" \
     -B "$build_dir" \
@@ -38,7 +45,10 @@ cmake -S "${repo_root}/ios-deps/smoke" \
     -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY=
 cmake --build "$build_dir" \
     --config Release \
-    --target openmw-ios-deps-smoke \
+    --target \
+        openmw-ios-deps-smoke \
+        openmw-ios-jpeg-probe \
+        openmw-ios-turbojpeg-probe \
     --parallel 3
 
 app="$(
@@ -49,18 +59,31 @@ if [[ -z "$app" ]]; then
     exit 1
 fi
 
-binary="${app}/OpenMWDepsSmoke"
-test -f "$binary"
-lipo -archs "$binary" | grep -Fx arm64
-build_version="$(xcrun vtool -show-build "$binary")"
-printf '%s\n' "$build_version" | grep -Eq \
-    "platform[[:space:]]+${expected_platform}([[:space:]]|$)"
-printf '%s\n' "$build_version" | grep -Eq \
-    'minos[[:space:]]+16\.4([[:space:]]|$)'
-if otool -L "$binary" | tail -n +2 |
-        grep -Ev '^[[:space:]]+(/System/Library/Frameworks/|/usr/lib/)'; then
-    echo "Smoke bundle links a non-system dynamic dependency" >&2
-    exit 1
-fi
+app_binary="${app}/OpenMWDepsSmoke"
+jpeg_probe="$(
+    find "$build_dir" -type f -name OpenMWJPEGProbe \
+        ! -path '*.dSYM/*' -print -quit
+)"
+turbojpeg_probe="$(
+    find "$build_dir" -type f -name OpenMWTurboJPEGProbe \
+        ! -path '*.dSYM/*' -print -quit
+)"
+for binary in "$app_binary" "$jpeg_probe" "$turbojpeg_probe"; do
+    if [[ -z "$binary" || ! -f "$binary" ]]; then
+        echo "A dependency smoke binary was not produced" >&2
+        exit 1
+    fi
+    lipo -archs "$binary" | grep -Fx arm64
+    build_version="$(xcrun vtool -show-build "$binary")"
+    printf '%s\n' "$build_version" | grep -Eq \
+        "platform[[:space:]]+${expected_platform}([[:space:]]|$)"
+    printf '%s\n' "$build_version" | grep -Eq \
+        'minos[[:space:]]+16\.4([[:space:]]|$)'
+    if otool -L "$binary" | tail -n +2 |
+            grep -Ev '^[[:space:]]+(/System/Library/Frameworks/|/usr/lib/)'; then
+        echo "${binary}: links a non-system dynamic dependency" >&2
+        exit 1
+    fi
+done
 
 echo "$app"

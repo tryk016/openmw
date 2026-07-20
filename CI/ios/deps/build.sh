@@ -153,15 +153,35 @@ for dependency in "${locked_dependencies[@]}"; do
                 .vcpkg_sha512)' \
             "${manifest_root}/dependencies.lock.json"
     )"
+    vcpkg_source_marker="$(
+        jq -er --arg dependency "$dependency" \
+            'first(.dependencies[] |
+                select(.name == $dependency) |
+                .vcpkg_source_marker)' \
+            "${manifest_root}/dependencies.lock.json"
+    )"
     portfile="${vcpkg_root}/ports/${vcpkg_port}/portfile.cmake"
     if [[ ! -f "$portfile" ]]; then
         echo "$dependency: pinned vcpkg portfile is missing: $portfile" >&2
         exit 1
     fi
-    if ! grep -Eq \
-            "SHA512[[:space:]]+${expected_vcpkg_sha512}([[:space:]]|$)" \
-            "$portfile"; then
-        echo "$dependency: lock SHA-512 differs from the pinned vcpkg port" >&2
+    if ! awk -v marker="$vcpkg_source_marker" \
+            -v expected_sha512="$expected_vcpkg_sha512" '
+        index($0, marker) {
+            in_source_block = 1
+        }
+        in_source_block && $0 ~ /^[[:space:]]*SHA512[[:space:]]+/ &&
+                index($0, expected_sha512) {
+            source_hash_matches = 1
+        }
+        in_source_block && $0 ~ /^[[:space:]]*\)[[:space:]]*$/ {
+            exit
+        }
+        END {
+            exit(source_hash_matches ? 0 : 1)
+        }
+    ' "$portfile"; then
+        echo "$dependency: lock SHA-512 is not bound to the pinned source block" >&2
         exit 1
     fi
 done
@@ -196,6 +216,28 @@ if [[ ! -d "$prefix" ]]; then
     echo "Expected vcpkg prefix was not created: $prefix" >&2
     exit 1
 fi
+
+for dependency in "${locked_dependencies[@]}"; do
+    expected_vcpkg_sha512="$(
+        jq -er --arg dependency "$dependency" \
+            'first(.dependencies[] |
+                select(.name == $dependency) |
+                .vcpkg_sha512)' \
+            "${manifest_root}/dependencies.lock.json"
+    )"
+    cached_asset="${asset_cache}/${expected_vcpkg_sha512}"
+    if [[ ! -f "$cached_asset" ]]; then
+        echo "$dependency: verified vcpkg source is absent from the asset cache" >&2
+        exit 1
+    fi
+    actual_asset_sha512="$(
+        shasum -a 512 "$cached_asset" | awk '{print $1}'
+    )"
+    if [[ "$actual_asset_sha512" != "$expected_vcpkg_sha512" ]]; then
+        echo "$dependency: vcpkg asset cache SHA-512 mismatch" >&2
+        exit 1
+    fi
+done
 
 status_file="${install_root}/vcpkg/status"
 if [[ ! -f "$status_file" ]]; then
@@ -233,6 +275,13 @@ installed_version() {
 }
 
 for dependency in "${locked_dependencies[@]}"; do
+    vcpkg_port="$(
+        jq -er --arg dependency "$dependency" \
+            'first(.dependencies[] |
+                select(.name == $dependency) |
+                .vcpkg_port)' \
+            "${manifest_root}/dependencies.lock.json"
+    )"
     expected_version="$(
         jq -er --arg dependency "$dependency" \
             'first(.dependencies[] |
@@ -240,7 +289,7 @@ for dependency in "${locked_dependencies[@]}"; do
                 .version)' \
             "${manifest_root}/dependencies.lock.json"
     )"
-    actual_version="$(installed_version "$dependency")"
+    actual_version="$(installed_version "$vcpkg_port")"
     if [[ -z "$actual_version" ]]; then
         echo "$dependency is absent from the $triplet vcpkg prefix" >&2
         exit 1
@@ -251,6 +300,55 @@ for dependency in "${locked_dependencies[@]}"; do
     fi
 done
 
+expected_target_packages=()
+for dependency in "${locked_dependencies[@]}"; do
+    expected_target_packages+=("$(
+        jq -er --arg dependency "$dependency" \
+            'first(.dependencies[] |
+                select(.name == $dependency) |
+                .vcpkg_port)' \
+            "${manifest_root}/dependencies.lock.json"
+    )")
+done
+expected_target_package_set="$(
+    printf '%s\n' "${expected_target_packages[@]}" | LC_ALL=C sort -u
+)"
+installed_target_package_set="$(
+    awk -v wanted_architecture="$triplet" '
+        BEGIN {
+            RS = ""
+            FS = "\n"
+        }
+        {
+            package = ""
+            architecture = ""
+            status = ""
+            for (field_index = 1; field_index <= NF; ++field_index) {
+                if ($field_index ~ /^Package: /) {
+                    package = substr($field_index, 10)
+                } else if ($field_index ~ /^Architecture: /) {
+                    architecture = substr($field_index, 15)
+                } else if ($field_index ~ /^Status: /) {
+                    status = substr($field_index, 9)
+                }
+            }
+            if (package != "" &&
+                architecture == wanted_architecture &&
+                status == "install ok installed") {
+                print package
+            }
+        }
+    ' "$status_file" | LC_ALL=C sort -u
+)"
+if [[ "$installed_target_package_set" != "$expected_target_package_set" ]]; then
+    echo "Unexpected target package set for $triplet" >&2
+    echo "Expected:" >&2
+    printf '%s\n' "$expected_target_package_set" >&2
+    echo "Installed:" >&2
+    printf '%s\n' "$installed_target_package_set" >&2
+    exit 1
+fi
+
 {
     echo "platform=${platform}"
     echo "triplet=${triplet}"
@@ -259,7 +357,14 @@ done
     echo "offline=${offline}"
     echo "prefix=${prefix}"
     for dependency in "${locked_dependencies[@]}"; do
-        echo "dependency.${dependency}=$(installed_version "$dependency")"
+        vcpkg_port="$(
+            jq -er --arg dependency "$dependency" \
+                'first(.dependencies[] |
+                    select(.name == $dependency) |
+                    .vcpkg_port)' \
+                "${manifest_root}/dependencies.lock.json"
+        )"
+        echo "dependency.${dependency}=$(installed_version "$vcpkg_port")"
     done
 } >"${platform_root}/build-manifest.txt"
 

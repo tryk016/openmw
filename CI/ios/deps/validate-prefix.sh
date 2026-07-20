@@ -50,6 +50,27 @@ if ((${#archives[@]} == 0)); then
     exit 1
 fi
 
+if [[ -d "${prefix}/share/libjpeg-turbo" ]]; then
+    for jpeg_archive in \
+            "${prefix}/lib/libjpeg.a" \
+            "${prefix}/lib/libturbojpeg.a"; do
+        if [[ ! -f "$jpeg_archive" ]]; then
+            echo "libjpeg-turbo package is missing: $jpeg_archive" >&2
+            exit 1
+        fi
+        jpeg_members="$(ar -t "$jpeg_archive")"
+        if ! grep -Eq '(^|/)jsimd\.c\.o$' <<<"$jpeg_members"; then
+            echo "$jpeg_archive: arm64 SIMD dispatcher is missing" >&2
+            exit 1
+        fi
+        if ! grep -Eq '(^|/)[A-Za-z0-9_-]+-neon\.c\.o$' \
+                <<<"$jpeg_members"; then
+            echo "$jpeg_archive: NEON implementation objects are missing" >&2
+            exit 1
+        fi
+    done
+fi
+
 temporary_root="$(mktemp -d)"
 trap 'rm -rf "$temporary_root"' EXIT
 object_count=0

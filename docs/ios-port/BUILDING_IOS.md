@@ -167,6 +167,11 @@ i tworzy `OpenMW-iOS-unsigned.ipa`. SideStore podpisuje IPA certyfikatem
 użytkownika. Dane gry nie są potrzebne do testu G0 i nie mogą znaleźć się w
 artefakcie.
 
+W G0 potwierdzono również podpisanie i instalację tego samego niesygnowanego
+IPA przez Sideloadly. Jest to dopuszczalna pomocnicza ścieżka testu
+deweloperskiego, ale nie zmienia docelowych kanałów projektu: SideStore i
+lokalnego Xcode.
+
 ## Raport testu urządzenia
 
 Test fizycznego urządzenia zgłaszamy przez szablon `iOS device test`. Raport
@@ -174,12 +179,17 @@ musi zawierać:
 
 - model urządzenia i wersję iOS;
 - commit SHA;
-- instalację SideStore albo Xcode;
+- użyte narzędzie podpisania i instalacji;
 - screenshot ekranu G0;
-- fragment unified log;
+- fragment unified log, jeżeli narzędzie instalacyjne udostępnia logi;
 - wynik background/foreground;
-- potwierdzenie breakpointu lub symbolizacji Debug;
+- potwierdzenie breakpointu lub symbolizacji Debug, jeżeli użyto Xcode;
 - wynik PASS/FAIL.
+
+W ścieżce sideload bez dostępu do logów i debuggera G0 może wykorzystać
+automatyczne dowody unified logging, dSYM i breakpointu z workflow dla tego
+samego commita. Raport musi jawnie wskazać, których dowodów fizycznych nie
+zebrano.
 
 Faza 1 nie jest ukończona bez raportu PASS na fizycznym urządzeniu.
 

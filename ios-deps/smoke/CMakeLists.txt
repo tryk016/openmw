@@ -23,7 +23,8 @@ set_target_properties(openmw-ios-zlib PROPERTIES
 
 find_package(SDL2 2.32.10 CONFIG REQUIRED
     PATHS "${IOS_DEPS_PREFIX}/share/sdl2"
-    NO_DEFAULT_PATH)
+    NO_DEFAULT_PATH
+    NO_CMAKE_FIND_ROOT_PATH)
 if(TARGET SDL2::SDL2)
     set(sdl2_target SDL2::SDL2)
 elseif(TARGET SDL2::SDL2-static)
@@ -34,7 +35,8 @@ endif()
 
 find_package(lz4 1.10.0 CONFIG REQUIRED
     PATHS "${IOS_DEPS_PREFIX}/share/lz4"
-    NO_DEFAULT_PATH)
+    NO_DEFAULT_PATH
+    NO_CMAKE_FIND_ROOT_PATH)
 if(NOT TARGET lz4::lz4)
     message(FATAL_ERROR "The locked LZ4 package has no lz4::lz4 target")
 endif()

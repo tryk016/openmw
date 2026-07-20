@@ -1,10 +1,10 @@
 # Roadmapa portu OpenMW na iOS
 
 **Ostatnia aktualizacja:** 2026-07-20
-**Bazowy upstream:** `82c6847402323e140794cf1f940b68cf3165eaea`
+**Bazowy upstream:** `7a5e77a45130aca9b33db1d2eb6b412a8a848c9b`
 **Repo docelowe:** `tryk016/openmw`
 **Branch dokumentacji:** `codex/ios-port-plan`
-**Branch integracyjny:** planowany `ios/main`
+**Branch integracyjny:** `ios/main`
 
 ## Zaakceptowany zakres
 
@@ -68,8 +68,8 @@ Tabela jest aktualizowana razem z checkboxami.
 
 | Faza | Ukończone | Wszystkie | Stan |
 |---:|---:|---:|---|
-| 0 | 20 | 24 | w toku |
-| 1 | 3 | 13 | w toku |
+| 0 | 24 | 24 | ukończona |
+| 1 | 10 | 13 | oczekuje na test fizycznego urządzenia |
 | 2 | 0 | 34 | oczekuje |
 | 3 | 0 | 26 | oczekuje |
 | 4 | 0 | 41 | oczekuje |
@@ -78,10 +78,10 @@ Tabela jest aktualizowana razem z checkboxami.
 | 7 | 0 | 17 | oczekuje |
 | 8 | 0 | 32 | oczekuje |
 | 9 | 0 | 25 | oczekuje |
-| 10 | 3 | 38 | w toku |
+| 10 | 18 | 38 | w toku |
 | 11 | 4 | 42 | w toku |
 | 12 | 0 | 16 | oczekuje |
-| **Razem** | **30** | **380** | **7,9%** |
+| **Razem** | **56** | **380** | **14,7%** |
 
 ---
 
@@ -97,8 +97,8 @@ Tabela jest aktualizowana razem z checkboxami.
 - [x] Ustawić `remote.pushDefault=origin`.
 - [x] Zapisać bazowy SHA upstreamu.
 - [x] Utworzyć izolowany branch `codex/ios-port-plan`.
-- [ ] Utworzyć branch integracyjny `ios/main`.
-- [ ] Włączyć ochronę `ios/main` w GitHubie.
+- [x] Utworzyć branch integracyjny `ios/main`.
+- [x] Włączyć ochronę `ios/main` w GitHubie.
 
 ### Dokumenty
 
@@ -115,8 +115,8 @@ Tabela jest aktualizowana razem z checkboxami.
 - [x] Dodać szablon issue dla testu urządzenia.
 - [x] Dodać etykiety `ios/build`, `ios/render`, `ios/input`, `ios/device`,
   `ios/release` i `ios/blocker`.
-- [ ] Zacommitować dokumentację wyłącznie w forku.
-- [ ] Wypchnąć branch dokumentacyjny wyłącznie do `origin`.
+- [x] Zacommitować dokumentację wyłącznie w forku.
+- [x] Wypchnąć branch dokumentacyjny wyłącznie do `origin`.
 
 **DoD fazy:** fork ma bezpieczne remotes, dokumenty są dostępne na branchu
 forka, a praca nie może przypadkowo trafić do upstreamu.
@@ -129,20 +129,23 @@ forka, a praca nie może przypadkowo trafić do upstreamu.
 
 - [x] Wyznaczyć wspieraną wersję Xcode 16.4 na runnerze `macos-15`.
 - [x] Ustawić minimalną wersję iOS/iPadOS na 16.4.
-- [ ] Zapisać model fizycznego iPhone'a/iPada do PoC.
-- [ ] Skonfigurować konto Apple Developer i development provisioning.
+- [ ] Zapisać model fizycznego iPhone'a/iPada do PoC. BLOCKED:
+  [test urządzenia #1](https://github.com/tryk016/openmw/issues/1).
+- [ ] Skonfigurować konto Apple Developer i development provisioning. BLOCKED:
+  [test urządzenia #1](https://github.com/tryk016/openmw/issues/1).
 - [x] Utworzyć `BUILDING_IOS.md` z wymaganiami hosta.
 
 ### Minimalny target
 
-- [ ] Dodać minimalny target Objective-C++/C++20 generowany przez CMake.
-- [ ] Zbudować pusty bundle dla `iphoneos/arm64`.
-- [ ] Zainstalować i uruchomić pusty bundle na fizycznym urządzeniu.
-- [ ] Zbudować pusty bundle dla `iphonesimulator/arm64`.
-- [ ] Uruchomić pusty bundle w symulatorze.
-- [ ] Dodać log do unified logging i potwierdzić go w Console/Xcode.
-- [ ] Potwierdzić działanie symboli debug i breakpointu C++.
-- [ ] Zapisać dokładne komendy jako CMake Presets.
+- [x] Dodać minimalny target Objective-C++/C++20 generowany przez CMake.
+- [x] Zbudować pusty bundle dla `iphoneos/arm64`.
+- [ ] Zainstalować i uruchomić pusty bundle na fizycznym urządzeniu. BLOCKED:
+  [test urządzenia #1](https://github.com/tryk016/openmw/issues/1).
+- [x] Zbudować pusty bundle dla `iphonesimulator/arm64`.
+- [x] Uruchomić pusty bundle w symulatorze.
+- [x] Dodać log do unified logging i potwierdzić go w Console/Xcode.
+- [x] Potwierdzić działanie symboli debug i breakpointu C++.
+- [x] Zapisać dokładne komendy jako CMake Presets.
 
 **DoD/G0:** świeży checkout buduje device i simulator w GitHub Actions, a ten
 sam kod instaluje się i uruchamia na fizycznym urządzeniu z iOS 16.4.
@@ -563,36 +566,36 @@ kill, krytycznego throttlingu i przekroczenia zatwierdzonych budżetów.
 - [ ] Dodać testy generowania iOS config.
 - [ ] Dodać testy mapowania lifecycle state machine.
 - [ ] Dodać testy mapowania touch → actions.
-- [ ] Usunąć z required checks workflow Linux/Windows/macOS runtime.
+- [x] Usunąć z required checks workflow Linux/Windows/macOS runtime.
 
 ### GitHub Actions iOS
 
 - [x] Wybrać GitHub Actions jako jedyny system CI/CD.
 - [x] Udokumentować graf jobów, artefakty i granicę podpisywania w `CI_IOS.md`.
-- [ ] Dodać `.github/workflows/ios-ci.yml`.
-- [ ] Ustawić jawny runner `macos-15`.
-- [ ] Wybrać stabilny Xcode dostępny na runnerze i sprawdzać jego wersję.
-- [ ] Logować wersje obrazu, Xcode, SDK, Clang i CMake.
+- [x] Dodać `.github/workflows/ios-ci.yml`.
+- [x] Ustawić jawny runner `macos-15`.
+- [x] Wybrać stabilny Xcode dostępny na runnerze i sprawdzać jego wersję.
+- [x] Logować wersje obrazu, Xcode, SDK, Clang i CMake.
 - [ ] Dodać cache zależności zależny od Xcode, architektury i lockfile.
 - [ ] Zabezpieczyć cache/workflow przed niezaufanym kodem z PR.
-- [ ] Dodać configure/build `ios-device`.
-- [ ] Dodać configure/build `ios-simulator`.
-- [ ] Wymusić deployment target `16.4` w obu buildach.
-- [ ] Dodać simulator launch smoke test.
-- [ ] Dodać test braku niezamierzonych zewnętrznych dylibów.
-- [ ] Dodać test architektury/platform każdego artefaktu.
+- [x] Dodać configure/build `ios-device`.
+- [x] Dodać configure/build `ios-simulator`.
+- [x] Wymusić deployment target `16.4` w obu buildach.
+- [x] Dodać simulator launch smoke test.
+- [x] Dodać test braku niezamierzonych zewnętrznych dylibów.
+- [x] Dodać test architektury/platform każdego artefaktu.
 - [ ] Dodać test listy statycznych pluginów OSG.
 - [ ] Dodać test kompilacji shaderów profilu iOS.
-- [ ] Dodać niesygnowany archive/IPA bez sekretów.
-- [ ] Sprawdzić brak danych gry, certyfikatów i provisioning profiles.
+- [x] Dodać niesygnowany archive/IPA bez sekretów.
+- [x] Sprawdzić brak danych gry, certyfikatów i provisioning profiles.
 - [ ] Publikować IPA, dSYM, manifest, SBOM, notices i sumy kontrolne.
-- [ ] Ustawić krótką retencję artefaktów PR.
+- [x] Ustawić krótką retencję artefaktów PR.
 
 ### Device lab/manual
 
 - [x] Utworzyć `DEVICE_MATRIX.md`.
 - [ ] Dodać fizyczne urządzenie z iOS 16.4 do wymaganej macierzy.
-- [ ] Dodać formularz raportu urządzenia.
+- [x] Dodać formularz raportu urządzenia.
 - [ ] Automatyzować instalację i zebranie logów, gdy infrastruktura pozwoli.
 - [ ] Archiwizować crash reports i dSYM dla każdego RC.
 - [ ] Archiwizować metryki FPS/RAM/thermal.

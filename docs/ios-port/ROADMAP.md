@@ -70,8 +70,8 @@ Tabela jest aktualizowana razem z checkboxami.
 |---:|---:|---:|---|
 | 0 | 24 | 24 | ukończona |
 | 1 | 13 | 13 | ukończona |
-| 2 | 0 | 34 | oczekuje |
-| 3 | 0 | 26 | oczekuje |
+| 2 | 11 | 34 | w toku |
+| 3 | 10 | 26 | w toku |
 | 4 | 0 | 41 | oczekuje |
 | 5 | 0 | 39 | oczekuje |
 | 6 | 0 | 33 | oczekuje |
@@ -81,7 +81,7 @@ Tabela jest aktualizowana razem z checkboxami.
 | 10 | 20 | 38 | w toku |
 | 11 | 4 | 42 | w toku |
 | 12 | 0 | 16 | oczekuje |
-| **Razem** | **61** | **380** | **16,1%** |
+| **Razem** | **82** | **380** | **21,6%** |
 
 ---
 
@@ -161,16 +161,16 @@ jeżeli nie jest dostępny w G0.
 
 ### Superbuild i manifest
 
-- [ ] Utworzyć wersjonowany `ios-deps`/superbuild.
-- [ ] Rozdzielić katalogi build `iphoneos` i `iphonesimulator`.
-- [ ] Ustalić format statycznych `.a` vs statycznych XCFrameworks.
-- [ ] Dodać `DEPENDENCY_LOCK.md`.
-- [ ] Przypiąć wersję/commit i SHA-256 każdego źródła.
-- [ ] Dodać cache pobranych źródeł działający offline.
+- [x] Utworzyć wersjonowany `ios-deps`/superbuild.
+- [x] Rozdzielić katalogi build `iphoneos` i `iphonesimulator`.
+- [x] Ustalić format statycznych `.a` vs statycznych XCFrameworks.
+- [x] Dodać `DEPENDENCY_LOCK.md`.
+- [x] Przypiąć wersję/commit i SHA-256 każdego źródła.
+- [x] Dodać cache pobranych źródeł działający offline.
 - [ ] Dodać komendę czystego rebuilda wszystkich zależności.
-- [ ] Dodać kontrolę architektury każdego artefaktu.
-- [ ] Dodać kontrolę platform load commands każdego artefaktu.
-- [ ] Wygenerować SBOM i zestawienie licencji.
+- [x] Dodać kontrolę architektury każdego artefaktu.
+- [x] Dodać kontrolę platform load commands każdego artefaktu.
+- [x] Wygenerować SBOM i zestawienie licencji.
 
 ### Biblioteki bazowe
 
@@ -178,7 +178,7 @@ jeżeli nie jest dostępny w G0.
 - [ ] Zbudować SDL2 dla simulator.
 - [ ] Zbudować Boost tylko z `program_options` i `iostreams`.
 - [ ] Zbudować LZ4.
-- [ ] Zbudować zlib.
+- [x] Zbudować zlib.
 - [ ] Zbudować yaml-cpp.
 - [ ] Zbudować SQLite amalgamation.
 - [ ] Zbudować Bullet 3.17 z `USE_DOUBLE_PRECISION=ON`.
@@ -191,7 +191,7 @@ jeżeli nie jest dostępny w G0.
 ### Język i lokalizacja
 
 - [ ] Zbudować PUC Lua dla device/simulator.
-- [ ] Ustawić `USE_LUAJIT=OFF` w presetach bazowych.
+- [x] Ustawić `USE_LUAJIT=OFF` w presetach bazowych.
 - [ ] Usunąć/pominąć `try_run` z `CheckLuaCustomAllocator.cmake` podczas
   cross-compile.
 - [ ] Zbudować narzędzia ICU na hoście.
@@ -212,30 +212,37 @@ jeżeli nie jest dostępny w G0.
 ma pomieszanych slice'ów, nieprzypiętych downloadów ani wymaganych dylib
 spoza systemu.
 
+**Dowód częściowy:** commit `690603fc0d`, workflow
+[`iOS dependencies` #29756035686](https://github.com/tryk016/openmw/actions/runs/29756035686)
+zbudował zlib dla obu SDK, zweryfikował każdy człon `.a`, zlinkował minimalne
+bundle, zebrał SPDX/licencję i powtórzył czysty build z zablokowanym originem.
+Punkt czystego rebuilda *wszystkich* zależności pozostaje otwarty do czasu
+dodania pełnej funkcji manifestu.
+
 ---
 
 ## Faza 3 — build system OpenMW dla iOS
 
 ### Klasyfikacja platformy
 
-- [ ] Dodać `OPENMW_IOS` albo użyć CMake `IOS`.
+- [x] Dodać `OPENMW_IOS` albo użyć CMake `IOS`.
 - [ ] Rozdzielić wspólne `APPLE` od `APPLE AND NOT IOS`.
 - [ ] Zastąpić macOS `OpenGL.framework` właściwą zależnością warstwy GL4ES/GLES.
-- [ ] Wyłączyć macOS CPack dla iOS.
-- [ ] Usunąć założenie `OpenMW.app/Contents/Resources`.
-- [ ] Usunąć linkowanie Cocoa/IOKit w target iOS.
+- [x] Wyłączyć macOS CPack dla iOS.
+- [x] Usunąć założenie `OpenMW.app/Contents/Resources`.
+- [x] Usunąć linkowanie Cocoa/IOKit w target iOS.
 - [ ] Dodać wymagane frameworki UIKit/Foundation/GameController/AudioToolbox
   tylko przez jawne targety.
 - [ ] Usunąć ograniczenie architektury odrzucające listę slice'ów symulatora.
 
 ### Zakres targetu
 
-- [ ] Ustawić `BUILD_OPENMW=ON`.
-- [ ] Ustawić `BUILD_LAUNCHER=OFF`.
-- [ ] Ustawić `BUILD_WIZARD=OFF`.
-- [ ] Ustawić `BUILD_OPENCS=OFF`.
-- [ ] Wyłączyć wszystkie importery i narzędzia CLI.
-- [ ] Wyłączyć testy/benchmarki w app buildzie.
+- [x] Ustawić `BUILD_OPENMW=ON`.
+- [x] Ustawić `BUILD_LAUNCHER=OFF`.
+- [x] Ustawić `BUILD_WIZARD=OFF`.
+- [x] Ustawić `BUILD_OPENCS=OFF`.
+- [x] Wyłączyć wszystkie importery i narzędzia CLI.
+- [x] Wyłączyć testy/benchmarki w app buildzie.
 - [ ] Zbudować `components` statycznie.
 - [ ] Zbudować `openmw-lib` statycznie.
 - [ ] Dodać finalny target app bundle iOS.
@@ -255,6 +262,11 @@ spoza systemu.
 
 **DoD fazy:** OpenMW core i finalny target iOS konfigurują się i linkują w obu
 platformach build, nawet jeśli renderer/gameplay nie jest jeszcze uruchomiony.
+
+**Dowód częściowy:** commit `690603fc0d`, workflow
+[`iOS G0` #29756035280](https://github.com/tryk016/openmw/actions/runs/29756035280)
+potwierdził kontrakt pruningu/statycznych zależności oraz brak regresji
+bootstrapu device/simulator. Pełna konfiguracja i link core pozostają otwarte.
 
 ---
 

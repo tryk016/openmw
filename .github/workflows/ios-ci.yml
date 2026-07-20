@@ -2,7 +2,11 @@ name: iOS G0
 
 on:
   push:
+    branches:
+      - ios/main
   pull_request:
+    branches:
+      - ios/main
   workflow_dispatch:
 
 permissions:

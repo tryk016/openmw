@@ -89,6 +89,8 @@ zmienić architekturę i zakres.
   lokalny Xcode i debugowanie.
 - [DEVICE_MATRIX.md](DEVICE_MATRIX.md) — wymagana macierz i format dowodów z
   fizycznych urządzeń.
+- [G0_EVIDENCE.md](G0_EVIDENCE.md) — trwały zapis wyników CI, artefaktów i
+  brakującego dowodu fizycznego urządzenia.
 - [PROJECT_MAP.md](PROJECT_MAP.md) — mapa repozytorium i zależności między
   subsystemami.
 - [ROADMAP.md](ROADMAP.md) — kanoniczna, szczegółowa lista prac z checkboxami.

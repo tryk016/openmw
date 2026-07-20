@@ -168,7 +168,7 @@ foreach(profile_index RANGE 0 ${last_profile})
         list(APPEND profile_dependencies "${profile_dependency}")
 
         list(FIND names "${profile_dependency}" locked_dependency_index)
-        foreach(field vcpkg_port vcpkg_sha512
+        foreach(field vcpkg_port vcpkg_source_marker vcpkg_sha512
                 vcpkg_default_features vcpkg_features)
             string(JSON value ERROR_VARIABLE vcpkg_field_error
                 GET "${lock}" dependencies ${locked_dependency_index} ${field})
@@ -197,19 +197,51 @@ foreach(profile_index RANGE 0 ${last_profile})
                 "128 lowercase hex digits")
         endif()
 
+        string(JSON vcpkg_source_marker GET
+            "${lock}" dependencies ${locked_dependency_index}
+            vcpkg_source_marker)
+        if(NOT vcpkg_source_marker MATCHES "^REPO [A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+            message(FATAL_ERROR
+                "${profile_name}/${profile_dependency}: invalid "
+                "vcpkg_source_marker '${vcpkg_source_marker}'")
+        endif()
+
         string(JSON vcpkg_feature_count LENGTH
             "${lock}" dependencies ${locked_dependency_index} vcpkg_features)
-        if(NOT vcpkg_feature_count EQUAL 0)
-            message(FATAL_ERROR
-                "${profile_name}/${profile_dependency}: non-empty vcpkg "
-                "feature sets are not supported by lock schema 1")
+        set(locked_vcpkg_features)
+        if(vcpkg_feature_count GREATER 0)
+            math(EXPR last_vcpkg_feature "${vcpkg_feature_count} - 1")
+            foreach(feature_index RANGE 0 ${last_vcpkg_feature})
+                string(JSON locked_vcpkg_feature GET
+                    "${lock}" dependencies ${locked_dependency_index}
+                    vcpkg_features ${feature_index})
+                if(NOT locked_vcpkg_feature
+                        MATCHES "^[a-z0-9][a-z0-9-]*$")
+                    message(FATAL_ERROR
+                        "${profile_name}/${profile_dependency}: invalid "
+                        "vcpkg feature '${locked_vcpkg_feature}'")
+                endif()
+                if(locked_vcpkg_feature IN_LIST locked_vcpkg_features)
+                    message(FATAL_ERROR
+                        "${profile_name}/${profile_dependency}: duplicate "
+                        "vcpkg feature '${locked_vcpkg_feature}'")
+                endif()
+                list(APPEND locked_vcpkg_features
+                    "${locked_vcpkg_feature}")
+            endforeach()
         endif()
     endforeach()
 endforeach()
 
-set(manifest_file
-    "${CMAKE_CURRENT_LIST_DIR}/../../../ios-deps/vcpkg.json")
-file(READ "${manifest_file}" manifest)
+if(NOT DEFINED MANIFEST_FILE)
+    set(MANIFEST_FILE
+        "${CMAKE_CURRENT_LIST_DIR}/../../../ios-deps/vcpkg.json")
+endif()
+if(NOT EXISTS "${MANIFEST_FILE}")
+    message(FATAL_ERROR
+        "Dependency manifest file does not exist: ${MANIFEST_FILE}")
+endif()
+file(READ "${MANIFEST_FILE}" manifest)
 
 foreach(profile_name IN LISTS profile_names)
     string(JSON manifest_dependency_count
@@ -223,6 +255,7 @@ foreach(profile_name IN LISTS profile_names)
 
     set(manifest_ports)
     set(manifest_default_features)
+    set(manifest_feature_sets)
     math(EXPR last_manifest_dependency "${manifest_dependency_count} - 1")
     foreach(manifest_dependency_index RANGE 0 ${last_manifest_dependency})
         string(JSON manifest_dependency_type TYPE
@@ -233,6 +266,7 @@ foreach(profile_name IN LISTS profile_names)
                 "${manifest}" features "${profile_name}" dependencies
                 ${manifest_dependency_index})
             set(manifest_defaults ON)
+            set(manifest_feature_set "<none>")
         elseif(manifest_dependency_type STREQUAL "OBJECT")
             string(JSON manifest_port ERROR_VARIABLE manifest_port_error
                 GET "${manifest}" features "${profile_name}" dependencies
@@ -252,10 +286,36 @@ foreach(profile_name IN LISTS profile_names)
             string(JSON manifest_feature_count ERROR_VARIABLE features_error
                 LENGTH "${manifest}" features "${profile_name}" dependencies
                 ${manifest_dependency_index} features)
-            if(NOT features_error AND NOT manifest_feature_count EQUAL 0)
-                message(FATAL_ERROR
-                    "${profile_name}/${manifest_port}: non-empty vcpkg "
-                    "feature sets are not supported by lock schema 1")
+            set(manifest_dependency_features)
+            if(NOT features_error AND manifest_feature_count GREATER 0)
+                math(EXPR last_manifest_feature
+                    "${manifest_feature_count} - 1")
+                foreach(feature_index RANGE 0 ${last_manifest_feature})
+                    string(JSON manifest_dependency_feature GET
+                        "${manifest}" features "${profile_name}" dependencies
+                        ${manifest_dependency_index} features ${feature_index})
+                    if(NOT manifest_dependency_feature
+                            MATCHES "^[a-z0-9][a-z0-9-]*$")
+                        message(FATAL_ERROR
+                            "${profile_name}/${manifest_port}: invalid vcpkg "
+                            "feature '${manifest_dependency_feature}'")
+                    endif()
+                    if(manifest_dependency_feature
+                            IN_LIST manifest_dependency_features)
+                        message(FATAL_ERROR
+                            "${profile_name}/${manifest_port}: duplicate "
+                            "vcpkg feature '${manifest_dependency_feature}'")
+                    endif()
+                    list(APPEND manifest_dependency_features
+                        "${manifest_dependency_feature}")
+                endforeach()
+            endif()
+            list(SORT manifest_dependency_features)
+            if(manifest_dependency_features)
+                string(JOIN "," manifest_feature_set
+                    ${manifest_dependency_features})
+            else()
+                set(manifest_feature_set "<none>")
             endif()
         else()
             message(FATAL_ERROR
@@ -269,6 +329,7 @@ foreach(profile_name IN LISTS profile_names)
         endif()
         list(APPEND manifest_ports "${manifest_port}")
         list(APPEND manifest_default_features "${manifest_defaults}")
+        list(APPEND manifest_feature_sets "${manifest_feature_set}")
     endforeach()
 
     set(expected_ports)
@@ -300,6 +361,35 @@ foreach(profile_name IN LISTS profile_names)
                 "(lock=${expected_default_features}, "
                 "manifest=${actual_default_features})")
         endif()
+
+        set(expected_dependency_features)
+        string(JSON expected_feature_count LENGTH
+            "${lock}" dependencies ${locked_dependency_index} vcpkg_features)
+        if(expected_feature_count GREATER 0)
+            math(EXPR last_expected_feature "${expected_feature_count} - 1")
+            foreach(feature_index RANGE 0 ${last_expected_feature})
+                string(JSON expected_dependency_feature GET
+                    "${lock}" dependencies ${locked_dependency_index}
+                    vcpkg_features ${feature_index})
+                list(APPEND expected_dependency_features
+                    "${expected_dependency_feature}")
+            endforeach()
+        endif()
+        list(SORT expected_dependency_features)
+        if(expected_dependency_features)
+            string(JOIN "," expected_feature_set
+                ${expected_dependency_features})
+        else()
+            set(expected_feature_set "<none>")
+        endif()
+        list(GET manifest_feature_sets ${manifest_port_index}
+            actual_feature_set)
+        if(NOT actual_feature_set STREQUAL expected_feature_set)
+            message(FATAL_ERROR
+                "${profile_name}/${expected_port}: vcpkg feature mismatch "
+                "(lock=${expected_feature_set}, "
+                "manifest=${actual_feature_set})")
+        endif()
     endforeach()
 
     list(SORT expected_ports)
@@ -311,7 +401,7 @@ foreach(profile_name IN LISTS profile_names)
     endif()
 endforeach()
 
-foreach(required_profile bootstrap base-foundation)
+foreach(required_profile bootstrap base-foundation image-foundation)
     if(NOT required_profile IN_LIST profile_names)
         message(FATAL_ERROR
             "Required dependency build profile is missing: "

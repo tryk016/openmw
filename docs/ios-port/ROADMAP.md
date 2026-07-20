@@ -185,8 +185,8 @@ jeżeli nie jest dostępny w G0.
 - [ ] Zweryfikować, że linkujemy tylko BulletCollision i LinearMath.
 - [ ] Zbudować Recast/Detour bez demo/testów/examples.
 - [ ] Zbudować MyGUIEngine bez pluginów/narzędzi.
-- [ ] Zbudować FreeType.
-- [ ] Zbudować libpng i libjpeg.
+- [x] Zbudować FreeType.
+- [x] Zbudować libpng i libjpeg.
 
 ### Język i lokalizacja
 
@@ -227,6 +227,16 @@ zweryfikowały `arm64`, właściwą platformę `IOS`/`IOSSIMULATOR`, `minos 16.4
 i brak niesystemowych dylib, po czym powtórzyły czysty build bez dostępu do
 originu. Lock i przypięte portfiles wskazują identyczne archiwa przez niezależne
 SHA-256 oraz SHA-512.
+
+**Dowód FreeType/kodeków:** commit `fb6c96f225`, workflow
+[`iOS dependencies` #29784186547](https://github.com/tryk016/openmw/actions/runs/29784186547)
+zbudował FreeType 2.13.3 z zewnętrznym zlib i PNG, libpng 1.6.54 oraz
+libjpeg-turbo 3.1.3 dla obu SDK. Joby sprawdziły dokładny zestaw pakietów,
+tożsamość źródeł, każdy człon archiwów, `arm64`, platformę, `minos 16.4`,
+obiekty NEON JPEG, symbole obu API JPEG i minimalny bundle, po czym powtórzyły
+czysty build offline i ponowny link. Workflow
+[`iOS G0` #29784186534](https://github.com/tryk016/openmw/actions/runs/29784186534)
+potwierdził brak regresji device/simulator oraz uruchomienie w symulatorze.
 
 ---
 

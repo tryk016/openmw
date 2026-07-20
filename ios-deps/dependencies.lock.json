@@ -18,6 +18,14 @@
       "sdl2",
       "lz4",
       "zlib"
+    ],
+    "image-foundation": [
+      "sdl2",
+      "lz4",
+      "zlib",
+      "freetype",
+      "libpng",
+      "libjpeg-turbo"
     ]
   },
   "dependencies": [
@@ -46,6 +54,7 @@
       "sha256": "03f9d7c191a837525c9cda6406af2f2e48be02b5e7eb03d949cc9f1e9ca41c8b",
       "source_root": "SDL-release-2.32.10",
       "vcpkg_port": "sdl2",
+      "vcpkg_source_marker": "REPO libsdl-org/SDL",
       "vcpkg_sha512": "d5622d6bb7266f7942a7b8ad43e8a22524893bf0c2ea1af91204838d9b78d32768843f6faa248757427b8404b8c6443776d4afa6b672cd8571a4e0c03a829383",
       "vcpkg_default_features": false,
       "vcpkg_features": [],
@@ -78,6 +87,7 @@
       "sha256": "537512904744b35e232912055ccf8ec66d768639ff3abe5788d90d792ec5f48b",
       "source_root": "lz4-1.10.0",
       "vcpkg_port": "lz4",
+      "vcpkg_source_marker": "REPO lz4/lz4",
       "vcpkg_sha512": "8c4ceb217e6dc8e7e0beba99adc736aca8963867bcf9f970d621978ba11ce92855912f8b66138037a1d2ae171e8e17beb7be99281fea840106aa60373c455b28",
       "vcpkg_default_features": false,
       "vcpkg_features": [],
@@ -96,6 +106,7 @@
       "sha256": "17e88863f3600672ab49182f217281b6fc4d3c762bde361935e436a95214d05c",
       "source_root": "zlib-1.3.1",
       "vcpkg_port": "zlib",
+      "vcpkg_source_marker": "REPO madler/zlib",
       "vcpkg_sha512": "8c9642495bafd6fad4ab9fb67f09b268c69ff9af0f4f20cf15dfc18852ff1f312bd8ca41de761b3f8d8e90e77d79f2ccacd3d4c5b19e475ecf09d021fdfe9088",
       "vcpkg_default_features": false,
       "vcpkg_features": [],
@@ -182,41 +193,61 @@
       "phase": 2,
       "group": "base",
       "archive": "freetype-VER-2-13-3.tar.gz",
-      "url": "https://codeload.github.com/freetype/freetype/tar.gz/refs/tags/VER-2-13-3",
+      "url": "https://gitlab.freedesktop.org/freetype/freetype/-/archive/VER-2-13-3/freetype-VER-2-13-3.tar.gz",
       "sha256": "bc5c898e4756d373e0d991bab053036c5eb2aa7c0d5c67e8662ddc6da40c4103",
       "source_root": "freetype-VER-2-13-3",
-      "license": "FTL OR GPL-2.0-only",
+      "vcpkg_port": "freetype",
+      "vcpkg_source_marker": "REPO freetype/freetype",
+      "vcpkg_sha512": "fccfaa15eb79a105981bf634df34ac9ddf1c53550ec0b334903a1b21f9f8bf5eb2b3f9476e554afa112a0fca58ec85ab212d674dfd853670efec876bacbe8a53",
+      "vcpkg_default_features": false,
+      "vcpkg_features": [
+        "png",
+        "zlib"
+      ],
+      "license": "FTL OR GPL-2.0-or-later",
       "license_files": [
         "LICENSE.TXT",
-        "docs/FTL.TXT"
+        "docs/FTL.TXT",
+        "docs/GPLv2.TXT"
       ]
     },
     {
       "name": "libpng",
-      "version": "1.6.47",
+      "version": "1.6.54",
       "phase": 2,
       "group": "base",
-      "archive": "libpng-1.6.47.tar.gz",
-      "url": "https://codeload.github.com/pnggroup/libpng/tar.gz/refs/tags/v1.6.47",
-      "sha256": "631a4c58ea6c10c81f160c4b21fa8495b715d251698ebc2552077e8450f30454",
-      "source_root": "libpng-1.6.47",
-      "license": "Libpng-2.0",
+      "archive": "libpng-1.6.54.tar.gz",
+      "url": "https://codeload.github.com/pnggroup/libpng/tar.gz/refs/tags/v1.6.54",
+      "sha256": "ba7efce137409079989df4667706c339bebfbb10e9f413474718012a13c8cd4c",
+      "source_root": "libpng-1.6.54",
+      "vcpkg_port": "libpng",
+      "vcpkg_source_marker": "REPO pnggroup/libpng",
+      "vcpkg_sha512": "f09e41c5e05714760b8dd05bd11bfe8b6b5840c277e5377a3854f5260879b69709c708f9581c07bdc2ffafda45796066ec258b67b0e96af64614b12346bedb1b",
+      "vcpkg_default_features": false,
+      "vcpkg_features": [],
+      "license": "libpng-2.0",
       "license_files": [
         "LICENSE"
       ]
     },
     {
       "name": "libjpeg-turbo",
-      "version": "3.1.0",
+      "version": "3.1.3",
       "phase": 2,
       "group": "base",
-      "archive": "libjpeg-turbo-3.1.0.tar.gz",
-      "url": "https://codeload.github.com/libjpeg-turbo/libjpeg-turbo/tar.gz/refs/tags/3.1.0",
-      "sha256": "35fec2e1ddfb05ecf6d93e50bc57c1e54bc81c16d611ddf6eff73fff266d8285",
-      "source_root": "libjpeg-turbo-3.1.0",
+      "archive": "libjpeg-turbo-3.1.3.tar.gz",
+      "url": "https://codeload.github.com/libjpeg-turbo/libjpeg-turbo/tar.gz/refs/tags/3.1.3",
+      "sha256": "3a13a5ba767dc8264bc40b185e41368a80d5d5f945944d1dbaa4b2fb0099f4e5",
+      "source_root": "libjpeg-turbo-3.1.3",
+      "vcpkg_port": "libjpeg-turbo",
+      "vcpkg_source_marker": "REPO libjpeg-turbo/libjpeg-turbo",
+      "vcpkg_sha512": "d95bf0689fb2862ad5ea9e902b73724098d911d9c312aa69157bec9de77f32e4d5ac7dfa105d844110cc66dbdb0336056ba7f96781fcbc848b72fd0661604d50",
+      "vcpkg_default_features": false,
+      "vcpkg_features": [],
       "license": "BSD-3-Clause AND IJG AND Zlib",
       "license_files": [
-        "LICENSE.md"
+        "LICENSE.md",
+        "README.ijg"
       ]
     },
     {

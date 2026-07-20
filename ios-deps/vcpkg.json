@@ -29,6 +29,39 @@
           "default-features": false
         }
       ]
+    },
+    "image-foundation": {
+      "description": "Cumulative base profile with font and image codecs",
+      "dependencies": [
+        {
+          "name": "sdl2",
+          "default-features": false
+        },
+        {
+          "name": "lz4",
+          "default-features": false
+        },
+        {
+          "name": "zlib",
+          "default-features": false
+        },
+        {
+          "name": "freetype",
+          "default-features": false,
+          "features": [
+            "png",
+            "zlib"
+          ]
+        },
+        {
+          "name": "libpng",
+          "default-features": false
+        },
+        {
+          "name": "libjpeg-turbo",
+          "default-features": false
+        }
+      ]
     }
   }
 }

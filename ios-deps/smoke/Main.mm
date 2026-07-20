@@ -1,11 +1,26 @@
 #import <UIKit/UIKit.h>
 
 #include <array>
+#include <cstddef>
+#include <cstdio>
 #include <cstring>
 
 #include <SDL.h>
+#include <ft2build.h>
+#include FT_CONFIG_OPTIONS_H
+#include FT_FREETYPE_H
+#include <jpeglib.h>
 #include <lz4.h>
+#include <png.h>
+#include <turbojpeg.h>
 #include <zlib.h>
+
+#ifndef FT_CONFIG_OPTION_USE_PNG
+#error "The locked FreeType build must enable PNG bitmap support"
+#endif
+#ifndef FT_CONFIG_OPTION_SYSTEM_ZLIB
+#error "The locked FreeType build must use the external zlib package"
+#endif
 
 @interface OpenMWDepsSmokeDelegate : UIResponder <UIApplicationDelegate>
 @property(nonatomic, strong) UIWindow* window;
@@ -54,18 +69,56 @@
     const bool lz4RoundTripPassed
         = restoredSize == sizeof(source)
         && std::memcmp(source, restored.data(), sizeof(source)) == 0;
-    const bool smokePassed = sdlInitResult == 0 && lz4RoundTripPassed;
+
+    FT_Library freeType = nullptr;
+    const FT_Error freeTypeInitResult = FT_Init_FreeType(&freeType);
+    FT_Int freeTypeMajor = 0;
+    FT_Int freeTypeMinor = 0;
+    FT_Int freeTypePatch = 0;
+    if (freeTypeInitResult == 0)
+    {
+        FT_Library_Version(
+            freeType, &freeTypeMajor, &freeTypeMinor, &freeTypePatch);
+        FT_Done_FreeType(freeType);
+    }
+
+    png_structp pngReader = png_create_read_struct(
+        PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    const bool pngPassed = pngReader != nullptr;
+    if (pngReader != nullptr)
+        png_destroy_read_struct(&pngReader, nullptr, nullptr);
+
+    jpeg_decompress_struct jpegDecoder = {};
+    jpeg_error_mgr jpegError = {};
+    jpegDecoder.err = jpeg_std_error(&jpegError);
+    jpeg_create_decompress(&jpegDecoder);
+    jpeg_destroy_decompress(&jpegDecoder);
+
+    tjhandle turboJpegDecoder = tj3Init(TJINIT_DECOMPRESS);
+    const bool turboJpegPassed = turboJpegDecoder != nullptr;
+    if (turboJpegDecoder != nullptr)
+        tj3Destroy(turboJpegDecoder);
+
+    const bool imageFoundationPassed = freeTypeInitResult == 0 && pngPassed
+        && turboJpegPassed;
+    const bool smokePassed
+        = sdlInitResult == 0 && lz4RoundTripPassed && imageFoundationPassed;
 
     label.text = [NSString
         stringWithFormat:
-            @"ios-deps base foundation: %@\n"
+            @"ios-deps image foundation: %@\n"
              "SDL %u.%u.%u (%d video drivers)\n"
              "LZ4 %s (round-trip %@)\n"
-             "zlib %s",
+             "zlib %s\n"
+             "FreeType %d.%d.%d\n"
+             "libpng %s\n"
+             "libjpeg-turbo %s",
             smokePassed ? @"PASS" : @"FAIL", sdlVersion.major,
             sdlVersion.minor, sdlVersion.patch, videoDriverCount,
             LZ4_versionString(), lz4RoundTripPassed ? @"PASS" : @"FAIL",
-            zlibVersion()];
+            zlibVersion(), freeTypeMajor, freeTypeMinor, freeTypePatch,
+            png_get_libpng_ver(nullptr),
+            turboJpegPassed ? "PASS" : "FAIL"];
     [controller.view addSubview:label];
 
     self.window.rootViewController = controller;

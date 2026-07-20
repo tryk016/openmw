@@ -88,8 +88,10 @@ ograniczone RAM oraz storage, dlatego:
 Workflow wybiera konkretną stabilną instalację Xcode dostępną na obrazie i
 sprawdza jej numer przed buildem. Wersję Xcode aktualizujemy niezależnie od
 minimalnego deployment targetu `16.4`. Nie wymagamy od runnera symulatora iOS
-16.4: minimalny system testujemy manualnie na fizycznym urządzeniu, a CI używa
-zainstalowanego, wspieranego runtime symulatora.
+16.4: CI używa zainstalowanego, wspieranego runtime symulatora i asertywnie
+sprawdza `minos 16.4`. G0 wymaga fizycznego PASS na iOS 16.4+, natomiast
+dokładny runtime 16.4 jest dolną bramką kompatybilności przed G5, gdy nie jest
+dostępny podczas G0.
 
 ## Cache zależności
 
@@ -188,9 +190,11 @@ GitHub-hosted runner nie potwierdza:
 - termiki, jetsam i realnego limitu pamięci;
 - kontrolera, touch i audio route na konkretnym sprzęcie;
 - instalacji/refreshu SideStore;
-- zachowania na minimalnym iOS 16.4.
+- zachowania na dokładnym minimalnym iOS 16.4.
 
-Te wyniki pozostają obowiązkowym, udokumentowanym testem urządzenia.
+Te wyniki pozostają obowiązkowymi, udokumentowanymi testami urządzeń w
+odpowiednich bramkach. G0 potwierdza instalację i lifecycle na urządzeniu
+16.4+, a dokładna dolna wersja systemu musi przejść przed G5.
 
 ## Źródła
 

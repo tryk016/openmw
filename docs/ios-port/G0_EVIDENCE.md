@@ -9,8 +9,8 @@ fizycznego urządzenia jest raportowany osobnym issue `iOS physical-device test`
 
 | Pole | Wartość |
 |---|---|
-| workflow | [iOS G0 run 29749380532](https://github.com/tryk016/openmw/actions/runs/29749380532) |
-| commit | `a001f5cfeb9e8a1ab76d601d88dfb5b6e279f6fb` |
+| workflow | [iOS G0 run 29750407807](https://github.com/tryk016/openmw/actions/runs/29750407807) |
+| commit | `66d1e7ff230c16e7dca4c0f656612323c72aab00` |
 | wynik | PASS |
 | data | 2026-07-20 |
 | runner | `macos-15`, Apple Silicon `arm64` |
@@ -50,10 +50,10 @@ urządzenie użytkownika ani deklaracja wsparcia wyłącznie dla tego modelu.
 
 | Artefakt | SHA-256 |
 |---|---|
-| `OpenMW-iOS-unsigned.ipa` | `aa35ce7960f45dff5aa25df543d1afbfc8be4e4fcc1a365d18789a2a7c5dd8e7` |
-| `OpenMW-iOS-Simulator.app.zip` | `f2079a5bda3e3eed3be23a7bc5ae0a2c8ee6ac0e9e1348d0c9c8d32bd6ba9a9a` |
-| `OpenMW-iOS-device.dSYM.zip` | `c3542e9d55dfd8ff2fb0e3d03f87f0b1c6b666f9dab061e767abce89a411b006` |
-| `OpenMW-iOS-simulator.dSYM.zip` | `dcb91e927bb3f883294c9d10808da096c982591d3ad4afd2dbf49196d930908e` |
+| `OpenMW-iOS-unsigned.ipa` | `eb7d86266916289d3528cbbbfb0366d5fc2d3bd1182bc1bf61fb6e320b6c736e` |
+| `OpenMW-iOS-Simulator.app.zip` | `8a666aeaf25e21df6dca35e9aabaef02ee885b998c445715df106183ca21628d` |
+| `OpenMW-iOS-device.dSYM.zip` | `a26a6068c2d9a4e5e081ffc77a415911d0f8caa7886613296957f5bf3e4a6c0f` |
+| `OpenMW-iOS-simulator.dSYM.zip` | `208088c707f25590cdaad8340fdcdb2b85b211c4f44cd31a99a7261ae3132923` |
 
 Artefakty workflow mają retencję siedmiu dni. Odpowiadający im kod i manifest
 pozostają identyfikowalne przez commit i numer przebiegu.
@@ -75,14 +75,31 @@ kompilacji.
 
 ## Dowód fizycznego urządzenia
 
-Stan: **PENDING** — [test urządzenia #1](https://github.com/tryk016/openmw/issues/1).
+Stan: **PASS** — [test urządzenia #1](https://github.com/tryk016/openmw/issues/1).
 
-Do zamknięcia G0 potrzebny jest PASS na fizycznym iPhonie/iPadzie z iOS 16.4
-lub nowszym, zgłoszony za pomocą szablonu issue. Raport musi wskazywać dokładny
-commit i workflow artifact oraz potwierdzić:
+| Pole | Wynik |
+|---|---|
+| model | iPhone 16 Pro Max |
+| system | iOS 26.6 |
+| commit i artefakt | `66d1e7ff230c16e7dca4c0f656612323c72aab00`, `OpenMW-iOS-unsigned-*` |
+| podpisanie i instalacja | PASS przez Sideloadly |
+| pierwszy start | PASS, widoczny ekran `OpenMW for iOS` |
+| marker urządzenia | PASS, `G0 bootstrap running on an iOS device` |
+| background/foreground | PASS, bez crasha |
+| ponowny start | PASS |
+| screenshot | 25 113 B, SHA-256 `060c0c63038e088d58f3497130a271976a1186706e44c5f5d0799112ae2ec01a` |
+| data | 2026-07-20 |
 
-- instalację przez SideStore albo Xcode;
-- widoczny ekran G0;
-- własne komunikaty unified logging;
-- background/foreground bez crasha;
-- symbole/breakpoint Debug, jeżeli użyto Xcode.
+Tester dostarczył screenshot działającej aplikacji, który został wizualnie
+sprawdzony w wątku roboczym Codex. Obraz nie został skopiowany do publicznego
+repozytorium bez osobnej zgody użytkownika.
+
+Fizycznych logów nie zebrano. Nie maskujemy tego braku: unified logging, dSYM,
+symbol C++ i breakpoint LLDB mają osobny automatyczny PASS dla dokładnie tego
+samego commita w runie 29750407807. Sideloadly potwierdza signing, provisioning,
+instalację i runtime G0, ale nie zmienia wybranych kanałów dystrybucji projektu:
+pozostają nimi SideStore i lokalny Xcode.
+
+Dokładny runtime iOS 16.4 nie był dostępny. G0 zamyka kontrola `minos 16.4` w
+device/simulator Mach-O oraz fizyczny PASS na iOS 16.4+. Test urządzenia z
+dokładnym iOS 16.4 pozostaje dolną bramką kompatybilności przed G5.

@@ -52,6 +52,7 @@ body:
       options:
         - SideStore
         - Xcode
+        - Sideloadly (G0 development validation only)
     validations:
       required: true
 

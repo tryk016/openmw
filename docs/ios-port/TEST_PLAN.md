@@ -12,8 +12,10 @@ Testy mają odpowiedzieć kolejno na pięć pytań:
    lokalny dla Xcode?
 
 GitHub Actions wykonuje właściwy build na runnerze macOS z Xcode. Co najmniej
-jedno fizyczne urządzenie jest wymagane od pierwszego spike'u renderingu, a
-urządzenie z iOS 16.4 jest obowiązkową dolną bramką kompatybilności.
+jedno fizyczne urządzenie z iOS 16.4+ jest wymagane już dla G0. Urządzenie z
+dokładnym iOS 16.4 jest obowiązkową dolną bramką kompatybilności przed G5; gdy
+nie jest dostępne w G0, deployment target potwierdzają kontrole Mach-O i
+bundle.
 
 ## Poziomy testów
 
@@ -127,6 +129,8 @@ Każdy raport zawiera:
 - czysty checkout w GitHub Actions konfiguruje device i simulator;
 - wszystkie warianty deklarują deployment target `16.4`;
 - pusty C++20 target startuje w obu;
+- ten sam bundle instaluje się, startuje i przechodzi podstawowy lifecycle na
+  fizycznym urządzeniu z iOS 16.4+;
 - debug symbols działają;
 - finalny app używa tylko zatwierdzonych bibliotek systemowych/statycznych.
 

@@ -69,7 +69,7 @@ Tabela jest aktualizowana razem z checkboxami.
 | Faza | Ukończone | Wszystkie | Stan |
 |---:|---:|---:|---|
 | 0 | 24 | 24 | ukończona |
-| 1 | 10 | 13 | oczekuje na test fizycznego urządzenia |
+| 1 | 13 | 13 | ukończona |
 | 2 | 0 | 34 | oczekuje |
 | 3 | 0 | 26 | oczekuje |
 | 4 | 0 | 41 | oczekuje |
@@ -78,10 +78,10 @@ Tabela jest aktualizowana razem z checkboxami.
 | 7 | 0 | 17 | oczekuje |
 | 8 | 0 | 32 | oczekuje |
 | 9 | 0 | 25 | oczekuje |
-| 10 | 18 | 38 | w toku |
+| 10 | 20 | 38 | w toku |
 | 11 | 4 | 42 | w toku |
 | 12 | 0 | 16 | oczekuje |
-| **Razem** | **56** | **380** | **14,7%** |
+| **Razem** | **61** | **380** | **16,1%** |
 
 ---
 
@@ -129,18 +129,21 @@ forka, a praca nie może przypadkowo trafić do upstreamu.
 
 - [x] Wyznaczyć wspieraną wersję Xcode 16.4 na runnerze `macos-15`.
 - [x] Ustawić minimalną wersję iOS/iPadOS na 16.4.
-- [ ] Zapisać model fizycznego iPhone'a/iPada do PoC. BLOCKED:
+- [x] Zapisać model fizycznego iPhone'a/iPada do PoC:
+  iPhone 16 Pro Max, iOS 26.6,
   [test urządzenia #1](https://github.com/tryk016/openmw/issues/1).
-- [ ] Skonfigurować konto Apple Developer i development provisioning. BLOCKED:
-  [test urządzenia #1](https://github.com/tryk016/openmw/issues/1).
+- [x] Skonfigurować konto Apple Developer i development provisioning;
+  podpisanie i instalację potwierdził test przez Sideloadly w
+  [#1](https://github.com/tryk016/openmw/issues/1).
 - [x] Utworzyć `BUILDING_IOS.md` z wymaganiami hosta.
 
 ### Minimalny target
 
 - [x] Dodać minimalny target Objective-C++/C++20 generowany przez CMake.
 - [x] Zbudować pusty bundle dla `iphoneos/arm64`.
-- [ ] Zainstalować i uruchomić pusty bundle na fizycznym urządzeniu. BLOCKED:
-  [test urządzenia #1](https://github.com/tryk016/openmw/issues/1).
+- [x] Zainstalować i uruchomić pusty bundle na fizycznym urządzeniu; ekran G0,
+  background/foreground i ponowny start potwierdzono w
+  [#1](https://github.com/tryk016/openmw/issues/1).
 - [x] Zbudować pusty bundle dla `iphonesimulator/arm64`.
 - [x] Uruchomić pusty bundle w symulatorze.
 - [x] Dodać log do unified logging i potwierdzić go w Console/Xcode.
@@ -148,7 +151,9 @@ forka, a praca nie może przypadkowo trafić do upstreamu.
 - [x] Zapisać dokładne komendy jako CMake Presets.
 
 **DoD/G0:** świeży checkout buduje device i simulator w GitHub Actions, a ten
-sam kod instaluje się i uruchamia na fizycznym urządzeniu z iOS 16.4.
+sam kod instaluje się i uruchamia na fizycznym urządzeniu z iOS 16.4 lub
+nowszym. Dokładny runtime 16.4 pozostaje dolną bramką kompatybilności przed G5,
+jeżeli nie jest dostępny w G0.
 
 ---
 
@@ -594,12 +599,12 @@ kill, krytycznego throttlingu i przekroczenia zatwierdzonych budżetów.
 ### Device lab/manual
 
 - [x] Utworzyć `DEVICE_MATRIX.md`.
-- [ ] Dodać fizyczne urządzenie z iOS 16.4 do wymaganej macierzy.
+- [x] Dodać fizyczne urządzenie z iOS 16.4+ do wymaganej macierzy.
 - [x] Dodać formularz raportu urządzenia.
 - [ ] Automatyzować instalację i zebranie logów, gdy infrastruktura pozwoli.
 - [ ] Archiwizować crash reports i dSYM dla każdego RC.
 - [ ] Archiwizować metryki FPS/RAM/thermal.
-- [ ] Dodać checklistę lifecycle.
+- [x] Dodać checklistę lifecycle.
 - [ ] Dodać checklistę audio route.
 - [ ] Dodać checklistę input.
 - [ ] Dodać checklistę save/load.

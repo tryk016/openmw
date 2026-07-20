@@ -214,13 +214,13 @@ installed_version() {
             package = ""
             version = ""
             architecture = ""
-            for (index = 1; index <= NF; ++index) {
-                if ($index ~ /^Package: /) {
-                    package = substr($index, 10)
-                } else if ($index ~ /^Version: /) {
-                    version = substr($index, 10)
-                } else if ($index ~ /^Architecture: /) {
-                    architecture = substr($index, 15)
+            for (field_index = 1; field_index <= NF; ++field_index) {
+                if ($field_index ~ /^Package: /) {
+                    package = substr($field_index, 10)
+                } else if ($field_index ~ /^Version: /) {
+                    version = substr($field_index, 10)
+                } else if ($field_index ~ /^Architecture: /) {
+                    architecture = substr($field_index, 15)
                 }
             }
             if (package == wanted_package &&

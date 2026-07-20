@@ -7,7 +7,27 @@
     "bootstrap": {
       "description": "Small end-to-end superbuild proof",
       "dependencies": [
-        "zlib"
+        {
+          "name": "zlib",
+          "default-features": false
+        }
+      ]
+    },
+    "base-foundation": {
+      "description": "First production dependency slice used by the iOS shell",
+      "dependencies": [
+        {
+          "name": "sdl2",
+          "default-features": false
+        },
+        {
+          "name": "lz4",
+          "default-features": false
+        },
+        {
+          "name": "zlib",
+          "default-features": false
+        }
       ]
     }
   }

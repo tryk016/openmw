@@ -26,6 +26,33 @@ zasady jego użycia i decyzje, których sam JSON nie wyjaśnia.
 | `multimedia` | OpenAL Soft i minimalny FFmpeg |
 | `render` | GL4ES i fork OSG; grupa należy do fazy 4, lecz korzysta z tego samego locka |
 
+## Profile aktywnego buildu
+
+Sekcja `build_profiles` w locku rozróżnia przypięte źródła planowane od tych,
+które są już podłączone do superbuilda. Każdy profil ma odpowiadającą mu funkcję
+manifestu vcpkg o identycznym zestawie portów i ustawieniach default features.
+Przed buildem skrypt pobiera archiwa wskazane przez profil i sprawdza SHA-256.
+Dla aktywnych portów z builtin registry dodatkowo:
+
+1. SHA-512 tych samych bajtów musi zgadzać się z lockiem;
+2. ten SHA-512 musi występować w portfile z przypiętego commita vcpkg;
+3. wersja zainstalowanego pakietu musi zgadzać się z lockiem.
+
+W ten sposób cache źródeł locka i niezależny asset cache vcpkg odnoszą się do
+identycznego archiwum, mimo że vcpkg zarządza własną kopią downloadu.
+
+- `bootstrap`: zlib-only, mały test samego pipeline'u;
+- `base-foundation`: SDL2, LZ4 i zlib, pierwszy produkcyjny fragment grafu.
+
+Dodanie biblioteki do profilu przed pogodzeniem jej wersji z przypiętym
+registry albo portem overlay celowo kończy build błędem.
+
+Smoke profilu `base-foundation` zachowuje własny `UIApplicationMain`, definiuje
+`SDL_MAIN_HANDLED` i nie linkuje `SDL2::SDL2main`. Eksportowany target SDL ma
+sam przenieść wymagane frameworki Apple; `-ObjC` wymusza uwzględnienie jego
+statycznych członów Objective-C. Test wywołuje centralną inicjalizację SDL oraz
+wykonuje pełny round-trip LZ4.
+
 ## Pobieranie i tryb offline
 
 Na macOS/GitHub Actions:

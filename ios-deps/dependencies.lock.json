@@ -10,6 +10,16 @@
       "arm64"
     ]
   },
+  "build_profiles": {
+    "bootstrap": [
+      "zlib"
+    ],
+    "base-foundation": [
+      "sdl2",
+      "lz4",
+      "zlib"
+    ]
+  },
   "dependencies": [
     {
       "name": "vcpkg",
@@ -31,10 +41,14 @@
       "version": "2.32.10",
       "phase": 2,
       "group": "base",
-      "archive": "SDL2-2.32.10.tar.gz",
-      "url": "https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-2.32.10.tar.gz",
-      "sha256": "5f5993c530f084535c65a6879e9b26ad441169b3e25d789d83287040a9ca5165",
-      "source_root": "SDL2-2.32.10",
+      "archive": "SDL-release-2.32.10.tar.gz",
+      "url": "https://codeload.github.com/libsdl-org/SDL/tar.gz/refs/tags/release-2.32.10",
+      "sha256": "03f9d7c191a837525c9cda6406af2f2e48be02b5e7eb03d949cc9f1e9ca41c8b",
+      "source_root": "SDL-release-2.32.10",
+      "vcpkg_port": "sdl2",
+      "vcpkg_sha512": "d5622d6bb7266f7942a7b8ad43e8a22524893bf0c2ea1af91204838d9b78d32768843f6faa248757427b8404b8c6443776d4afa6b672cd8571a4e0c03a829383",
+      "vcpkg_default_features": false,
+      "vcpkg_features": [],
       "license": "Zlib",
       "license_files": [
         "LICENSE.txt"
@@ -63,6 +77,10 @@
       "url": "https://codeload.github.com/lz4/lz4/tar.gz/refs/tags/v1.10.0",
       "sha256": "537512904744b35e232912055ccf8ec66d768639ff3abe5788d90d792ec5f48b",
       "source_root": "lz4-1.10.0",
+      "vcpkg_port": "lz4",
+      "vcpkg_sha512": "8c4ceb217e6dc8e7e0beba99adc736aca8963867bcf9f970d621978ba11ce92855912f8b66138037a1d2ae171e8e17beb7be99281fea840106aa60373c455b28",
+      "vcpkg_default_features": false,
+      "vcpkg_features": [],
       "license": "BSD-2-Clause",
       "license_files": [
         "lib/LICENSE"
@@ -77,6 +95,10 @@
       "url": "https://codeload.github.com/madler/zlib/tar.gz/refs/tags/v1.3.1",
       "sha256": "17e88863f3600672ab49182f217281b6fc4d3c762bde361935e436a95214d05c",
       "source_root": "zlib-1.3.1",
+      "vcpkg_port": "zlib",
+      "vcpkg_sha512": "8c9642495bafd6fad4ab9fb67f09b268c69ff9af0f4f20cf15dfc18852ff1f312bd8ca41de761b3f8d8e90e77d79f2ccacd3d4c5b19e475ecf09d021fdfe9088",
+      "vcpkg_default_features": false,
+      "vcpkg_features": [],
       "license": "Zlib",
       "license_files": [
         "LICENSE"

@@ -72,16 +72,6 @@ if [[ "$(uname -s)" != Darwin ]]; then
     exit 1
 fi
 
-case "$feature" in
-    bootstrap)
-        locked_dependencies=(zlib)
-        ;;
-    *)
-        echo "Unsupported dependency feature: $feature" >&2
-        exit 2
-        ;;
-esac
-
 for command in jq xcrun; do
     if ! command -v "$command" >/dev/null 2>&1; then
         echo "Required command is unavailable: $command" >&2
@@ -96,6 +86,22 @@ if [[ "$deployment_target" != 16.4 ]]; then
     echo "Unexpected deployment target in dependency lock: $deployment_target" >&2
     exit 1
 fi
+
+if ! jq -e --arg feature "$feature" \
+        '.build_profiles[$feature] | arrays and length > 0' \
+        "${manifest_root}/dependencies.lock.json" >/dev/null; then
+    echo "Unsupported or empty dependency feature: $feature" >&2
+    exit 2
+fi
+
+locked_dependencies=()
+while IFS= read -r dependency; do
+    locked_dependencies+=("$dependency")
+done < <(
+    jq -r --arg feature "$feature" \
+        '.build_profiles[$feature][]' \
+        "${manifest_root}/dependencies.lock.json"
+)
 
 for dependency in "${locked_dependencies[@]}"; do
     fetch_args=(
@@ -132,6 +138,34 @@ export IOS_DEPS_SOURCE_CACHE="$source_cache"
 export IOS_DEPS_OFFLINE="$offline"
 vcpkg_root="$(bash "${script_dir}/bootstrap-vcpkg.sh")"
 
+for dependency in "${locked_dependencies[@]}"; do
+    vcpkg_port="$(
+        jq -er --arg dependency "$dependency" \
+            'first(.dependencies[] |
+                select(.name == $dependency) |
+                .vcpkg_port)' \
+            "${manifest_root}/dependencies.lock.json"
+    )"
+    expected_vcpkg_sha512="$(
+        jq -er --arg dependency "$dependency" \
+            'first(.dependencies[] |
+                select(.name == $dependency) |
+                .vcpkg_sha512)' \
+            "${manifest_root}/dependencies.lock.json"
+    )"
+    portfile="${vcpkg_root}/ports/${vcpkg_port}/portfile.cmake"
+    if [[ ! -f "$portfile" ]]; then
+        echo "$dependency: pinned vcpkg portfile is missing: $portfile" >&2
+        exit 1
+    fi
+    if ! grep -Eq \
+            "SHA512[[:space:]]+${expected_vcpkg_sha512}([[:space:]]|$)" \
+            "$portfile"; then
+        echo "$dependency: lock SHA-512 differs from the pinned vcpkg port" >&2
+        exit 1
+    fi
+done
+
 export VCPKG_DISABLE_METRICS=1
 export VCPKG_DOWNLOADS="$downloads"
 export VCPKG_BINARY_SOURCES=clear
@@ -163,6 +197,60 @@ if [[ ! -d "$prefix" ]]; then
     exit 1
 fi
 
+status_file="${install_root}/vcpkg/status"
+if [[ ! -f "$status_file" ]]; then
+    echo "vcpkg package status is missing: $status_file" >&2
+    exit 1
+fi
+
+installed_version() {
+    local package="$1"
+    awk -v wanted_package="$package" -v wanted_architecture="$triplet" '
+        BEGIN {
+            RS = ""
+            FS = "\n"
+        }
+        {
+            package = ""
+            version = ""
+            architecture = ""
+            for (index = 1; index <= NF; ++index) {
+                if ($index ~ /^Package: /) {
+                    package = substr($index, 10)
+                } else if ($index ~ /^Version: /) {
+                    version = substr($index, 10)
+                } else if ($index ~ /^Architecture: /) {
+                    architecture = substr($index, 15)
+                }
+            }
+            if (package == wanted_package &&
+                    architecture == wanted_architecture) {
+                print version
+                exit
+            }
+        }
+    ' "$status_file"
+}
+
+for dependency in "${locked_dependencies[@]}"; do
+    expected_version="$(
+        jq -er --arg dependency "$dependency" \
+            'first(.dependencies[] |
+                select(.name == $dependency) |
+                .version)' \
+            "${manifest_root}/dependencies.lock.json"
+    )"
+    actual_version="$(installed_version "$dependency")"
+    if [[ -z "$actual_version" ]]; then
+        echo "$dependency is absent from the $triplet vcpkg prefix" >&2
+        exit 1
+    fi
+    if [[ "$actual_version" != "$expected_version" ]]; then
+        echo "$dependency version mismatch: lock=$expected_version, installed=$actual_version" >&2
+        exit 1
+    fi
+done
+
 {
     echo "platform=${platform}"
     echo "triplet=${triplet}"
@@ -170,6 +258,9 @@ fi
     echo "feature=${feature}"
     echo "offline=${offline}"
     echo "prefix=${prefix}"
+    for dependency in "${locked_dependencies[@]}"; do
+        echo "dependency.${dependency}=$(installed_version "$dependency")"
+    done
 } >"${platform_root}/build-manifest.txt"
 
 printf '%s\n' "$prefix"

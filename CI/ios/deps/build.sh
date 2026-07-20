@@ -5,7 +5,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/../../.." && pwd)"
 manifest_root="${repo_root}/ios-deps"
 build_root="${IOS_DEPS_BUILD_ROOT:-${repo_root}/build/ios-deps}"
-downloads="${IOS_DEPS_DOWNLOADS:-${build_root}/downloads}"
+shared_downloads="${IOS_DEPS_DOWNLOADS:-${build_root}/downloads}"
 asset_cache="${IOS_DEPS_ASSET_CACHE:-${build_root}/asset-cache}"
 source_cache="${IOS_DEPS_SOURCE_CACHE:-${build_root}/source-cache}"
 platform=
@@ -72,6 +72,19 @@ if [[ "$(uname -s)" != Darwin ]]; then
     exit 1
 fi
 
+case "$(uname -m)" in
+    arm64)
+        host_triplet=arm64-osx
+        ;;
+    x86_64)
+        host_triplet=x64-osx
+        ;;
+    *)
+        echo "Unsupported macOS host architecture: $(uname -m)" >&2
+        exit 1
+        ;;
+esac
+
 for command in jq xcrun; do
     if ! command -v "$command" >/dev/null 2>&1; then
         echo "Required command is unavailable: $command" >&2
@@ -119,6 +132,22 @@ platform_root="${build_root}/${platform}"
 buildtrees="${platform_root}/buildtrees"
 packages="${platform_root}/packages"
 install_root="${platform_root}/vcpkg_installed"
+
+if ((offline)); then
+    # An offline rebuild must prove that the content-addressed asset cache is
+    # sufficient.  Reusing VCPKG_DOWNLOADS (or --no-downloads) would bypass the
+    # asset provider and could produce a false-positive offline result.
+    downloads="${platform_root}/offline-downloads"
+    case "$downloads" in
+        "${build_root}"/*) rm -rf "$downloads" ;;
+        *)
+            echo "Refusing to reset offline downloads outside the iOS dependency build root" >&2
+            exit 1
+            ;;
+    esac
+else
+    downloads="$shared_downloads"
+fi
 
 if ((clean)); then
     for path in "$buildtrees" "$packages" "$install_root"; do
@@ -190,7 +219,7 @@ export VCPKG_DISABLE_METRICS=1
 export VCPKG_DOWNLOADS="$downloads"
 export VCPKG_BINARY_SOURCES=clear
 if ((offline)); then
-    export X_VCPKG_ASSET_SOURCES="clear;x-azurl,file://${asset_cache},,readwrite;x-block-origin"
+    export X_VCPKG_ASSET_SOURCES="clear;x-azurl,file://${asset_cache},,read;x-block-origin"
 else
     export X_VCPKG_ASSET_SOURCES="clear;x-azurl,file://${asset_cache},,readwrite"
 fi
@@ -202,13 +231,11 @@ vcpkg_args=(
     --x-packages-root="$packages"
     --overlay-triplets="${manifest_root}/triplets"
     --triplet="$triplet"
+    --host-triplet="$host_triplet"
     --x-feature="$feature"
     --clean-buildtrees-after-build
     --clean-packages-after-build
 )
-if ((offline)); then
-    vcpkg_args+=(--no-downloads)
-fi
 "${vcpkg_root}/vcpkg" install "${vcpkg_args[@]}" >&2
 
 prefix="${install_root}/${triplet}"
@@ -239,39 +266,31 @@ for dependency in "${locked_dependencies[@]}"; do
     fi
 done
 
-status_file="${install_root}/vcpkg/status"
-if [[ ! -f "$status_file" ]]; then
-    echo "vcpkg package status is missing: $status_file" >&2
+installed_json="${platform_root}/installed-packages.json"
+"${vcpkg_root}/vcpkg" list --x-json \
+    --x-install-root="$install_root" >"$installed_json"
+if ! jq -e 'type == "object"' "$installed_json" >/dev/null; then
+    echo "vcpkg list did not produce an installed-package JSON object" >&2
     exit 1
 fi
 
-installed_version() {
+installed_core_field() {
     local package="$1"
-    awk -v wanted_package="$package" -v wanted_architecture="$triplet" '
-        BEGIN {
-            RS = ""
-            FS = "\n"
-        }
-        {
-            package = ""
-            version = ""
-            architecture = ""
-            for (field_index = 1; field_index <= NF; ++field_index) {
-                if ($field_index ~ /^Package: /) {
-                    package = substr($field_index, 10)
-                } else if ($field_index ~ /^Version: /) {
-                    version = substr($field_index, 10)
-                } else if ($field_index ~ /^Architecture: /) {
-                    architecture = substr($field_index, 15)
-                }
-            }
-            if (package == wanted_package &&
-                    architecture == wanted_architecture) {
-                print version
-                exit
-            }
-        }
-    ' "$status_file"
+    local wanted_field="$2"
+    jq -er --arg package "$package" --arg triplet "$triplet" \
+        --arg field "$wanted_field" '
+        first(to_entries[].value
+            | select(.package_name == $package and .triplet == $triplet))
+        | if $field == "version" then .version else .port_version end
+    ' "$installed_json"
+}
+
+installed_version() {
+    installed_core_field "$1" version
+}
+
+installed_port_version() {
+    installed_core_field "$1" port-version
 }
 
 for dependency in "${locked_dependencies[@]}"; do
@@ -289,7 +308,15 @@ for dependency in "${locked_dependencies[@]}"; do
                 .version)' \
             "${manifest_root}/dependencies.lock.json"
     )"
+    expected_port_version="$(
+        jq -er --arg dependency "$dependency" \
+            'first(.dependencies[] |
+                select(.name == $dependency) |
+                (.vcpkg_port_version // 0))' \
+            "${manifest_root}/dependencies.lock.json"
+    )"
     actual_version="$(installed_version "$vcpkg_port")"
+    actual_port_version="$(installed_port_version "$vcpkg_port")"
     if [[ -z "$actual_version" ]]; then
         echo "$dependency is absent from the $triplet vcpkg prefix" >&2
         exit 1
@@ -298,60 +325,23 @@ for dependency in "${locked_dependencies[@]}"; do
         echo "$dependency version mismatch: lock=$expected_version, installed=$actual_version" >&2
         exit 1
     fi
+    if [[ "$actual_port_version" != "$expected_port_version" ]]; then
+        echo "$dependency port-version mismatch: lock=$expected_port_version, installed=$actual_port_version" >&2
+        exit 1
+    fi
 done
 
-expected_target_packages=()
-for dependency in "${locked_dependencies[@]}"; do
-    expected_target_packages+=("$(
-        jq -er --arg dependency "$dependency" \
-            'first(.dependencies[] |
-                select(.name == $dependency) |
-                .vcpkg_port)' \
-            "${manifest_root}/dependencies.lock.json"
-    )")
-done
-expected_target_package_set="$(
-    printf '%s\n' "${expected_target_packages[@]}" | LC_ALL=C sort -u
-)"
-installed_target_package_set="$(
-    awk -v wanted_architecture="$triplet" '
-        BEGIN {
-            RS = ""
-            FS = "\n"
-        }
-        {
-            package = ""
-            architecture = ""
-            status = ""
-            for (field_index = 1; field_index <= NF; ++field_index) {
-                if ($field_index ~ /^Package: /) {
-                    package = substr($field_index, 10)
-                } else if ($field_index ~ /^Architecture: /) {
-                    architecture = substr($field_index, 15)
-                } else if ($field_index ~ /^Status: /) {
-                    status = substr($field_index, 9)
-                }
-            }
-            if (package != "" &&
-                architecture == wanted_architecture &&
-                status == "install ok installed") {
-                print package
-            }
-        }
-    ' "$status_file" | LC_ALL=C sort -u
-)"
-if [[ "$installed_target_package_set" != "$expected_target_package_set" ]]; then
-    echo "Unexpected target package set for $triplet" >&2
-    echo "Expected:" >&2
-    printf '%s\n' "$expected_target_package_set" >&2
-    echo "Installed:" >&2
-    printf '%s\n' "$installed_target_package_set" >&2
-    exit 1
-fi
+bash "${script_dir}/validate-installed-closure.sh" \
+    --lock "${manifest_root}/dependencies.lock.json" \
+    --installed-json "$installed_json" \
+    --profile "$feature" \
+    --target-triplet "$triplet" \
+    --host-triplet "$host_triplet"
 
 {
     echo "platform=${platform}"
     echo "triplet=${triplet}"
+    echo "host_triplet=${host_triplet}"
     echo "deployment_target=${deployment_target}"
     echo "feature=${feature}"
     echo "offline=${offline}"
@@ -365,6 +355,7 @@ fi
                 "${manifest_root}/dependencies.lock.json"
         )"
         echo "dependency.${dependency}=$(installed_version "$vcpkg_port")"
+        echo "dependency.${dependency}.port-version=$(installed_port_version "$vcpkg_port")"
     done
 } >"${platform_root}/build-manifest.txt"
 

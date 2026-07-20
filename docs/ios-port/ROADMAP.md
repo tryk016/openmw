@@ -176,7 +176,8 @@ jeżeli nie jest dostępny w G0.
 
 - [x] Zbudować SDL2 dla device.
 - [x] Zbudować SDL2 dla simulator.
-- [ ] Zbudować Boost tylko z `program_options` i `iostreams`.
+- [ ] Zbudować Boost tylko z `program_options`, `iostreams` bez filtrów
+  kompresji oraz header-only `geometry`.
 - [x] Zbudować LZ4.
 - [x] Zbudować zlib.
 - [ ] Zbudować yaml-cpp.

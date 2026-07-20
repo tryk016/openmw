@@ -611,6 +611,7 @@ target_link_libraries(components
     ${OSG_LIBRARIES}
     ${OPENTHREADS_LIBRARIES}
 
+    Boost::geometry
     Boost::program_options
     Boost::iostreams
 

@@ -46,11 +46,11 @@ jobs:
       - name: Validate shell syntax
         run: bash -n CI/ios/deps/*.sh
 
-  image-foundation:
-    name: SDL2 + image codecs ${{ matrix.platform }}
+  cpp-foundation:
+    name: C++ foundation ${{ matrix.platform }}
     needs: lock
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -89,7 +89,7 @@ jobs:
           prefix="$(
             bash CI/ios/deps/build.sh \
               --platform "${{ matrix.platform }}" \
-              --feature image-foundation \
+              --feature cpp-foundation \
               --clean
           )"
           echo "prefix=$prefix" >>"$GITHUB_OUTPUT"
@@ -112,7 +112,7 @@ jobs:
           prefix="$(
             bash CI/ios/deps/build.sh \
               --platform "${{ matrix.platform }}" \
-              --feature image-foundation \
+              --feature cpp-foundation \
               --clean \
               --offline
           )"
@@ -137,17 +137,19 @@ jobs:
             "${{ steps.offline.outputs.prefix }}" \
             "build/ios-deps/${{ matrix.platform }}/metadata"
 
-      - name: Upload image foundation evidence
+      - name: Upload C++ foundation evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: ios-deps-image-foundation-${{ matrix.platform }}-${{ github.sha }}
+          name: ios-deps-cpp-foundation-${{ matrix.platform }}-${{ github.sha }}
           path: |
             build/ios-deps/${{ matrix.platform }}/build-manifest.txt
+            build/ios-deps/${{ matrix.platform }}/installed-packages.json
             build/ios-deps/${{ matrix.platform }}/metadata
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWDepsSmoke.app
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWJPEGProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWTurboJPEGProbe
+            build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWBoostProbe
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/sdl2
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/lz4
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/zlib
@@ -156,6 +158,7 @@ jobs:
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/png
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/libjpeg-turbo
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/jpeg
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/boost*
             ios-deps/dependencies.lock.json
           if-no-files-found: warn
           retention-days: 7

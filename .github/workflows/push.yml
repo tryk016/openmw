@@ -1,8 +1,7 @@
-name: Build and test
+name: Legacy desktop build (manual only)
 
 on:
-- push
-- pull_request
+  workflow_dispatch:
 
 env:
   BUILD_TYPE: RelWithDebInfo

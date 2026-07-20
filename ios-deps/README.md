@@ -27,16 +27,29 @@ iphonesimulator/vcpkg_installed/<triplet>/ simulator static prefix
 
 Device and simulator artifacts must never be combined with `lipo`.
 
-## Bootstrap proof
+## Build profiles
 
 On macOS with Xcode 16.4:
 
 ```bash
-bash CI/ios/deps/build.sh --platform iphoneos --feature bootstrap --clean
-bash CI/ios/deps/build.sh --platform iphonesimulator --feature bootstrap --clean
+bash CI/ios/deps/build.sh \
+  --platform iphoneos \
+  --feature base-foundation \
+  --clean
+bash CI/ios/deps/build.sh \
+  --platform iphonesimulator \
+  --feature base-foundation \
+  --clean
 ```
 
-The returned path is the selected prefix. Validate it and link the smoke app:
+`base-foundation` contains the first production slice: SDL2, LZ4 and zlib.
+`bootstrap` remains available as the smaller zlib-only pipeline proof. The
+profile-to-source mapping lives in `dependencies.lock.json`; every profile must
+have a matching vcpkg manifest feature. After installation, the build also
+compares each selected package version with the lock.
+
+The returned path is the selected prefix. Validate every archive member and
+link the smoke app:
 
 ```bash
 bash CI/ios/deps/validate-prefix.sh iphoneos <device-prefix>
@@ -49,7 +62,7 @@ access:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature bootstrap \
+  --feature base-foundation \
   --clean \
   --offline
 ```

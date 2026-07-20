@@ -44,11 +44,11 @@ jobs:
       - name: Validate shell syntax
         run: bash -n CI/ios/deps/*.sh
 
-  bootstrap:
-    name: zlib ${{ matrix.platform }}
+  base-foundation:
+    name: SDL2 + LZ4 + zlib ${{ matrix.platform }}
     needs: lock
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -87,7 +87,7 @@ jobs:
           prefix="$(
             bash CI/ios/deps/build.sh \
               --platform "${{ matrix.platform }}" \
-              --feature bootstrap \
+              --feature base-foundation \
               --clean
           )"
           echo "prefix=$prefix" >>"$GITHUB_OUTPUT"
@@ -110,7 +110,7 @@ jobs:
           prefix="$(
             bash CI/ios/deps/build.sh \
               --platform "${{ matrix.platform }}" \
-              --feature bootstrap \
+              --feature base-foundation \
               --clean \
               --offline
           )"
@@ -129,15 +129,17 @@ jobs:
             "${{ steps.offline.outputs.prefix }}" \
             "build/ios-deps/${{ matrix.platform }}/metadata"
 
-      - name: Upload bootstrap evidence
+      - name: Upload base foundation evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: ios-deps-zlib-${{ matrix.platform }}-${{ github.sha }}
+          name: ios-deps-base-foundation-${{ matrix.platform }}-${{ github.sha }}
           path: |
             build/ios-deps/${{ matrix.platform }}/build-manifest.txt
             build/ios-deps/${{ matrix.platform }}/metadata
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWDepsSmoke.app
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/sdl2
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/lz4
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/zlib
             ios-deps/dependencies.lock.json
           if-no-files-found: warn

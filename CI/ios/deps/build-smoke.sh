@@ -9,7 +9,12 @@ fi
 platform="$1"
 prefix="$2"
 case "$platform" in
-    iphoneos|iphonesimulator) ;;
+    iphoneos)
+        expected_platform=IOS
+        ;;
+    iphonesimulator)
+        expected_platform=IOSSIMULATOR
+        ;;
     *)
         echo "Unsupported platform: $platform" >&2
         exit 2
@@ -47,7 +52,10 @@ fi
 binary="${app}/OpenMWDepsSmoke"
 test -f "$binary"
 lipo -archs "$binary" | grep -Fx arm64
-xcrun vtool -show-build "$binary" | grep -Eq \
+build_version="$(xcrun vtool -show-build "$binary")"
+printf '%s\n' "$build_version" | grep -Eq \
+    "platform[[:space:]]+${expected_platform}([[:space:]]|$)"
+printf '%s\n' "$build_version" | grep -Eq \
     'minos[[:space:]]+16\.4([[:space:]]|$)'
 if otool -L "$binary" | tail -n +2 |
         grep -Ev '^[[:space:]]+(/System/Library/Frameworks/|/usr/lib/)'; then

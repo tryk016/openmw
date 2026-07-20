@@ -174,10 +174,10 @@ jeżeli nie jest dostępny w G0.
 
 ### Biblioteki bazowe
 
-- [ ] Zbudować SDL2 dla device.
-- [ ] Zbudować SDL2 dla simulator.
+- [x] Zbudować SDL2 dla device.
+- [x] Zbudować SDL2 dla simulator.
 - [ ] Zbudować Boost tylko z `program_options` i `iostreams`.
-- [ ] Zbudować LZ4.
+- [x] Zbudować LZ4.
 - [x] Zbudować zlib.
 - [ ] Zbudować yaml-cpp.
 - [ ] Zbudować SQLite amalgamation.
@@ -218,6 +218,15 @@ zbudował zlib dla obu SDK, zweryfikował każdy człon `.a`, zlinkował minimal
 bundle, zebrał SPDX/licencję i powtórzył czysty build z zablokowanym originem.
 Punkt czystego rebuilda *wszystkich* zależności pozostaje otwarty do czasu
 dodania pełnej funkcji manifestu.
+
+**Dowód SDL2/LZ4:** commit `27f8547bfc`, workflow
+[`iOS dependencies` #29760030676](https://github.com/tryk016/openmw/actions/runs/29760030676)
+zbudował statyczne SDL2 2.32.10, LZ4 1.10.0 i zlib 1.3.1 dla obu SDK.
+Oba joby zlinkowały symbole trzech bibliotek do minimalnego bundle'a UIKit,
+zweryfikowały `arm64`, właściwą platformę `IOS`/`IOSSIMULATOR`, `minos 16.4`
+i brak niesystemowych dylib, po czym powtórzyły czysty build bez dostępu do
+originu. Lock i przypięte portfiles wskazują identyczne archiwa przez niezależne
+SHA-256 oraz SHA-512.
 
 ---
 

@@ -121,7 +121,218 @@ foreach(required
     endif()
 endforeach()
 
+string(JSON profile_count ERROR_VARIABLE profile_error
+    LENGTH "${lock}" build_profiles)
+if(profile_error OR profile_count LESS 1)
+    message(FATAL_ERROR
+        "The dependency lock must define at least one build_profiles entry")
+endif()
+
+set(profile_names)
+math(EXPR last_profile "${profile_count} - 1")
+foreach(profile_index RANGE 0 ${last_profile})
+    string(JSON profile_name MEMBER
+        "${lock}" build_profiles ${profile_index})
+    if(NOT profile_name MATCHES "^[a-z0-9][a-z0-9-]*$")
+        message(FATAL_ERROR
+            "Invalid dependency build profile name: ${profile_name}")
+    endif()
+    list(APPEND profile_names "${profile_name}")
+
+    string(JSON profile_dependency_count LENGTH
+        "${lock}" build_profiles "${profile_name}")
+    if(profile_dependency_count LESS 1)
+        message(FATAL_ERROR
+            "Dependency build profile is empty: ${profile_name}")
+    endif()
+
+    set(profile_dependencies)
+    math(EXPR last_profile_dependency "${profile_dependency_count} - 1")
+    foreach(dependency_index RANGE 0 ${last_profile_dependency})
+        string(JSON profile_dependency GET
+            "${lock}" build_profiles "${profile_name}" ${dependency_index})
+        if(NOT profile_dependency IN_LIST names)
+            message(FATAL_ERROR
+                "${profile_name}: unknown locked dependency "
+                "'${profile_dependency}'")
+        endif()
+        if(profile_dependency STREQUAL "vcpkg")
+            message(FATAL_ERROR
+                "${profile_name}: vcpkg is tooling, not a target package")
+        endif()
+        if(profile_dependency IN_LIST profile_dependencies)
+            message(FATAL_ERROR
+                "${profile_name}: duplicate dependency "
+                "'${profile_dependency}'")
+        endif()
+        list(APPEND profile_dependencies "${profile_dependency}")
+
+        list(FIND names "${profile_dependency}" locked_dependency_index)
+        foreach(field vcpkg_port vcpkg_sha512
+                vcpkg_default_features vcpkg_features)
+            string(JSON value ERROR_VARIABLE vcpkg_field_error
+                GET "${lock}" dependencies ${locked_dependency_index} ${field})
+            if(vcpkg_field_error)
+                message(FATAL_ERROR
+                    "${profile_name}/${profile_dependency}: active dependency "
+                    "is missing '${field}'")
+            endif()
+        endforeach()
+
+        string(JSON vcpkg_port GET
+            "${lock}" dependencies ${locked_dependency_index} vcpkg_port)
+        if(NOT vcpkg_port MATCHES "^[a-z0-9][a-z0-9-]*$")
+            message(FATAL_ERROR
+                "${profile_name}/${profile_dependency}: invalid vcpkg port "
+                "'${vcpkg_port}'")
+        endif()
+
+        string(JSON vcpkg_sha512 GET
+            "${lock}" dependencies ${locked_dependency_index} vcpkg_sha512)
+        string(LENGTH "${vcpkg_sha512}" vcpkg_hash_length)
+        if(NOT vcpkg_hash_length EQUAL 128 OR
+                NOT vcpkg_sha512 MATCHES "^[0-9a-f]+$")
+            message(FATAL_ERROR
+                "${profile_name}/${profile_dependency}: vcpkg_sha512 must be "
+                "128 lowercase hex digits")
+        endif()
+
+        string(JSON vcpkg_feature_count LENGTH
+            "${lock}" dependencies ${locked_dependency_index} vcpkg_features)
+        if(NOT vcpkg_feature_count EQUAL 0)
+            message(FATAL_ERROR
+                "${profile_name}/${profile_dependency}: non-empty vcpkg "
+                "feature sets are not supported by lock schema 1")
+        endif()
+    endforeach()
+endforeach()
+
+set(manifest_file
+    "${CMAKE_CURRENT_LIST_DIR}/../../../ios-deps/vcpkg.json")
+file(READ "${manifest_file}" manifest)
+
+foreach(profile_name IN LISTS profile_names)
+    string(JSON manifest_dependency_count
+        ERROR_VARIABLE manifest_feature_error
+        LENGTH "${manifest}" features "${profile_name}" dependencies)
+    if(manifest_feature_error OR manifest_dependency_count LESS 1)
+        message(FATAL_ERROR
+            "Lock build profile '${profile_name}' has no matching non-empty "
+            "vcpkg manifest feature")
+    endif()
+
+    set(manifest_ports)
+    set(manifest_default_features)
+    math(EXPR last_manifest_dependency "${manifest_dependency_count} - 1")
+    foreach(manifest_dependency_index RANGE 0 ${last_manifest_dependency})
+        string(JSON manifest_dependency_type TYPE
+            "${manifest}" features "${profile_name}" dependencies
+            ${manifest_dependency_index})
+        if(manifest_dependency_type STREQUAL "STRING")
+            string(JSON manifest_port GET
+                "${manifest}" features "${profile_name}" dependencies
+                ${manifest_dependency_index})
+            set(manifest_defaults ON)
+        elseif(manifest_dependency_type STREQUAL "OBJECT")
+            string(JSON manifest_port ERROR_VARIABLE manifest_port_error
+                GET "${manifest}" features "${profile_name}" dependencies
+                ${manifest_dependency_index} name)
+            if(manifest_port_error)
+                message(FATAL_ERROR
+                    "${profile_name}: dependency object "
+                    "${manifest_dependency_index} has no name")
+            endif()
+            string(JSON manifest_defaults ERROR_VARIABLE defaults_error
+                GET "${manifest}" features "${profile_name}" dependencies
+                ${manifest_dependency_index} default-features)
+            if(defaults_error)
+                set(manifest_defaults ON)
+            endif()
+
+            string(JSON manifest_feature_count ERROR_VARIABLE features_error
+                LENGTH "${manifest}" features "${profile_name}" dependencies
+                ${manifest_dependency_index} features)
+            if(NOT features_error AND NOT manifest_feature_count EQUAL 0)
+                message(FATAL_ERROR
+                    "${profile_name}/${manifest_port}: non-empty vcpkg "
+                    "feature sets are not supported by lock schema 1")
+            endif()
+        else()
+            message(FATAL_ERROR
+                "${profile_name}: dependency ${manifest_dependency_index} "
+                "must be a string or object")
+        endif()
+
+        if(manifest_port IN_LIST manifest_ports)
+            message(FATAL_ERROR
+                "${profile_name}: duplicate manifest port '${manifest_port}'")
+        endif()
+        list(APPEND manifest_ports "${manifest_port}")
+        list(APPEND manifest_default_features "${manifest_defaults}")
+    endforeach()
+
+    set(expected_ports)
+    string(JSON profile_dependency_count LENGTH
+        "${lock}" build_profiles "${profile_name}")
+    math(EXPR last_profile_dependency "${profile_dependency_count} - 1")
+    foreach(dependency_index RANGE 0 ${last_profile_dependency})
+        string(JSON profile_dependency GET
+            "${lock}" build_profiles "${profile_name}" ${dependency_index})
+        list(FIND names "${profile_dependency}" locked_dependency_index)
+        string(JSON expected_port GET
+            "${lock}" dependencies ${locked_dependency_index} vcpkg_port)
+        list(APPEND expected_ports "${expected_port}")
+
+        list(FIND manifest_ports "${expected_port}" manifest_port_index)
+        if(manifest_port_index EQUAL -1)
+            message(FATAL_ERROR
+                "${profile_name}: locked port '${expected_port}' is absent "
+                "from the vcpkg manifest feature")
+        endif()
+        list(GET manifest_default_features ${manifest_port_index}
+            actual_default_features)
+        string(JSON expected_default_features GET
+            "${lock}" dependencies ${locked_dependency_index}
+            vcpkg_default_features)
+        if(NOT actual_default_features STREQUAL expected_default_features)
+            message(FATAL_ERROR
+                "${profile_name}/${expected_port}: default-features mismatch "
+                "(lock=${expected_default_features}, "
+                "manifest=${actual_default_features})")
+        endif()
+    endforeach()
+
+    list(SORT expected_ports)
+    list(SORT manifest_ports)
+    if(NOT expected_ports STREQUAL manifest_ports)
+        message(FATAL_ERROR
+            "${profile_name}: lock and vcpkg manifest dependencies differ "
+            "(lock=${expected_ports}; manifest=${manifest_ports})")
+    endif()
+endforeach()
+
+foreach(required_profile bootstrap base-foundation)
+    if(NOT required_profile IN_LIST profile_names)
+        message(FATAL_ERROR
+            "Required dependency build profile is missing: "
+            "${required_profile}")
+    endif()
+endforeach()
+
+string(JSON manifest_profile_count LENGTH "${manifest}" features)
+math(EXPR last_manifest_profile "${manifest_profile_count} - 1")
+foreach(manifest_profile_index RANGE 0 ${last_manifest_profile})
+    string(JSON manifest_profile_name MEMBER
+        "${manifest}" features ${manifest_profile_index})
+    if(NOT manifest_profile_name IN_LIST profile_names)
+        message(FATAL_ERROR
+            "vcpkg manifest feature '${manifest_profile_name}' has no "
+            "matching lock build profile")
+    endif()
+endforeach()
+
 list(LENGTH names unique_dependency_count)
 message(STATUS
     "Validated ${unique_dependency_count} pinned iOS dependencies "
+    "and ${profile_count} build profiles "
     "(deployment ${deployment_target}, ${artifact_format})")

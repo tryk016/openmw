@@ -75,9 +75,16 @@ sleep 10
 
 xcrun simctl spawn "$udid" log show \
     --last 2m \
+    --info \
     --style compact \
-    --predicate "process == \"${executable_name}\"" \
-    >"${log_dir}/openmw-simulator.log" 2>&1 || true
+    --predicate "subsystem == \"org.openmw.ios.bootstrap\"" \
+    >"${log_dir}/openmw-unified.log" 2>&1
+
+if ! grep -Fq "G0 bootstrap view is visible" "${log_dir}/openmw-unified.log"; then
+    echo "Expected OpenMW unified-log marker was not captured" >&2
+    cat "${log_dir}/openmw-unified.log" >&2
+    exit 1
+fi
 
 xcrun simctl io "$udid" screenshot "${log_dir}/openmw-simulator.png"
 

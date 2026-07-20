@@ -122,6 +122,19 @@ jobs:
             "${{ steps.products.outputs.simulator_app }}" \
             2>&1 | tee artifacts/logs/validate-simulator.log
 
+      - name: Validate dSYM and C++ breakpoints
+        run: |
+          bash CI/ios/validate-debug-symbols.sh \
+            device \
+            "${{ steps.products.outputs.device_app }}" \
+            "${{ steps.products.outputs.device_dsym }}" \
+            2>&1 | tee artifacts/logs/debug-symbols-device.log
+          bash CI/ios/validate-debug-symbols.sh \
+            simulator \
+            "${{ steps.products.outputs.simulator_app }}" \
+            "${{ steps.products.outputs.simulator_dsym }}" \
+            2>&1 | tee artifacts/logs/debug-symbols-simulator.log
+
       - name: Reject bundled game data and secrets
         run: |
           bash CI/ios/check-payload-safety.sh \

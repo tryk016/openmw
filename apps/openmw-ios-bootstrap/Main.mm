@@ -37,7 +37,7 @@ namespace
     UILabel* status = [[UILabel alloc] initWithFrame:CGRectZero];
     status.translatesAutoresizingMaskIntoConstraints = NO;
     status.text = [NSString stringWithUTF8String:statusText.c_str()];
-    status.textColor = UIColor.secondaryLabelColor;
+    status.textColor = [UIColor colorWithWhite:0.78 alpha:1.0];
     status.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
     status.adjustsFontForContentSizeCategory = YES;
     status.numberOfLines = 0;

@@ -1,3 +1,4 @@
+find_library(COREGRAPHICS_FRAMEWORK CoreGraphics REQUIRED)
 find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
 find_library(UIKIT_FRAMEWORK UIKit REQUIRED)
 
@@ -15,6 +16,7 @@ target_compile_options(openmw-ios-bootstrap PRIVATE
     "$<$<COMPILE_LANGUAGE:CXX,OBJCXX>:-Wall;-Wextra;-Wpedantic>"
 )
 target_link_libraries(openmw-ios-bootstrap PRIVATE
+    ${COREGRAPHICS_FRAMEWORK}
     ${FOUNDATION_FRAMEWORK}
     ${UIKIT_FRAMEWORK}
 )
@@ -30,6 +32,7 @@ set_target_properties(openmw-ios-bootstrap PROPERTIES
     XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym"
     XCODE_ATTRIBUTE_ENABLE_TESTABILITY "YES"
     XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH "NO"
+    XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "org.openmw.ios.bootstrap"
     XCODE_ATTRIBUTE_SUPPORTED_PLATFORMS "iphoneos iphonesimulator"
     XCODE_ATTRIBUTE_SUPPORTS_MACCATALYST "NO"
     XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"

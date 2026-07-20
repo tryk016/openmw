@@ -1,0 +1,154 @@
+name: iOS physical-device test
+description: Record reproducible test evidence for an iOS/iPadOS 16.4+ build.
+title: "[iOS device] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form only for physical-device results from the `tryk016/openmw`
+        fork. Do not attach game data, saves, signing material, Apple account
+        details, SideStore pairing files, secrets, or unsanitized logs.
+
+  - type: input
+    id: device_model
+    attributes:
+      label: Device model
+      description: Commercial model name, for example iPhone 13 or iPad Air (5th generation).
+      placeholder: iPhone 13
+    validations:
+      required: true
+
+  - type: input
+    id: os_version
+    attributes:
+      label: iOS/iPadOS version
+      description: The exact OS version. The supported minimum is 16.4.
+      placeholder: "16.4.1"
+    validations:
+      required: true
+
+  - type: input
+    id: build_sha
+    attributes:
+      label: Build commit SHA
+      description: Full 40-character commit SHA used to produce the tested build.
+      placeholder: 0123456789abcdef0123456789abcdef01234567
+    validations:
+      required: true
+
+  - type: input
+    id: actions_run
+    attributes:
+      label: GitHub Actions run or artifact
+      description: Link to the workflow run or exact artifact used for this test.
+      placeholder: https://github.com/tryk016/openmw/actions/runs/...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation method
+      options:
+        - SideStore
+        - Xcode
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scenario
+    attributes:
+      label: Test scenario
+      description: Select the closest roadmap gate and describe the exact steps below.
+      options:
+        - G0 - minimal shell launch
+        - G1 - rendering stability
+        - G2 - gameplay vertical slice
+        - G3 - touch-only vertical slice
+        - G4 - performance and endurance
+        - G5 - install, refresh, or update
+        - Lifecycle, audio, input, or save/load regression
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Provide a numbered, repeatable scenario, including test duration.
+      placeholder: |
+        1. Install the build using ...
+        2. Launch OpenMW ...
+        3. Run the scenario for 20 minutes ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      placeholder: Describe the acceptance criteria from the roadmap or test plan.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: result
+    attributes:
+      label: Result
+      options:
+        - Pass
+        - Fail
+        - Blocked
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Describe visible behavior, failures, and their timing.
+    validations:
+      required: true
+
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Metrics
+      description: Record all applicable values. Use N/A with a reason when a metric does not apply.
+      value: |
+        - Test duration:
+        - FPS:
+        - Frametime (average/p95):
+        - Peak memory:
+        - Thermal state:
+        - Battery change:
+        - Other:
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized logs and visual evidence
+      description: Drag sanitized logs, crash reports, screenshots, or video here, or provide links. Explain if none apply.
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      description: Include controller, orientation, graphics profile, data-import state, or related issue/PR links when relevant.
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I tested this build on a physical iPhone or iPad running iOS/iPadOS 16.4 or newer.
+          required: true
+        - label: The build came from `tryk016/openmw`, and the SHA above identifies its source.
+          required: true
+        - label: I removed game data, saves, private paths, device identifiers, account details, signing material, pairing files, and secrets from all attachments.
+          required: true

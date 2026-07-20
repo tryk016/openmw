@@ -1,0 +1,65 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "ios-base",
+      "hidden": true,
+      "generator": "Xcode",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_SYSTEM_NAME": "iOS",
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "16.4",
+        "OPENMW_IOS_BOOTSTRAP": "ON",
+        "OPENMW_IOS_ENABLE_CODE_SIGNING": "OFF"
+      }
+    },
+    {
+      "name": "ios-device",
+      "displayName": "iOS 16.4 device (arm64)",
+      "description": "Hermetic OpenMW iOS bootstrap for iphoneos/arm64.",
+      "inherits": "ios-base",
+      "binaryDir": "${sourceDir}/build/ios-device",
+      "cacheVariables": {
+        "CMAKE_OSX_SYSROOT": "iphoneos"
+      }
+    },
+    {
+      "name": "ios-simulator",
+      "displayName": "iOS 16.4 simulator (arm64)",
+      "description": "Hermetic OpenMW iOS bootstrap for iphonesimulator/arm64.",
+      "inherits": "ios-base",
+      "binaryDir": "${sourceDir}/build/ios-simulator",
+      "cacheVariables": {
+        "CMAKE_OSX_SYSROOT": "iphonesimulator"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "ios-device-debug",
+      "displayName": "Build iOS device bootstrap (Debug)",
+      "configurePreset": "ios-device",
+      "configuration": "Debug",
+      "targets": [
+        "openmw-ios-bootstrap"
+      ],
+      "jobs": 4
+    },
+    {
+      "name": "ios-simulator-debug",
+      "displayName": "Build iOS simulator bootstrap (Debug)",
+      "configurePreset": "ios-simulator",
+      "configuration": "Debug",
+      "targets": [
+        "openmw-ios-bootstrap"
+      ],
+      "jobs": 4
+    }
+  ]
+}

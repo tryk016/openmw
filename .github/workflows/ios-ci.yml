@@ -1,0 +1,189 @@
+name: iOS G0
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-g0-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-validate-package:
+    name: iOS 16.4 device + simulator
+    runs-on: macos-15
+    timeout-minutes: 90
+
+    defaults:
+      run:
+        shell: bash --noprofile --norc -euo pipefail {0}
+
+    env:
+      CMAKE_BUILD_PARALLEL_LEVEL: 3
+      CODE_SIGNING_ALLOWED: "NO"
+      CODE_SIGNING_REQUIRED: "NO"
+      CODE_SIGN_IDENTITY: ""
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      IOS_DEPLOYMENT_TARGET: "16.4"
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Select pinned Xcode 16.4
+        run: |
+          if [[ ! -d "$DEVELOPER_DIR" ]]; then
+            echo "Pinned Xcode is unavailable: $DEVELOPER_DIR" >&2
+            ls -1 /Applications/Xcode*.app 2>/dev/null || true
+            exit 1
+          fi
+          xcode_version="$(xcodebuild -version | sed -n '1p')"
+          if [[ "$xcode_version" != "Xcode 16.4" ]]; then
+            echo "Expected Xcode 16.4, got: $xcode_version" >&2
+            exit 1
+          fi
+
+      - name: Record runner and toolchain
+        run: |
+          mkdir -p artifacts/logs
+          {
+            echo "ImageOS=${ImageOS:-unknown}"
+            echo "ImageVersion=${ImageVersion:-unknown}"
+            sw_vers
+            uname -a
+            xcodebuild -version
+            echo "iphoneos SDK $(xcrun --sdk iphoneos --show-sdk-version)"
+            echo "iphoneos SDK path: $(xcrun --sdk iphoneos --show-sdk-path)"
+            echo "iphonesimulator SDK $(xcrun --sdk iphonesimulator --show-sdk-version)"
+            echo "iphonesimulator SDK path: $(xcrun --sdk iphonesimulator --show-sdk-path)"
+            cmake --version
+            xcrun --sdk iphoneos clang --version
+            xcrun simctl list runtimes
+          } 2>&1 | tee artifacts/logs/toolchain.log
+
+      - name: Configure device
+        run: |
+          cmake --preset ios-device \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=NO \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY= \
+            2>&1 | tee artifacts/logs/configure-device.log
+
+      - name: Build unsigned device bootstrap
+        run: |
+          cmake --build --preset ios-device-debug \
+            2>&1 | tee artifacts/logs/build-device.log
+
+      - name: Configure simulator
+        run: |
+          cmake --preset ios-simulator \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=NO \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY= \
+            2>&1 | tee artifacts/logs/configure-simulator.log
+
+      - name: Build unsigned simulator bootstrap
+        run: |
+          cmake --build --preset ios-simulator-debug \
+            2>&1 | tee artifacts/logs/build-simulator.log
+
+      - name: Locate build products
+        id: products
+        run: |
+          device_app="$(bash CI/ios/find-product.sh device app "$GITHUB_WORKSPACE")"
+          simulator_app="$(bash CI/ios/find-product.sh simulator app "$GITHUB_WORKSPACE")"
+          device_dsym="$(bash CI/ios/find-product.sh device dsym "$GITHUB_WORKSPACE")"
+          simulator_dsym="$(bash CI/ios/find-product.sh simulator dsym "$GITHUB_WORKSPACE")"
+          {
+            echo "device_app=$device_app"
+            echo "simulator_app=$simulator_app"
+            echo "device_dsym=$device_dsym"
+            echo "simulator_dsym=$simulator_dsym"
+          } | tee -a "$GITHUB_OUTPUT" artifacts/logs/products.log
+
+      - name: Validate device Mach-O and bundle
+        run: |
+          bash CI/ios/validate-bundle.sh \
+            device \
+            "${{ steps.products.outputs.device_app }}" \
+            2>&1 | tee artifacts/logs/validate-device.log
+
+      - name: Validate simulator Mach-O and bundle
+        run: |
+          bash CI/ios/validate-bundle.sh \
+            simulator \
+            "${{ steps.products.outputs.simulator_app }}" \
+            2>&1 | tee artifacts/logs/validate-simulator.log
+
+      - name: Reject bundled game data and secrets
+        run: |
+          bash CI/ios/check-payload-safety.sh \
+            "${{ steps.products.outputs.device_app }}" \
+            "${{ steps.products.outputs.simulator_app }}" \
+            2>&1 | tee artifacts/logs/payload-safety.log
+
+      - name: Smoke test on an available iPhone Simulator
+        id: smoke
+        continue-on-error: true
+        run: |
+          bash CI/ios/smoke-simulator.sh \
+            "${{ steps.products.outputs.simulator_app }}" \
+            artifacts/logs/simulator-smoke \
+            2>&1 | tee artifacts/logs/smoke.log
+
+      - name: Package unsigned distribution artifacts
+        id: package
+        env:
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+        run: |
+          bash CI/ios/package-artifacts.sh \
+            "${{ steps.products.outputs.device_app }}" \
+            "${{ steps.products.outputs.simulator_app }}" \
+            "${{ steps.products.outputs.device_dsym }}" \
+            "${{ steps.products.outputs.simulator_dsym }}" \
+            artifacts/logs \
+            artifacts/dist
+
+      - name: Upload unsigned IPA
+        if: always() && steps.package.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: OpenMW-iOS-unsigned-${{ github.sha }}
+          path: artifacts/dist/OpenMW-iOS-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload simulator app
+        if: always() && steps.package.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: OpenMW-iOS-Simulator-${{ github.sha }}
+          path: artifacts/dist/OpenMW-iOS-Simulator.app.zip
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload symbols, logs, and manifest
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: OpenMW-iOS-G0-diagnostics-${{ github.sha }}
+          path: |
+            artifacts/dist/*.dSYM.zip
+            artifacts/dist/manifest.json
+            artifacts/dist/SHA256SUMS
+            artifacts/logs
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Enforce simulator smoke result
+        if: always() && steps.smoke.outcome == 'failure'
+        run: |
+          echo "The iPhone Simulator smoke test failed; see the diagnostics artifact." >&2
+          exit 1

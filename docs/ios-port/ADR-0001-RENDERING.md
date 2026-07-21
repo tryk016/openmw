@@ -3,7 +3,7 @@
 **Status:** Proposed
 **Data:** 2026-07-20
 **Decydenci:** maintainerzy forka i osoba odpowiedzialna za iOS/graphics
-**Bramka akceptacji:** faza 2 roadmapy, test na fizycznym urządzeniu
+**Bramka akceptacji:** faza 4 roadmapy, test na fizycznym urządzeniu
 
 ## Kontekst
 

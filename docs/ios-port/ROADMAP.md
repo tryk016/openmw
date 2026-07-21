@@ -3,7 +3,7 @@
 **Ostatnia aktualizacja:** 2026-07-21
 **Bazowy upstream:** `7a5e77a45130aca9b33db1d2eb6b412a8a848c9b`
 **Repo docelowe:** `tryk016/openmw`
-**Branch dokumentacji:** `codex/ios-port-plan`
+**Pierwotny branch dokumentacji:** `codex/ios-port-plan`
 **Branch integracyjny:** `ios/main`
 
 ## Zaakceptowany zakres
@@ -146,7 +146,8 @@ forka, a praca nie może przypadkowo trafić do upstreamu.
   [#1](https://github.com/tryk016/openmw/issues/1).
 - [x] Zbudować pusty bundle dla `iphonesimulator/arm64`.
 - [x] Uruchomić pusty bundle w symulatorze.
-- [x] Dodać log do unified logging i potwierdzić go w Console/Xcode.
+- [x] Dodać log do unified logging i potwierdzić go przez `simctl` w CI;
+  Console/Xcode pozostają równoważną ścieżką diagnostyczną dla urządzenia.
 - [x] Potwierdzić działanie symboli debug i breakpointu C++.
 - [x] Zapisać dokładne komendy jako CMake Presets.
 
@@ -197,7 +198,7 @@ jeżeli nie jest dostępny w G0.
 ### Język i lokalizacja
 
 - [ ] Zbudować PUC Lua dla device/simulator.
-- [x] Ustawić `USE_LUAJIT=OFF` w presetach bazowych.
+- [x] Ustawić `USE_LUAJIT=OFF` w bazowym profilu CMake dla iOS.
 - [ ] Zweryfikować z docelowym PUC Lua istniejącą ścieżkę cross-compile:
   `CheckLuaCustomAllocator.cmake` używa `try_compile` i pomija `try_run`.
 - [ ] Zbudować narzędzia ICU na hoście.
@@ -365,7 +366,9 @@ bootstrapu device/simulator. Pełna konfiguracja i link core pozostają otwarte.
 
 ### Bring-up sceny
 
-- [ ] Wyświetlić trójkąt SDL → GLES → GL4ES.
+- [ ] Wyświetlić trójkąt SDL → GLES → GL4ES. Po zielonym teście symulatora
+  jest to pierwszy punkt zatrzymania autonomicznej pracy: wynik wymaga
+  potwierdzenia na fizycznym iPhonie.
 - [ ] Wyświetlić prostą scenę OSG.
 - [ ] Wczytać teksturę PNG/JPEG.
 - [ ] Wczytać teksturę DDS.

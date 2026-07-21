@@ -1,6 +1,6 @@
 #include <string>
 
-#include <unicode/formattable.h>
+#include <unicode/fmtable.h>
 #include <unicode/msgfmt.h>
 #include <unicode/numberformatter.h>
 #include <unicode/plurrule.h>

@@ -98,7 +98,7 @@ if [[ -d "${prefix}/share/bullet" ]]; then
             "${prefix}/include/bullet/BulletCollision/CollisionShapes/btBvhTriangleMeshShape.h" \
             "${prefix}/include/bullet/LinearMath/btConvexHullComputer.h" \
             "${prefix}/share/bullet/BulletConfig.cmake" \
-            "${prefix}/share/bullet/copyright"; do
+            "${prefix}/share/bullet3/copyright"; do
         if [[ ! -f "$bullet_path" ]]; then
             echo "Minimal Bullet package is missing: $bullet_path" >&2
             exit 1

@@ -183,6 +183,7 @@ jobs:
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/sqlite3
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/unofficial-sqlite3
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/bullet
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/bullet3
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libBulletCollision.a
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libLinearMath.a
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libyaml-cpp.a

@@ -121,6 +121,29 @@ vcpkg_cmake_config_fixup(
     CONFIG_PATH share/unofficial-osg
 )
 
+function(assert_exported_include_contract export_name expected_target_count)
+    set(export_path "${CURRENT_PACKAGES_DIR}/share/unofficial-osg/${export_name}")
+    if(NOT EXISTS "${export_path}")
+        message(FATAL_ERROR "Missing OSG target export: ${export_path}")
+    endif()
+
+    file(READ "${export_path}" export_contents)
+    string(REGEX MATCHALL
+        "INTERFACE_INCLUDE_DIRECTORIES \"[^\"]*/include\""
+        exported_include_interfaces
+        "${export_contents}"
+    )
+    list(LENGTH exported_include_interfaces actual_target_count)
+    if(NOT actual_target_count EQUAL expected_target_count)
+        message(FATAL_ERROR
+            "${export_name} must export include interfaces for exactly "
+            "${expected_target_count} targets; found ${actual_target_count}.")
+    endif()
+endfunction()
+
+assert_exported_include_contract(osg-targets.cmake 12)
+assert_exported_include_contract(osg-plugins.cmake 9)
+
 file(APPEND "${CURRENT_PACKAGES_DIR}/include/osg/Config"
     "#ifndef OSG_LIBRARY_STATIC\n#define OSG_LIBRARY_STATIC 1\n#endif\n")
 

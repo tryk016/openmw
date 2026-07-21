@@ -665,6 +665,17 @@ try {
         false,
     );
 
+    const missingUiIcuHostTools = clone(lock);
+    missingUiIcuHostTools.expected_vcpkg_transitive_ports[
+        "ui-foundation"
+    ].host.find((entry) => entry.port === "icu").features = [];
+    runValidator(
+        "missing-ui-icu-host-tools-feature",
+        missingUiIcuHostTools,
+        manifest,
+        false,
+    );
+
     const uiTriplet = "arm64-ios-openmw";
     const uiHostTriplet = "arm64-osx";
     const uiClosureRecords = [

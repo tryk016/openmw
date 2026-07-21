@@ -308,7 +308,8 @@ if [[ -d "${prefix}/share/icu" ]]; then
     fi
 fi
 
-if [[ -d "${prefix}/share/mygui" ]]; then
+if [[ -d "${prefix}/share/mygui" \
+        || -f "${prefix}/lib/libMyGUIEngineStatic.a" ]]; then
     for mygui_path in \
             "${prefix}/lib/libMyGUIEngineStatic.a" \
             "${prefix}/lib/pkgconfig/MYGUIStatic.pc" \

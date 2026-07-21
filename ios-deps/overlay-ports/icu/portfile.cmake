@@ -77,7 +77,7 @@ else()
     endif()
     set(ICU_DATA_FILTER_FILE "${filter_file}")
     list(APPEND build_options
-        "\"PKGDATA_OPTS=--without-assembly -O ../data/icupkg.inc\"")
+        "PKGDATA_OPTS=--without-assembly -O ../data/icupkg.inc")
 endif()
 
 vcpkg_configure_make(

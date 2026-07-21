@@ -4,6 +4,7 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/../../.." && pwd)"
 manifest_root="${repo_root}/ios-deps"
+overlay_ports="${manifest_root}/overlay-ports"
 build_root="${IOS_DEPS_BUILD_ROOT:-${repo_root}/build/ios-deps}"
 shared_downloads="${IOS_DEPS_DOWNLOADS:-${build_root}/downloads}"
 asset_cache="${IOS_DEPS_ASSET_CACHE:-${build_root}/asset-cache}"
@@ -167,12 +168,20 @@ export IOS_DEPS_SOURCE_CACHE="$source_cache"
 export IOS_DEPS_OFFLINE="$offline"
 vcpkg_root="$(bash "${script_dir}/bootstrap-vcpkg.sh")"
 
+overlay_vcpkg_args=()
 for dependency in "${locked_dependencies[@]}"; do
     vcpkg_port="$(
         jq -er --arg dependency "$dependency" \
             'first(.dependencies[] |
                 select(.name == $dependency) |
                 .vcpkg_port)' \
+            "${manifest_root}/dependencies.lock.json"
+    )"
+    vcpkg_port_source="$(
+        jq -er --arg dependency "$dependency" \
+            'first(.dependencies[] |
+                select(.name == $dependency) |
+                .vcpkg_port_source)' \
             "${manifest_root}/dependencies.lock.json"
     )"
     expected_vcpkg_sha512="$(
@@ -189,7 +198,20 @@ for dependency in "${locked_dependencies[@]}"; do
                 .vcpkg_source_marker)' \
             "${manifest_root}/dependencies.lock.json"
     )"
-    portfile="${vcpkg_root}/ports/${vcpkg_port}/portfile.cmake"
+    case "$vcpkg_port_source" in
+        builtin)
+            portfile="${vcpkg_root}/ports/${vcpkg_port}/portfile.cmake"
+            ;;
+        overlay)
+            overlay_port_dir="${overlay_ports}/${vcpkg_port}"
+            portfile="${overlay_port_dir}/portfile.cmake"
+            overlay_vcpkg_args+=("--overlay-ports=${overlay_port_dir}")
+            ;;
+        *)
+            echo "$dependency: unsupported vcpkg port source: $vcpkg_port_source" >&2
+            exit 1
+            ;;
+    esac
     if [[ ! -f "$portfile" ]]; then
         echo "$dependency: pinned vcpkg portfile is missing: $portfile" >&2
         exit 1
@@ -236,6 +258,7 @@ vcpkg_args=(
     --clean-buildtrees-after-build
     --clean-packages-after-build
 )
+vcpkg_args+=("${overlay_vcpkg_args[@]}")
 "${vcpkg_root}/vcpkg" install "${vcpkg_args[@]}" >&2
 
 prefix="${install_root}/${triplet}"

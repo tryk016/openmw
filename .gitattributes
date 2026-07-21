@@ -1,0 +1,2 @@
+# This vendored patch preserves Bullet's tab-indented context lines.
+/ios-deps/overlay-ports/bullet3/ios-collision-only.patch whitespace=-blank-at-eol,-space-before-tab

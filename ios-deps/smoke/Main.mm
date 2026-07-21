@@ -26,6 +26,7 @@
 
 extern "C" int openmwIosYamlProbe();
 extern "C" int openmwIosSQLiteProbe();
+extern "C" int openmwIosBulletProbe();
 
 @interface OpenMWDepsSmokeDelegate : UIResponder <UIApplicationDelegate>
 @property(nonatomic, strong) UIWindow* window;
@@ -108,13 +109,14 @@ extern "C" int openmwIosSQLiteProbe();
         && turboJpegPassed;
     const bool yamlPassed = openmwIosYamlProbe() == 0;
     const bool sqlitePassed = openmwIosSQLiteProbe() == 0;
+    const bool bulletPassed = openmwIosBulletProbe() == 0;
     const bool smokePassed
         = sdlInitResult == 0 && lz4RoundTripPassed && imageFoundationPassed
-        && yamlPassed && sqlitePassed;
+        && yamlPassed && sqlitePassed && bulletPassed;
 
     label.text = [NSString
         stringWithFormat:
-            @"ios-deps data foundation: %@\n"
+            @"ios-deps physics foundation: %@\n"
              "SDL %u.%u.%u (%d video drivers)\n"
              "LZ4 %s (round-trip %@)\n"
              "zlib %s\n"
@@ -122,7 +124,8 @@ extern "C" int openmwIosSQLiteProbe();
              "libpng %s\n"
              "libjpeg-turbo %s\n"
              "yaml-cpp %@\n"
-             "SQLite %s %@",
+             "SQLite %s %@\n"
+             "Bullet 3.17 %@",
             smokePassed ? @"PASS" : @"FAIL", sdlVersion.major,
             sdlVersion.minor, sdlVersion.patch, videoDriverCount,
             LZ4_versionString(), lz4RoundTripPassed ? @"PASS" : @"FAIL",
@@ -131,14 +134,15 @@ extern "C" int openmwIosSQLiteProbe();
             turboJpegPassed ? "PASS" : "FAIL",
             yamlPassed ? @"PASS" : @"FAIL",
             sqlite3_libversion(),
-            sqlitePassed ? @"PASS" : @"FAIL"];
+            sqlitePassed ? @"PASS" : @"FAIL",
+            bulletPassed ? @"PASS" : @"FAIL"];
     [controller.view addSubview:label];
 
     self.window.rootViewController = controller;
     [self.window makeKeyAndVisible];
     os_log_t runtimeLog =
         os_log_create("org.openmw.ios.deps-smoke", "runtime");
-    os_log_info(runtimeLog, "data foundation %{public}s",
+    os_log_info(runtimeLog, "physics foundation %{public}s",
         smokePassed ? "PASS" : "FAIL");
     return YES;
 }

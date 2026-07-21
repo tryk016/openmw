@@ -271,6 +271,21 @@ try {
         "the builtin registry needs complete Git history and a shallow-check guard",
     );
     requireBuildScriptContract(
+        "overlay-port-selection-is-explicit",
+        /overlay_ports="\$\{manifest_root\}\/overlay-ports"/.test(buildScript) &&
+            /case "\$vcpkg_port_source" in[\s\S]*builtin\)[\s\S]*vcpkg_root[\s\S]*overlay\)[\s\S]*overlay_ports/.test(
+                buildScript,
+            ) &&
+            /overlay_vcpkg_args\+=\("--overlay-ports=\$\{overlay_port_dir\}"\)/.test(
+                buildScript,
+            ) &&
+            /vcpkg_args\+=\("\$\{overlay_vcpkg_args\[@\]\}"\)/.test(
+                buildScript,
+            ) &&
+            !/--overlay-ports="\$overlay_ports"/.test(buildScript),
+        "only overlay ports selected by the active lock profile may reach vcpkg",
+    );
+    requireBuildScriptContract(
         "boost-uninstall-notice-is-narrow",
         /IOS_DEPS_BUILD_ROOT/.test(packageMetadataScript) &&
             /IOS_DEPS_VCPKG_ROOT/.test(packageMetadataScript) &&
@@ -413,6 +428,67 @@ try {
     runValidator(
         "non-https-source-marker",
         malformedUrlMarker,
+        manifest,
+        false,
+    );
+
+    const missingBulletMultithreading = clone(manifest);
+    missingBulletMultithreading.features[
+        "physics-foundation"
+    ].dependencies.find(
+        (dependency) => dependency.name === "bullet3",
+    ).features = ["double-precision"];
+    runValidator(
+        "missing-bullet-multithreading",
+        lock,
+        missingBulletMultithreading,
+        false,
+    );
+
+    const unexpectedBulletDynamics = clone(manifest);
+    unexpectedBulletDynamics.features[
+        "physics-foundation"
+    ].dependencies.find(
+        (dependency) => dependency.name === "bullet3",
+    ).features.push("dynamics");
+    runValidator(
+        "unexpected-bullet-dynamics",
+        lock,
+        unexpectedBulletDynamics,
+        false,
+    );
+
+    const bulletDefaultsEnabled = clone(manifest);
+    bulletDefaultsEnabled.features[
+        "physics-foundation"
+    ].dependencies.find(
+        (dependency) => dependency.name === "bullet3",
+    )["default-features"] = true;
+    runValidator(
+        "bullet-default-features-enabled",
+        lock,
+        bulletDefaultsEnabled,
+        false,
+    );
+
+    const missingPortSource = clone(lock);
+    delete missingPortSource.dependencies.find(
+        (dependency) => dependency.name === "bullet",
+    ).vcpkg_port_source;
+    runValidator(
+        "missing-vcpkg-port-source",
+        missingPortSource,
+        manifest,
+        false,
+    );
+
+    const invalidPortSource = clone(lock);
+    invalidPortSource.dependencies.find(
+        (dependency) => dependency.name === "bullet",
+    ).vcpkg_port_source = "registry-fallback";
+    runValidator(
+        "invalid-vcpkg-port-source",
+        invalidPortSource,
         manifest,
         false,
     );

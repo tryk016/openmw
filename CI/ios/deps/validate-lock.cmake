@@ -199,8 +199,8 @@ foreach(profile_index RANGE 0 ${last_profile})
         list(APPEND profile_dependencies "${profile_dependency}")
 
         list(FIND names "${profile_dependency}" locked_dependency_index)
-        foreach(field vcpkg_port vcpkg_source_marker vcpkg_sha512
-                vcpkg_default_features vcpkg_features)
+        foreach(field vcpkg_port vcpkg_port_source vcpkg_source_marker
+                vcpkg_sha512 vcpkg_default_features vcpkg_features)
             string(JSON value ERROR_VARIABLE vcpkg_field_error
                 GET "${lock}" dependencies ${locked_dependency_index} ${field})
             if(vcpkg_field_error)
@@ -216,6 +216,16 @@ foreach(profile_index RANGE 0 ${last_profile})
             message(FATAL_ERROR
                 "${profile_name}/${profile_dependency}: invalid vcpkg port "
                 "'${vcpkg_port}'")
+        endif()
+
+        string(JSON vcpkg_port_source GET
+            "${lock}" dependencies ${locked_dependency_index}
+            vcpkg_port_source)
+        if(NOT vcpkg_port_source STREQUAL "builtin"
+                AND NOT vcpkg_port_source STREQUAL "overlay")
+            message(FATAL_ERROR
+                "${profile_name}/${profile_dependency}: "
+                "vcpkg_port_source must be 'builtin' or 'overlay'")
         endif()
 
         string(JSON vcpkg_port_version ERROR_VARIABLE port_version_error
@@ -609,7 +619,7 @@ endforeach()
 
 foreach(required_profile
         bootstrap base-foundation image-foundation cpp-foundation
-        data-foundation)
+        data-foundation physics-foundation)
     if(NOT required_profile IN_LIST profile_names)
         message(FATAL_ERROR
             "Required dependency build profile is missing: "

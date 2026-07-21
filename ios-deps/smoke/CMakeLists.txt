@@ -64,6 +64,57 @@ foreach(boost_target IN ITEMS
     endif()
 endforeach()
 
+set(bullet_collision_archive
+    "${IOS_DEPS_PREFIX}/lib/libBulletCollision.a")
+set(bullet_linear_math_archive
+    "${IOS_DEPS_PREFIX}/lib/libLinearMath.a")
+foreach(bullet_archive IN ITEMS
+        "${bullet_collision_archive}"
+        "${bullet_linear_math_archive}")
+    if(NOT EXISTS "${bullet_archive}")
+        message(FATAL_ERROR
+            "A locked minimal Bullet archive is missing: ${bullet_archive}")
+    endif()
+endforeach()
+find_package(Bullet 3.17 EXACT CONFIG REQUIRED
+    COMPONENTS BulletCollision LinearMath
+    PATHS "${IOS_DEPS_PREFIX}/share/bullet"
+    NO_DEFAULT_PATH
+    NO_CMAKE_FIND_ROOT_PATH)
+foreach(bullet_target IN ITEMS BulletCollision LinearMath)
+    if(NOT TARGET "${bullet_target}")
+        message(FATAL_ERROR
+            "The locked Bullet package has no ${bullet_target} target")
+    endif()
+    get_target_property(bullet_target_type "${bullet_target}" TYPE)
+    get_target_property(bullet_target_location
+        "${bullet_target}" IMPORTED_LOCATION_RELEASE)
+    if(NOT bullet_target_type STREQUAL "STATIC_LIBRARY")
+        message(FATAL_ERROR
+            "${bullet_target} is not an imported static library")
+    endif()
+    if(bullet_target STREQUAL "BulletCollision")
+        set(expected_bullet_location "${bullet_collision_archive}")
+    else()
+        set(expected_bullet_location "${bullet_linear_math_archive}")
+    endif()
+    if(NOT bullet_target_location STREQUAL expected_bullet_location)
+        message(FATAL_ERROR
+            "${bullet_target} does not resolve to the locked archive")
+    endif()
+endforeach()
+foreach(forbidden_bullet_component IN ITEMS
+        BulletDynamics
+        BulletSoftBody
+        Bullet3Common
+        BulletInverseDynamics)
+    if(TARGET "${forbidden_bullet_component}"
+            OR "${BULLET_LIBRARIES}" MATCHES "${forbidden_bullet_component}")
+        message(FATAL_ERROR
+            "Unexpected Bullet component: ${forbidden_bullet_component}")
+    endif()
+endforeach()
+
 set(yaml_archive "${IOS_DEPS_PREFIX}/lib/libyaml-cpp.a")
 if(NOT EXISTS "${yaml_archive}")
     message(FATAL_ERROR
@@ -162,6 +213,7 @@ find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
 
 add_executable(openmw-ios-deps-smoke MACOSX_BUNDLE
     Main.mm
+    BulletProbe.cpp
     YamlProbe.cpp
     SQLiteProbe.c)
 target_compile_definitions(openmw-ios-deps-smoke PRIVATE
@@ -177,6 +229,8 @@ target_link_libraries(openmw-ios-deps-smoke PRIVATE
     PNG::PNG
     JPEG::JPEG
     "${turbojpeg_target}"
+    BulletCollision
+    LinearMath
     yaml-cpp::yaml-cpp
     SQLite3::SQLite3
     Threads::Threads
@@ -229,6 +283,19 @@ target_compile_features(openmw-ios-yaml-probe PRIVATE cxx_std_20)
 target_link_libraries(openmw-ios-yaml-probe PRIVATE yaml-cpp::yaml-cpp)
 set_target_properties(openmw-ios-yaml-probe PROPERTIES
     OUTPUT_NAME "OpenMWYAMLProbe"
+    XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
+    XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "16.4")
+
+add_executable(openmw-ios-bullet-probe BulletProbe.cpp)
+target_compile_features(openmw-ios-bullet-probe PRIVATE cxx_std_20)
+target_link_libraries(openmw-ios-bullet-probe PRIVATE
+    BulletCollision
+    LinearMath
+    Threads::Threads)
+set_target_properties(openmw-ios-bullet-probe PROPERTIES
+    OUTPUT_NAME "OpenMWBulletProbe"
     XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
     XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
     XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""

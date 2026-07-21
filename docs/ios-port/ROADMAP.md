@@ -170,8 +170,9 @@ jeżeli nie jest dostępny w G0.
 - [ ] Dodać komendę czystego rebuilda wszystkich zależności.
 - [ ] Utrzymać kumulatywny ciąg profili: `base-foundation` →
   `image-foundation` → `cpp-foundation` → `data-foundation` →
-  `language-foundation` → `ui-foundation` → `multimedia-foundation` →
-  `render-foundation` → `full-openmw`.
+  `physics-foundation` → `navigation-foundation` →
+  `language-foundation` → `ui-foundation` → `multimedia-foundation`
+  → `render-foundation` → `full-openmw`.
 - [x] Dodać kontrolę architektury każdego artefaktu.
 - [x] Dodać kontrolę platform load commands każdego artefaktu.
 - [x] Wygenerować SBOM i zestawienie licencji.

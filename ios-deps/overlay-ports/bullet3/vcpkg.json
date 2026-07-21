@@ -1,0 +1,27 @@
+{
+  "name": "bullet3",
+  "version": "3.17",
+  "port-version": 6,
+  "description": "iOS-only collision subset of Bullet Physics for OpenMW",
+  "homepage": "https://github.com/bulletphysics/bullet3",
+  "license": "Zlib",
+  "supports": "ios & arm64",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ],
+  "features": {
+    "double-precision": {
+      "description": "Use double-precision btScalar and propagate BT_USE_DOUBLE_PRECISION"
+    },
+    "multithreading": {
+      "description": "Enable Bullet 2 locking and propagate BT_THREADSAFE=1"
+    }
+  }
+}

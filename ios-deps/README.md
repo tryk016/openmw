@@ -37,11 +37,11 @@ On macOS with Xcode 16.4:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature navigation-foundation \
+  --feature language-foundation \
   --clean
 bash CI/ios/deps/build.sh \
   --platform iphonesimulator \
-  --feature navigation-foundation \
+  --feature language-foundation \
   --clean
 ```
 
@@ -66,6 +66,15 @@ static `Recast`, `Detour`, `DetourTileCache` and `DebugUtils` libraries with
 examples, tests and tools are disabled and rejected by prefix validation. The
 profile pins 13 direct target ports, 79 transitive target ports and three host
 helpers.
+`language-foundation` adds two local overlays. PUC Lua 5.1.5#1 is a static
+runtime library with headers only: no interpreter/compiler, POSIX profile,
+dynamic module loader or callable `system()` path is present on iOS. ICU
+70.1#1 builds native `icu[tools]` once in the host triplet, then uses
+`--with-cross-build` for static target `data`, `uc` and `i18n` archives. Target
+tools, `icuio`, extras, samples, tests and layoutex are rejected. ICU data is
+filtered by the canonical-LF `extern/icufilters.json` whose SHA-256 and SHA-512
+are part of the lock. The profile pins 15 direct target ports, 79 transitive
+target ports and four host ports.
 `bootstrap` remains available as the smaller zlib-only pipeline proof. The
 profile-to-source mapping lives in `dependencies.lock.json`; every profile must
 have a matching vcpkg manifest feature. After installation, the build also
@@ -78,6 +87,12 @@ link the smoke app:
 
 ```bash
 bash CI/ios/deps/validate-prefix.sh iphoneos <device-prefix>
+bash CI/ios/deps/validate-host-tools.sh \
+  language-foundation \
+  build/ios-deps/iphoneos/vcpkg_installed \
+  arm64-osx \
+  <device-prefix> \
+  build/ios-deps/iphoneos/installed-packages.json
 bash CI/ios/deps/build-smoke.sh iphoneos <device-prefix>
 ```
 
@@ -87,7 +102,7 @@ access:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature navigation-foundation \
+  --feature language-foundation \
   --clean \
   --offline
 ```

@@ -32,6 +32,10 @@ const packageMetadataScript = fs.readFileSync(
     path.join(__dirname, "package-metadata.sh"),
     "utf8",
 );
+const hostToolsScript = fs.readFileSync(
+    path.join(__dirname, "validate-host-tools.sh"),
+    "utf8",
+);
 const boostUninstallSpdxValidator = path.join(
     __dirname,
     "validate-boost-uninstall-spdx.jq",
@@ -286,6 +290,22 @@ try {
         "only overlay ports selected by the active lock profile may reach vcpkg",
     );
     requireBuildScriptContract(
+        "language-host-tools-are-validated",
+        /validate-host-tools\.sh/.test(buildScript) &&
+            /profile="\$1"/.test(hostToolsScript) &&
+            /icuinfo/.test(hostToolsScript) &&
+            /icucross\.mk/.test(hostToolsScript) &&
+            /port_version == 1/.test(hostToolsScript),
+        "the language profile must validate pinned ICU host tools and cross metadata",
+    );
+    requireBuildScriptContract(
+        "stdout-is-reserved-for-prefix",
+        /exec 3>&1/.test(buildScript) &&
+            /exec 1>&2/.test(buildScript) &&
+            /printf '%s\\n' "\$prefix" >&3/.test(buildScript),
+        "build.sh stdout must contain only the prefix consumed by GitHub Actions",
+    );
+    requireBuildScriptContract(
         "boost-uninstall-notice-is-narrow",
         /IOS_DEPS_BUILD_ROOT/.test(packageMetadataScript) &&
             /IOS_DEPS_VCPKG_ROOT/.test(packageMetadataScript) &&
@@ -513,6 +533,101 @@ try {
         missingRecastSourceHash,
         manifest,
         false,
+    );
+
+    const missingLanguageLua = clone(manifest);
+    missingLanguageLua.features["language-foundation"].dependencies =
+        missingLanguageLua.features[
+            "language-foundation"
+        ].dependencies.filter((dependency) => dependency.name !== "lua");
+    runValidator(
+        "missing-language-lua",
+        lock,
+        missingLanguageLua,
+        false,
+    );
+
+    const luaToolsLeak = clone(manifest);
+    luaToolsLeak.features["language-foundation"].dependencies.find(
+        (dependency) => dependency.name === "lua",
+    ).features = ["tools"];
+    runValidator("language-lua-tools-leak", lock, luaToolsLeak, false);
+
+    const icuTargetToolsLeak = clone(manifest);
+    icuTargetToolsLeak.features["language-foundation"].dependencies.find(
+        (dependency) => dependency.name === "icu",
+    ).features = ["tools"];
+    runValidator(
+        "language-icu-target-tools-leak",
+        lock,
+        icuTargetToolsLeak,
+        false,
+    );
+
+    const changedIcuFilterHash = clone(lock);
+    changedIcuFilterHash.dependencies.find(
+        (dependency) => dependency.name === "icu",
+    ).data_filter.sha256 = "0".repeat(64);
+    runValidator(
+        "changed-icu-filter-hash",
+        changedIcuFilterHash,
+        manifest,
+        false,
+    );
+
+    const missingIcuHostTools = clone(lock);
+    missingIcuHostTools.expected_vcpkg_transitive_ports[
+        "language-foundation"
+    ].host.find((entry) => entry.port === "icu").features = [];
+    runValidator(
+        "missing-icu-host-tools-feature",
+        missingIcuHostTools,
+        manifest,
+        false,
+    );
+    const languageTriplet = "arm64-ios-openmw";
+    const languageHostTriplet = "arm64-osx";
+    const languageClosureRecords = [
+        ...directPortEntries(lock, "language-foundation", languageTriplet),
+        ...lock.expected_vcpkg_transitive_ports[
+            "language-foundation"
+        ].target.map((entry) =>
+            installedRecord(
+                entry.port,
+                languageTriplet,
+                entry.features ?? [],
+            ),
+        ),
+        ...lock.expected_vcpkg_transitive_ports[
+            "language-foundation"
+        ].host.map((entry) =>
+            installedRecord(
+                entry.port,
+                languageHostTriplet,
+                entry.features ?? [],
+            ),
+        ),
+    ];
+    runClosureValidator(
+        "valid-language-installed-closure",
+        lock,
+        languageClosureRecords,
+        true,
+        "language-foundation",
+    );
+
+    const languageClosureWithoutIcuTools = clone(languageClosureRecords);
+    languageClosureWithoutIcuTools.find(
+        (record) =>
+            record.package_name === "icu" &&
+            record.triplet === languageHostTriplet,
+    ).features = [];
+    runClosureValidator(
+        "missing-installed-icu-host-tools",
+        lock,
+        languageClosureWithoutIcuTools,
+        false,
+        "language-foundation",
     );
 
     const missingPortSource = clone(lock);

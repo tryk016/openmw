@@ -27,6 +27,8 @@
 extern "C" int openmwIosYamlProbe();
 extern "C" int openmwIosSQLiteProbe();
 extern "C" int openmwIosBulletProbe();
+extern "C" int openmwIosIcuProbe();
+extern "C" int openmwIosLuaProbe();
 extern "C" int openmwIosRecastProbe();
 
 @interface OpenMWDepsSmokeDelegate : UIResponder <UIApplicationDelegate>
@@ -112,13 +114,18 @@ extern "C" int openmwIosRecastProbe();
     const bool sqlitePassed = openmwIosSQLiteProbe() == 0;
     const bool bulletPassed = openmwIosBulletProbe() == 0;
     const bool recastPassed = openmwIosRecastProbe() == 0;
+    const int luaResult = openmwIosLuaProbe();
+    const int icuResult = openmwIosIcuProbe();
+    const bool luaPassed = luaResult == 0;
+    const bool icuPassed = icuResult == 0;
     const bool smokePassed
         = sdlInitResult == 0 && lz4RoundTripPassed && imageFoundationPassed
-        && yamlPassed && sqlitePassed && bulletPassed && recastPassed;
+        && yamlPassed && sqlitePassed && bulletPassed && recastPassed
+        && luaPassed && icuPassed;
 
     label.text = [NSString
         stringWithFormat:
-            @"ios-deps navigation foundation: %@\n"
+            @"ios-deps language foundation: %@\n"
              "SDL %u.%u.%u (%d video drivers)\n"
              "LZ4 %s (round-trip %@)\n"
              "zlib %s\n"
@@ -128,7 +135,9 @@ extern "C" int openmwIosRecastProbe();
              "yaml-cpp %@\n"
              "SQLite %s %@\n"
              "Bullet 3.17 %@\n"
-             "RecastNavigation 1.6.0 %@",
+             "RecastNavigation 1.6.0 %@\n"
+             "PUC Lua 5.1.5 %@ (result %d)\n"
+             "ICU 70.1 %@ (result %d)",
             smokePassed ? @"PASS" : @"FAIL", sdlVersion.major,
             sdlVersion.minor, sdlVersion.patch, videoDriverCount,
             LZ4_versionString(), lz4RoundTripPassed ? @"PASS" : @"FAIL",
@@ -139,15 +148,18 @@ extern "C" int openmwIosRecastProbe();
             sqlite3_libversion(),
             sqlitePassed ? @"PASS" : @"FAIL",
             bulletPassed ? @"PASS" : @"FAIL",
-            recastPassed ? @"PASS" : @"FAIL"];
+            recastPassed ? @"PASS" : @"FAIL",
+            luaPassed ? @"PASS" : @"FAIL", luaResult,
+            icuPassed ? @"PASS" : @"FAIL", icuResult];
     [controller.view addSubview:label];
 
     self.window.rootViewController = controller;
     [self.window makeKeyAndVisible];
     os_log_t runtimeLog =
         os_log_create("org.openmw.ios.deps-smoke", "runtime");
-    os_log_info(runtimeLog, "navigation foundation %{public}s",
-        smokePassed ? "PASS" : "FAIL");
+    os_log_info(runtimeLog,
+        "language foundation %{public}s lua=%{public}d icu=%{public}d",
+        smokePassed ? "PASS" : "FAIL", luaResult, icuResult);
     return YES;
 }
 

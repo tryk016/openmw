@@ -111,6 +111,49 @@ foreach(index RANGE 0 ${last_dependency})
                 "${name}: empty license_files requires license_notice")
         endif()
     endif()
+
+    if(name STREQUAL "icu")
+        foreach(filter_field path canonical_line_endings sha256 sha512)
+            string(JSON filter_value ERROR_VARIABLE filter_error
+                GET "${lock}" dependencies ${index}
+                data_filter ${filter_field})
+            if(filter_error)
+                message(FATAL_ERROR
+                    "icu: data_filter is missing '${filter_field}'")
+            endif()
+        endforeach()
+
+        string(JSON filter_path GET "${lock}" dependencies ${index}
+            data_filter path)
+        if(NOT filter_path STREQUAL "extern/icufilters.json")
+            message(FATAL_ERROR
+                "icu: data_filter.path must remain extern/icufilters.json")
+        endif()
+        string(JSON filter_line_endings GET "${lock}" dependencies ${index}
+            data_filter canonical_line_endings)
+        if(NOT filter_line_endings STREQUAL "LF")
+            message(FATAL_ERROR
+                "icu: data_filter canonical line endings must be LF")
+        endif()
+
+        set(filter_file "${CMAKE_CURRENT_LIST_DIR}/../../../${filter_path}")
+        if(NOT EXISTS "${filter_file}")
+            message(FATAL_ERROR "icu: data filter file is missing: ${filter_file}")
+        endif()
+        file(READ "${filter_file}" filter_contents)
+        string(REPLACE "\r\n" "\n" filter_contents "${filter_contents}")
+        string(SHA256 actual_filter_sha256 "${filter_contents}")
+        string(SHA512 actual_filter_sha512 "${filter_contents}")
+        string(JSON expected_filter_sha256 GET "${lock}" dependencies ${index}
+            data_filter sha256)
+        string(JSON expected_filter_sha512 GET "${lock}" dependencies ${index}
+            data_filter sha512)
+        if(NOT actual_filter_sha256 STREQUAL expected_filter_sha256 OR
+                NOT actual_filter_sha512 STREQUAL expected_filter_sha512)
+            message(FATAL_ERROR
+                "icu: canonical LF data filter hash does not match the lock")
+        endif()
+    endif()
 endforeach()
 
 if(NOT DEFINED CONFIGURATION_FILE)
@@ -330,6 +373,7 @@ if(NOT closure_error)
             endif()
 
             set(closure_direct_ports)
+            set(language_icu_host_tools_found FALSE)
             string(JSON closure_direct_count LENGTH
                 "${lock}" build_profiles "${closure_profile}")
             math(EXPR last_closure_direct "${closure_direct_count} - 1")
@@ -441,9 +485,24 @@ if(NOT closure_error)
                                 endforeach()
                             endif()
                         endif()
+                        if(closure_profile STREQUAL "language-foundation" AND
+                                closure_scope STREQUAL "host" AND
+                                closure_port STREQUAL "icu")
+                            if(NOT closure_features STREQUAL "tools")
+                                message(FATAL_ERROR
+                                    "language-foundation: host icu must enable "
+                                    "exactly the tools feature")
+                            endif()
+                            set(language_icu_host_tools_found TRUE)
+                        endif()
                     endforeach()
                 endif()
             endforeach()
+            if(closure_profile STREQUAL "language-foundation" AND
+                    NOT language_icu_host_tools_found)
+                message(FATAL_ERROR
+                    "language-foundation: host icu[tools] closure is required")
+            endif()
         endforeach()
     endif()
 endif()

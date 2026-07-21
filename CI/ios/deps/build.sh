@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# stdout is the script API consumed by GitHub Actions: it must contain exactly
+# one line with the completed prefix path. Route all dependency/tool output to
+# stderr, while preserving the caller's stdout for that final value.
+exec 3>&1
+exec 1>&2
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/../../.." && pwd)"
 manifest_root="${repo_root}/ios-deps"
@@ -100,6 +106,12 @@ if [[ "$deployment_target" != 16.4 ]]; then
     echo "Unexpected deployment target in dependency lock: $deployment_target" >&2
     exit 1
 fi
+
+cmake \
+    -DLOCK_FILE="${manifest_root}/dependencies.lock.json" \
+    -DCONFIGURATION_FILE="${manifest_root}/vcpkg-configuration.json" \
+    -DMANIFEST_FILE="${manifest_root}/vcpkg.json" \
+    -P "${script_dir}/validate-lock.cmake" >&2
 
 if ! jq -e --arg feature "$feature" \
         '.build_profiles[$feature] | arrays and length > 0' \
@@ -361,6 +373,13 @@ bash "${script_dir}/validate-installed-closure.sh" \
     --target-triplet "$triplet" \
     --host-triplet "$host_triplet"
 
+bash "${script_dir}/validate-host-tools.sh" \
+    "$feature" \
+    "$install_root" \
+    "$host_triplet" \
+    "$prefix" \
+    "$installed_json"
+
 {
     echo "platform=${platform}"
     echo "triplet=${triplet}"
@@ -382,4 +401,4 @@ bash "${script_dir}/validate-installed-closure.sh" \
     done
 } >"${platform_root}/build-manifest.txt"
 
-printf '%s\n' "$prefix"
+printf '%s\n' "$prefix" >&3

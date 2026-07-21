@@ -124,12 +124,16 @@ zależności ma manifest:
 - licencja.
 
 Workflow `iOS dependencies` buduje obecnie kumulatywny profil
-`language-foundation` osobno dla device i simulatora. Każdy slice wykonuje
+`ui-foundation` osobno dla device i simulatora. Profil zawiera pełny
+`language-foundation` i dodaje statyczny silnik MyGUI 3.4.3 bez adapterów
+platformy, rendererów, pluginów, wrapperów, narzędzi, demo, testów i
+dokumentacji. Każdy slice wykonuje
 czysty build online, walidację targetowego prefiksu, osobną walidację
 `icu[tools]` hosta, link probe, czysty rebuild offline oraz ponowną walidację i
-link. Simulator musi dodatkowo zalogować `language foundation PASS`. Artefakt
-zawiera znormalizowaną closure vcpkg, hostowe metadane ICU, SPDX, notices i
-dedykowane binaria probe; timeout joba wynosi 180 minut.
+link. Simulator musi dodatkowo wykonać probe MyGUI XML/UString i zalogować
+`ui foundation PASS`. Artefakt zawiera znormalizowaną closure vcpkg, hostowe
+metadane ICU, statyczny silnik MyGUI z nagłówkami i metadanymi pkg-config,
+SPDX, notices i dedykowane binaria probe; timeout joba wynosi 180 minut.
 
 ## Artefakt SideStore
 

@@ -48,8 +48,8 @@ jobs:
       - name: Validate shell syntax
         run: bash -n CI/ios/deps/*.sh
 
-  language-foundation:
-    name: Language foundation ${{ matrix.platform }}
+  ui-foundation:
+    name: UI foundation ${{ matrix.platform }}
     needs: lock
     runs-on: macos-15
     timeout-minutes: 180
@@ -91,7 +91,7 @@ jobs:
           prefix="$(
             bash CI/ios/deps/build.sh \
               --platform "${{ matrix.platform }}" \
-              --feature language-foundation \
+              --feature ui-foundation \
               --clean
           )"
           echo "prefix=$prefix" >>"$GITHUB_OUTPUT"
@@ -105,7 +105,7 @@ jobs:
       - name: Validate online ICU host tools
         run: |
           bash CI/ios/deps/validate-host-tools.sh \
-            language-foundation \
+            ui-foundation \
             "build/ios-deps/${{ matrix.platform }}/vcpkg_installed" \
             arm64-osx \
             "${{ steps.online.outputs.prefix }}" \
@@ -123,7 +123,7 @@ jobs:
           prefix="$(
             bash CI/ios/deps/build.sh \
               --platform "${{ matrix.platform }}" \
-              --feature language-foundation \
+              --feature ui-foundation \
               --clean \
               --offline
           )"
@@ -138,7 +138,7 @@ jobs:
       - name: Validate offline ICU host tools
         run: |
           bash CI/ios/deps/validate-host-tools.sh \
-            language-foundation \
+            ui-foundation \
             "build/ios-deps/${{ matrix.platform }}/vcpkg_installed" \
             arm64-osx \
             "${{ steps.offline.outputs.prefix }}" \
@@ -157,14 +157,14 @@ jobs:
           test -n "$app"
           echo "app=$app" >>"$GITHUB_OUTPUT"
 
-      - name: Execute language probes on an iPhone Simulator
+      - name: Execute UI probes on an iPhone Simulator
         if: matrix.platform == 'iphonesimulator'
         run: |
           bash CI/ios/smoke-simulator.sh \
             "${{ steps.offline_smoke.outputs.app }}" \
             "build/ios-deps/${{ matrix.platform }}/runtime-smoke" \
             "org.openmw.ios.deps-smoke" \
-            "language foundation PASS"
+            "ui foundation PASS"
 
       - name: Collect SPDX and license evidence
         run: |
@@ -173,11 +173,11 @@ jobs:
             "${{ steps.offline.outputs.prefix }}" \
             "build/ios-deps/${{ matrix.platform }}/metadata"
 
-      - name: Upload language foundation evidence
+      - name: Upload UI foundation evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: ios-deps-language-foundation-${{ matrix.platform }}-${{ github.sha }}
+          name: ios-deps-ui-foundation-${{ matrix.platform }}-${{ github.sha }}
           path: |
             build/ios-deps/${{ matrix.platform }}/build-manifest.txt
             build/ios-deps/${{ matrix.platform }}/installed-packages.json
@@ -191,6 +191,7 @@ jobs:
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWRecastProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWLuaProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWICUProbe
+            build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWMyGUIProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWYAMLProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWSQLiteProbe
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/sdl2
@@ -224,6 +225,10 @@ jobs:
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libicuuc.a
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libicui18n.a
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/arm64-osx/tools/icu
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/mygui
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libMyGUIEngineStatic.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/pkgconfig/MYGUIStatic.pc
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/include/MYGUI
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/include/sqlite3.h
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/include/sqlite3-vcpkg-config.h
             ios-deps/dependencies.lock.json

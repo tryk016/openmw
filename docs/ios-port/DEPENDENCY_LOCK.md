@@ -91,6 +91,12 @@ tej sekcji zachowują starszy kontrakt target-only i ignorują narzędzia hosta.
 Znormalizowany wynik `vcpkg list --x-json`, razem z wersjami i port-version
 całej closure, jest zachowywany jako artefakt workflow.
 
+`boost-uninstall` jest wewnętrznym, pustym portem vcpkg instalującym wyłącznie
+wrapper CMake. Nie dostarcza własnego pliku `copyright`, dlatego jego SPDX musi
+jawnie identyfikować dokładnie ten helper i licencję MIT, a zestaw notices
+kopiuje tekst MIT z checkoutu przypiętej rewizji vcpkg. Brak notice dla każdego
+innego pakietu z dokumentem SPDX nadal kończy build błędem.
+
 Smoke profilu `base-foundation` zachowuje własny `UIApplicationMain`, definiuje
 `SDL_MAIN_HANDLED` i nie linkuje `SDL2::SDL2main`. Eksportowany target SDL ma
 sam przenieść wymagane frameworki Apple; `-ObjC` wymusza uwzględnienie jego

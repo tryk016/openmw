@@ -20,6 +20,15 @@ esac
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/../../.." && pwd)"
 lock_file="${repo_root}/ios-deps/dependencies.lock.json"
+build_root="${IOS_DEPS_BUILD_ROOT:-${repo_root}/build/ios-deps}"
+vcpkg_root="${IOS_DEPS_VCPKG_ROOT:-${build_root}/tooling/vcpkg}"
+vcpkg_license="${vcpkg_root}/LICENSE.txt"
+vcpkg_stamp="${vcpkg_root}/.openmw-ios-revision"
+boost_uninstall_spdx_validator="${script_dir}/validate-boost-uninstall-spdx.jq"
+expected_vcpkg_revision="$(
+    jq -er '.dependencies[] | select(.name == "vcpkg") | .revision' \
+        "$lock_file"
+)"
 
 mkdir -p "$(dirname "$output_dir")"
 output_dir="$(
@@ -63,10 +72,47 @@ for package_dir in "${packages[@]}"; do
     # with a generated SPDX document must carry its source notice.
     if [[ -f "$spdx_file" ]]; then
         if [[ ! -f "$copyright_file" ]]; then
-            echo "${package}: SPDX exists but copyright notice is missing" >&2
-            exit 1
+            case "$package" in
+                boost-uninstall)
+                    # This pinned vcpkg helper intentionally declares an empty
+                    # package and installs only Boost's CMake wrapper. Its
+                    # generated SPDX concludes MIT but the port has no
+                    # copyright payload, so retain the pinned vcpkg MIT text.
+                    if ! jq -e -f "$boost_uninstall_spdx_validator" \
+                            "$spdx_file" >/dev/null; then
+                        echo "boost-uninstall: unexpected SPDX identity or license" >&2
+                        exit 1
+                    fi
+                    if [[ ! -f "$vcpkg_stamp" ]] ||
+                            [[ "$(<"$vcpkg_stamp")" !=
+                                "$expected_vcpkg_revision" ]] ||
+                            [[ "$(git -C "$vcpkg_root" rev-parse HEAD \
+                                2>/dev/null || true)" !=
+                                "$expected_vcpkg_revision" ]]; then
+                        echo "boost-uninstall: vcpkg notice checkout is not pinned" >&2
+                        exit 1
+                    fi
+                    if [[ ! -f "$vcpkg_license" ]]; then
+                        echo "boost-uninstall: pinned vcpkg notice is missing" >&2
+                        exit 1
+                    fi
+                    if ! git -C "$vcpkg_root" show \
+                            "${expected_vcpkg_revision}:LICENSE.txt" |
+                            cmp - "$vcpkg_license"; then
+                        echo "boost-uninstall: vcpkg notice differs from the pinned revision" >&2
+                        exit 1
+                    fi
+                    cp "$vcpkg_license" \
+                        "${output_dir}/licenses/${package}.txt"
+                    ;;
+                *)
+                    echo "${package}: SPDX exists but copyright notice is missing" >&2
+                    exit 1
+                    ;;
+            esac
+        else
+            cp "$copyright_file" "${output_dir}/licenses/${package}.txt"
         fi
-        cp "$copyright_file" "${output_dir}/licenses/${package}.txt"
         cp "$spdx_file" "${output_dir}/sbom/${package}.spdx.json"
         ((metadata_count += 1))
     fi

@@ -28,9 +28,19 @@ const bootstrapScript = fs.readFileSync(
     path.join(__dirname, "bootstrap-vcpkg.sh"),
     "utf8",
 );
+const packageMetadataScript = fs.readFileSync(
+    path.join(__dirname, "package-metadata.sh"),
+    "utf8",
+);
+const boostUninstallSpdxValidator = path.join(
+    __dirname,
+    "validate-boost-uninstall-spdx.jq",
+);
 const cmake = process.env.CMAKE_COMMAND || "cmake";
 const bash = process.env.BASH_COMMAND || "bash";
+const jq = process.env.JQ_COMMAND || "jq";
 let closureFixturesSkipped = false;
+let spdxFixturesSkipped = false;
 const temporaryRoot = fs.mkdtempSync(
     path.join(os.tmpdir(), "openmw-ios-lock-contract-"),
 );
@@ -194,6 +204,44 @@ function requireBuildScriptContract(testName, predicate, message) {
     process.stdout.write(`${testName}: build script contract accepted\n`);
 }
 
+function runBoostUninstallSpdxValidator(
+    testName,
+    document,
+    shouldPass,
+) {
+    if (spdxFixturesSkipped)
+        return;
+
+    const result = childProcess.spawnSync(
+        jq,
+        ["-e", "-f", boostUninstallSpdxValidator],
+        {
+            encoding: "utf8",
+            input: `${JSON.stringify(document)}\n`,
+        },
+    );
+    if (result.error?.code === "ENOENT") {
+        process.stdout.write(
+            `boost-uninstall SPDX fixtures skipped: '${jq}' is unavailable; Ubuntu CI must execute them\n`,
+        );
+        spdxFixturesSkipped = true;
+        return;
+    }
+    if (result.error)
+        throw result.error;
+    const passed = result.status === 0;
+    if (passed !== shouldPass) {
+        process.stderr.write(result.stdout);
+        process.stderr.write(result.stderr);
+        throw new Error(
+            `${testName}: expected SPDX validator to ${shouldPass ? "pass" : "reject"}`,
+        );
+    }
+    process.stdout.write(
+        `${testName}: SPDX ${shouldPass ? "accepted" : "rejected"} as expected\n`,
+    );
+}
+
 try {
     requireBuildScriptContract(
         "offline-downloads-are-fresh",
@@ -221,6 +269,73 @@ try {
             !/\bgit\b[^\n]*\b(?:--depth|--shallow)/.test(bootstrapScript) &&
             /rev-parse --is-shallow-repository/.test(bootstrapScript),
         "the builtin registry needs complete Git history and a shallow-check guard",
+    );
+    requireBuildScriptContract(
+        "boost-uninstall-notice-is-narrow",
+        /IOS_DEPS_BUILD_ROOT/.test(packageMetadataScript) &&
+            /IOS_DEPS_VCPKG_ROOT/.test(packageMetadataScript) &&
+            /boost_uninstall_spdx_validator=.*validate-boost-uninstall-spdx\.jq/.test(
+                packageMetadataScript,
+            ) &&
+            /case "\$package" in[\s\S]*boost-uninstall\)[\s\S]*jq -e -f "\$boost_uninstall_spdx_validator"/.test(
+                packageMetadataScript,
+            ) &&
+            /git -C "\$vcpkg_root" show/.test(packageMetadataScript) &&
+            /cmp - "\$vcpkg_license"/.test(packageMetadataScript),
+        "only the identified MIT boost-uninstall helper may use the pinned vcpkg notice",
+    );
+
+    const validBoostUninstallSpdx = {
+        packages: [
+            {
+                name: "boost-uninstall",
+                description: "Internal vcpkg port used to uninstall Boost",
+                licenseConcluded: "MIT",
+            },
+            {
+                name: "boost-uninstall:arm64-ios-openmw",
+                licenseConcluded: "MIT",
+            },
+        ],
+    };
+    runBoostUninstallSpdxValidator(
+        "valid-boost-uninstall-spdx",
+        validBoostUninstallSpdx,
+        true,
+    );
+
+    const wrongBoostUninstallLicense = clone(validBoostUninstallSpdx);
+    wrongBoostUninstallLicense.packages[0].licenseConcluded = "NOASSERTION";
+    runBoostUninstallSpdxValidator(
+        "wrong-boost-uninstall-license",
+        wrongBoostUninstallLicense,
+        false,
+    );
+
+    const duplicateBoostUninstallPort = clone(validBoostUninstallSpdx);
+    duplicateBoostUninstallPort.packages.push(
+        clone(duplicateBoostUninstallPort.packages[0]),
+    );
+    runBoostUninstallSpdxValidator(
+        "duplicate-boost-uninstall-port",
+        duplicateBoostUninstallPort,
+        false,
+    );
+
+    const missingBoostUninstallBinary = clone(validBoostUninstallSpdx);
+    missingBoostUninstallBinary.packages.pop();
+    runBoostUninstallSpdxValidator(
+        "missing-boost-uninstall-binary",
+        missingBoostUninstallBinary,
+        false,
+    );
+
+    const unrelatedMissingNotice = clone(validBoostUninstallSpdx);
+    unrelatedMissingNotice.packages[0].name = "boost-uninstall-extra";
+    runBoostUninstallSpdxValidator(
+        "unrelated-missing-notice",
+        unrelatedMissingNotice,
+        false,
     );
 
     const reorderedManifest = clone(manifest);

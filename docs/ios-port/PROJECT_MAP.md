@@ -47,8 +47,8 @@ render/input/files/audio, nie w regułach gry.
   - wykonuje desktopowe pakietowanie CPack.
 - `cmake/`
   - find modules i testy możliwości bibliotek;
-  - `CheckLuaCustomAllocator.cmake` używa testu wykonywalnego, co trzeba
-    ominąć lub zasilić wynikiem podczas cross-compile;
+  - `CheckLuaCustomAllocator.cmake` używa `try_run` natywnie, ale podczas
+    cross-compile przechodzi przez istniejący compile-only `try_compile`;
   - `OpenMWMacros.cmake` definiuje targety i whole-archive.
 - `CI/`, `.github/workflows/`, `.gitlab-ci.yml`
   - Linux, Windows, macOS i historyczne ścieżki Android;

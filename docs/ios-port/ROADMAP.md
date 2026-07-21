@@ -1,6 +1,6 @@
 # Roadmapa portu OpenMW na iOS
 
-**Ostatnia aktualizacja:** 2026-07-20
+**Ostatnia aktualizacja:** 2026-07-21
 **Bazowy upstream:** `7a5e77a45130aca9b33db1d2eb6b412a8a848c9b`
 **Repo docelowe:** `tryk016/openmw`
 **Branch dokumentacji:** `codex/ios-port-plan`
@@ -70,9 +70,9 @@ Tabela jest aktualizowana razem z checkboxami.
 |---:|---:|---:|---|
 | 0 | 24 | 24 | ukończona |
 | 1 | 13 | 13 | ukończona |
-| 2 | 11 | 34 | w toku |
+| 2 | 21 | 45 | w toku |
 | 3 | 10 | 26 | w toku |
-| 4 | 0 | 41 | oczekuje |
+| 4 | 0 | 32 | oczekuje |
 | 5 | 0 | 39 | oczekuje |
 | 6 | 0 | 33 | oczekuje |
 | 7 | 0 | 17 | oczekuje |
@@ -81,7 +81,7 @@ Tabela jest aktualizowana razem z checkboxami.
 | 10 | 20 | 38 | w toku |
 | 11 | 4 | 42 | w toku |
 | 12 | 0 | 16 | oczekuje |
-| **Razem** | **82** | **380** | **21,6%** |
+| **Razem** | **92** | **382** | **24,1%** |
 
 ---
 
@@ -187,8 +187,8 @@ jeżeli nie jest dostępny w G0.
 - [x] Zbudować zlib.
 - [x] Zbudować yaml-cpp.
 - [x] Zbudować SQLite amalgamation.
-- [ ] Zbudować Bullet 3.17 z `USE_DOUBLE_PRECISION=ON`.
-- [ ] Zweryfikować, że linkujemy tylko BulletCollision i LinearMath.
+- [x] Zbudować Bullet 3.17 z `USE_DOUBLE_PRECISION=ON`.
+- [x] Zweryfikować, że linkujemy tylko BulletCollision i LinearMath.
 - [ ] Zbudować Recast/Detour bez demo/testów/examples.
 - [ ] Zbudować MyGUIEngine bez pluginów/narzędzi.
 - [x] Zbudować FreeType.
@@ -198,8 +198,8 @@ jeżeli nie jest dostępny w G0.
 
 - [ ] Zbudować PUC Lua dla device/simulator.
 - [x] Ustawić `USE_LUAJIT=OFF` w presetach bazowych.
-- [ ] Usunąć/pominąć `try_run` z `CheckLuaCustomAllocator.cmake` podczas
-  cross-compile.
+- [ ] Zweryfikować z docelowym PUC Lua istniejącą ścieżkę cross-compile:
+  `CheckLuaCustomAllocator.cmake` używa `try_compile` i pomija `try_run`.
 - [ ] Zbudować narzędzia ICU na hoście.
 - [ ] Zbudować targetowe ICU `uc`, `i18n`, `data`.
 - [ ] Ograniczyć ICU data do faktycznie wymaganych danych.
@@ -282,6 +282,19 @@ iPhone Simulatorze wykonała parse/emit YAML oraz zapytanie SQLite `json_extract
 na bazie in-memory, potwierdzając jednocześnie thread safety i brak runtime
 loadable extensions. Workflow
 [`iOS G0` #29813819367](https://github.com/tryk016/openmw/actions/runs/29813819367)
+potwierdził brak regresji device/simulator.
+
+**Dowód Bullet:** commit `8743184554`, workflow
+[`iOS dependencies` #29817842440](https://github.com/tryk016/openmw/actions/runs/29817842440)
+zbudował iOS-only Bullet 3.17#6 dla obu SDK z publicznym ABI
+`BT_USE_DOUBLE_PRECISION` i `BT_THREADSAFE=1`. Prefiksy zawierają wyłącznie
+`BulletCollision` i `LinearMath`; walidacja odrzuca dynamics, soft body,
+Bullet3, narzędzia, demo i testy. Closure obejmuje 12 bezpośrednich portów,
+79 tranzytywnych portów targetu oraz 3 helpery hosta. Oba joby sprawdziły każdy
+człon archiwów, wykonały link probes, czysty rebuild offline i ponowny link.
+Smoke na iPhone Simulatorze utworzył dwa wątki z różnymi indeksami Bullet oraz
+wykonał convex hull i kolizję BVH. Workflow
+[`iOS G0` #29817842388](https://github.com/tryk016/openmw/actions/runs/29817842388)
 potwierdził brak regresji device/simulator.
 
 ---

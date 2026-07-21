@@ -29,8 +29,8 @@
   issue/ADR.
 - Każdy PR do `ios/main` aktualizuje tę roadmapę albo jawnie uzasadnia brak
   zmiany.
-- Checkbox zmieniamy w tym samym commicie co kod/test/dokument, który go
-  kończy.
+- Checkbox zmieniamy w tym samym PR, w osobnym commicie dowodowym dopiero po
+  przejściu wymaganych workflowów dla kończącego go kodu/testu/dokumentu.
 - Dla testu urządzenia dowód zapisujemy w opisie PR: model, wersja iOS, build
   SHA, wynik i data.
 - Faza kończy się dopiero po spełnieniu jej Definition of Done.
@@ -70,7 +70,7 @@ Tabela jest aktualizowana razem z checkboxami.
 |---:|---:|---:|---|
 | 0 | 24 | 24 | ukończona |
 | 1 | 13 | 13 | ukończona |
-| 2 | 22 | 45 | w toku |
+| 2 | 27 | 45 | w toku |
 | 3 | 10 | 26 | w toku |
 | 4 | 0 | 32 | oczekuje |
 | 5 | 0 | 39 | oczekuje |
@@ -81,7 +81,7 @@ Tabela jest aktualizowana razem z checkboxami.
 | 10 | 20 | 38 | w toku |
 | 11 | 4 | 42 | w toku |
 | 12 | 0 | 16 | oczekuje |
-| **Razem** | **93** | **382** | **24,3%** |
+| **Razem** | **98** | **382** | **25,7%** |
 
 ---
 
@@ -197,13 +197,13 @@ jeżeli nie jest dostępny w G0.
 
 ### Język i lokalizacja
 
-- [ ] Zbudować PUC Lua dla device/simulator.
+- [x] Zbudować PUC Lua dla device/simulator.
 - [x] Ustawić `USE_LUAJIT=OFF` w bazowym profilu CMake dla iOS.
-- [ ] Zweryfikować z docelowym PUC Lua istniejącą ścieżkę cross-compile:
+- [x] Zweryfikować z docelowym PUC Lua istniejącą ścieżkę cross-compile:
   `CheckLuaCustomAllocator.cmake` używa `try_compile` i pomija `try_run`.
-- [ ] Zbudować narzędzia ICU na hoście.
-- [ ] Zbudować targetowe ICU `uc`, `i18n`, `data`.
-- [ ] Ograniczyć ICU data do faktycznie wymaganych danych.
+- [x] Zbudować narzędzia ICU na hoście.
+- [x] Zbudować targetowe ICU `uc`, `i18n`, `data`.
+- [x] Ograniczyć ICU data do faktycznie wymaganych danych.
 
 ### Multimedia
 
@@ -308,6 +308,20 @@ Simulatorze zrasteryzował geometrię Recast, utworzył dwupoligonową siatkę
 Detour, znalazł ścieżkę między różnymi poligonami, wykonał callbacki DebugUtils
 i sprawdził cykl życia tile cache. Workflow
 [`iOS G0` #29822369150](https://github.com/tryk016/openmw/actions/runs/29822369150)
+potwierdził brak regresji device/simulator.
+
+**Dowód Lua/ICU:** commity `631566010a` i `d11edfa4d2`, workflow
+[`iOS dependencies` #29836194821](https://github.com/tryk016/openmw/actions/runs/29836194821)
+zbudował statyczne PUC Lua 5.1.5#1 oraz ICU 70.1#1 dla obu SDK. Closure
+obejmuje 15 bezpośrednich portów targetu, 79 portów tranzytywnych targetu
+i 4 porty hosta, w tym dokładnie `icu[tools]`. Oba joby zweryfikowały każdy
+człon archiwów, target `arm64`, platformę i `minos 16.4`, natywne narzędzia ICU,
+trzy targetowe biblioteki ICU, przypięty filtr danych, licencje i SPDX.
+Następnie wykonały czysty rebuild bez sieci i ponowny link. Smoke na iPhone
+Simulatorze potwierdził własny allocator i semantykę Lua 5.1 oraz `u_init`,
+`MessageFormat`, reguły plural dla języka angielskiego, polskiego i rosyjskiego
+i skeleton liczbowy ICU. Workflow
+[`iOS G0` #29836195206](https://github.com/tryk016/openmw/actions/runs/29836195206)
 potwierdził brak regresji device/simulator.
 
 ---

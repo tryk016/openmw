@@ -121,7 +121,7 @@ SHA-512 e4d91a6daa494331729e9791e17db60dc467fbbcd6c121069ccd339781bfff1419ea170f
 Walidator host-tools sprawdza dokładny zbiór binariów Mach-O arm64, wersję
 70.1, metadane cross-builda i brak narzędzi w targetowym prefiksie. Probe ICU
 wykonuje `u_init`, round-trip UTF-8, `MessageFormat`, reguły plural dla
-`en=1`, `pl=2`, `ru=5` oraz skeleton liczbowy `.00/group-off`.
+`en=1`, `pl=2`, `ru=5` oraz skeleton liczbowy `.00 group-off`.
 
 Dodanie biblioteki do profilu przed pogodzeniem jej wersji z przypiętym
 registry albo portem overlay celowo kończy build błędem.

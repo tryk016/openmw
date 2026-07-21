@@ -67,15 +67,19 @@ namespace
         status = U_ZERO_ERROR;
         const icu::number::UnlocalizedNumberFormatter numberTemplate
             = icu::number::NumberFormatter::forSkeleton(
-                icu::UnicodeString::fromUTF8(".00/group-off"), status);
+                icu::UnicodeString::fromUTF8(".00 group-off"), status);
+        if (U_FAILURE(status))
+            return 7;
         const icu::UnicodeString formattedNumber = numberTemplate
             .locale(icu::Locale::getEnglish())
             .formatDouble(1234.5, status)
             .toString(status);
+        if (U_FAILURE(status))
+            return 8;
         std::string numberUtf8;
         formattedNumber.toUTF8String(numberUtf8);
-        if (U_FAILURE(status) || numberUtf8 != "1234.50")
-            return 7;
+        if (numberUtf8 != "1234.50")
+            return 9;
 
         return 0;
     }

@@ -47,6 +47,7 @@ endif()
 # retaining the exact path restriction for the top-level package itself.
 block()
     list(PREPEND CMAKE_PREFIX_PATH "${IOS_DEPS_PREFIX}")
+    set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE NEVER)
     find_package(Boost 1.90.0 CONFIG REQUIRED
         COMPONENTS geometry iostreams program_options
         PATHS "${IOS_DEPS_PREFIX}/share/boost"

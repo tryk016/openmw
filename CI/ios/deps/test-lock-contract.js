@@ -36,6 +36,18 @@ const hostToolsScript = fs.readFileSync(
     path.join(__dirname, "validate-host-tools.sh"),
     "utf8",
 );
+const prefixValidator = fs.readFileSync(
+    path.join(__dirname, "validate-prefix.sh"),
+    "utf8",
+);
+const smokeCmake = fs.readFileSync(
+    path.join(repoRoot, "ios-deps/smoke/CMakeLists.txt"),
+    "utf8",
+);
+const myGuiProbe = fs.readFileSync(
+    path.join(repoRoot, "ios-deps/smoke/MyGUIProbe.cpp"),
+    "utf8",
+);
 const boostUninstallSpdxValidator = path.join(
     __dirname,
     "validate-boost-uninstall-spdx.jq",
@@ -304,6 +316,31 @@ try {
             /exec 1>&2/.test(buildScript) &&
             /printf '%s\\n' "\$prefix" >&3/.test(buildScript),
         "build.sh stdout must contain only the prefix consumed by GitHub Actions",
+    );
+    requireBuildScriptContract(
+        "mygui-archive-retains-freetype-edge",
+        /nm -u "\$\{prefix\}\/lib\/libMyGUIEngineStatic\.a"/.test(
+            prefixValidator,
+        ) &&
+            /_FT_Init_FreeType/.test(prefixValidator) &&
+            /_FT_Done_FreeType/.test(prefixValidator),
+        "the MyGUI archive must retain explicit unresolved FreeType symbols",
+    );
+    requireBuildScriptContract(
+        "mygui-probe-executes-freetype-lifecycle",
+        /FT_Init_FreeType\(&freeType\)/.test(myGuiProbe) &&
+            /FT_Done_FreeType\(freeType\)/.test(myGuiProbe),
+        "the renderer-free MyGUI probe must initialize and release FreeType",
+    );
+    requireBuildScriptContract(
+        "mygui-static-interface-is-transitive",
+        /INTERFACE_LINK_LIBRARIES\s+"Freetype::Freetype;PNG::PNG;ZLIB::ZLIB"/.test(
+            smokeCmake,
+        ) &&
+            /target_link_libraries\(openmw-ios-mygui-probe PRIVATE OpenMWIOS::MyGUI\)/.test(
+                smokeCmake,
+            ),
+        "the MyGUI target must carry its full static closure for consumers",
     );
     requireBuildScriptContract(
         "boost-uninstall-notice-is-narrow",

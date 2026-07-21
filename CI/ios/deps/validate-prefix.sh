@@ -26,7 +26,7 @@ if [[ ! -d "$prefix" ]]; then
     exit 1
 fi
 
-for command in ar file find lipo xcrun; do
+for command in ar file find lipo nm xcrun; do
     if ! command -v "$command" >/dev/null 2>&1; then
         echo "Required command is unavailable: $command" >&2
         exit 1
@@ -332,6 +332,17 @@ if [[ -d "${prefix}/share/mygui" \
         echo "Unexpected MyGUI archive: $unexpected_mygui_archive" >&2
         exit 1
     fi
+
+    mygui_undefined_symbols="$(
+        nm -u "${prefix}/lib/libMyGUIEngineStatic.a"
+    )"
+    for freetype_symbol in _FT_Init_FreeType _FT_Done_FreeType; do
+        if ! grep -Eq "(^|[[:space:]])${freetype_symbol}([[:space:]]|$)" \
+                <<<"$mygui_undefined_symbols"; then
+            echo "MyGUI engine does not expose the expected FreeType dependency: ${freetype_symbol}" >&2
+            exit 1
+        fi
+    done
 
     if ! grep -Eq '^[[:space:]]*#define[[:space:]]+MYGUI_VERSION_MAJOR[[:space:]]+3[[:space:]]*$' \
             "${prefix}/include/MYGUI/MyGUI_Prerequest.h" ||

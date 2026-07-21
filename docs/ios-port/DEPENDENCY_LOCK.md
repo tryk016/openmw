@@ -142,7 +142,12 @@ Konsumenci muszą kompilować nagłówki z trzema definicjami ABI:
 `MYGUI_STATIC`, `MYGUI_USE_FREETYPE` i `MYGUI_DONT_USE_OBSOLETE`. Overlay
 zapisuje je w `MYGUIStatic.pc`, natomiast profil produktu OpenMW dodaje dwie
 ostatnie jawnie, ponieważ `FindMyGUI.cmake` nie przenosi `Cflags` pkg-config;
-`MYGUI_STATIC` wynika z istniejącej opcji statycznego linkowania.
+`MYGUI_STATIC` wynika z istniejącej opcji statycznego linkowania. Importowany
+target smoke przenosi pełną statyczną krawędź
+`Freetype::Freetype;PNG::PNG;ZLIB::ZLIB`, więc probe nie może dopisywać tych
+bibliotek poza targetem MyGUI. Walidator `nm -u` dodatkowo wymaga, aby samo
+archiwum silnika zawierało nierozwiązane symbole `_FT_Init_FreeType` i
+`_FT_Done_FreeType`.
 
 Dodanie biblioteki do profilu przed pogodzeniem jej wersji z przypiętym
 registry albo portem overlay celowo kończy build błędem.
@@ -213,8 +218,9 @@ aplikacja symulatora musi wykonać oba probe i zalogować marker
 Smoke profilu `ui-foundation` dodatkowo linkuje `libMyGUIEngineStatic.a` bez
 adaptera platformy i bez renderera. Dedykowany probe sprawdza wersję 3.4.3,
 trzy definicje ABI oraz typy `char16_t`/`char32_t`, wykonuje round-trip UTF-8,
-buduje dokument XML silnika, serializuje go i ponownie parsuje. Aplikacja
-symulatora musi wykonać probe i zalogować marker `ui foundation PASS`.
+wykonuje bezrendererowy cykl `FT_Init_FreeType`/`FT_Done_FreeType`, buduje
+dokument XML silnika, serializuje go i ponownie parsuje. Aplikacja symulatora
+musi wykonać probe i zalogować marker `ui foundation PASS`.
 
 ## Pobieranie i tryb offline
 

@@ -274,14 +274,25 @@ set_target_properties(OpenMWIOS::MyGUI PROPERTIES
     INTERFACE_COMPILE_DEFINITIONS
         "MYGUI_STATIC;MYGUI_USE_FREETYPE;MYGUI_DONT_USE_OBSOLETE")
 set_property(TARGET OpenMWIOS::MyGUI APPEND PROPERTY
-    INTERFACE_LINK_LIBRARIES Freetype::Freetype)
+    INTERFACE_LINK_LIBRARIES
+        "Freetype::Freetype;PNG::PNG;ZLIB::ZLIB")
 get_target_property(mygui_target_type OpenMWIOS::MyGUI TYPE)
 get_target_property(mygui_target_location
     OpenMWIOS::MyGUI IMPORTED_LOCATION_RELEASE)
+get_target_property(mygui_target_link_interface
+    OpenMWIOS::MyGUI INTERFACE_LINK_LIBRARIES)
 if(NOT mygui_target_type STREQUAL "STATIC_LIBRARY"
         OR NOT mygui_target_location STREQUAL mygui_archive)
     message(FATAL_ERROR
         "MyGUI did not resolve to the locked static engine archive")
+endif()
+set(expected_mygui_link_interface
+    Freetype::Freetype
+    PNG::PNG
+    ZLIB::ZLIB)
+if(NOT mygui_target_link_interface STREQUAL expected_mygui_link_interface)
+    message(FATAL_ERROR
+        "MyGUI does not propagate its complete static link interface")
 endif()
 
 set(PNG_PNG_INCLUDE_DIR "${IOS_DEPS_PREFIX}/include")
@@ -465,10 +476,7 @@ set_target_properties(openmw-ios-icu-probe PROPERTIES
 
 add_executable(openmw-ios-mygui-probe MyGUIProbe.cpp)
 target_compile_features(openmw-ios-mygui-probe PRIVATE cxx_std_20)
-target_link_libraries(openmw-ios-mygui-probe PRIVATE
-    OpenMWIOS::MyGUI
-    PNG::PNG
-    ZLIB::ZLIB)
+target_link_libraries(openmw-ios-mygui-probe PRIVATE OpenMWIOS::MyGUI)
 set_target_properties(openmw-ios-mygui-probe PROPERTIES
     OUTPUT_NAME "OpenMWMyGUIProbe"
     XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"

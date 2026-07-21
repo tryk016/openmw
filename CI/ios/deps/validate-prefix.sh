@@ -71,6 +71,26 @@ if [[ -d "${prefix}/share/libjpeg-turbo" ]]; then
     done
 fi
 
+if [[ -d "${prefix}/share/boost" ]]; then
+    for boost_archive in \
+            libboost_atomic.a \
+            libboost_chrono.a \
+            libboost_container.a \
+            libboost_date_time.a \
+            libboost_graph.a \
+            libboost_iostreams.a \
+            libboost_program_options.a \
+            libboost_random.a \
+            libboost_serialization.a \
+            libboost_thread.a \
+            libboost_wserialization.a; do
+        if [[ ! -f "${prefix}/lib/${boost_archive}" ]]; then
+            echo "Boost package is missing: ${prefix}/lib/${boost_archive}" >&2
+            exit 1
+        fi
+    done
+fi
+
 temporary_root="$(mktemp -d)"
 trap 'rm -rf "$temporary_root"' EXIT
 object_count=0

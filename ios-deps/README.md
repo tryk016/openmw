@@ -26,6 +26,9 @@ iphonesimulator/vcpkg_installed/<triplet>/ simulator static prefix
 ```
 
 Device and simulator artifacts must never be combined with `lipo`.
+The pinned vcpkg checkout deliberately retains complete Git history: versioned
+builtin-registry entries can reference historical port trees. A shallow tooling
+cache is rejected and rebuilt before dependency resolution.
 
 ## Build profiles
 
@@ -34,16 +37,20 @@ On macOS with Xcode 16.4:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature image-foundation \
+  --feature cpp-foundation \
   --clean
 bash CI/ios/deps/build.sh \
   --platform iphonesimulator \
-  --feature image-foundation \
+  --feature cpp-foundation \
   --clean
 ```
 
 `base-foundation` contains the first production slice: SDL2, LZ4 and zlib.
 `image-foundation` is cumulative and adds FreeType, libpng and libjpeg-turbo.
+`cpp-foundation` adds only the Boost surface used by OpenMW:
+Geometry, Iostreams without compression filters, and Program Options. Its
+checked-in closure records every target and host helper port resolved by the
+pinned vcpkg baseline.
 `bootstrap` remains available as the smaller zlib-only pipeline proof. The
 profile-to-source mapping lives in `dependencies.lock.json`; every profile must
 have a matching vcpkg manifest feature. After installation, the build also
@@ -65,7 +72,7 @@ access:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature image-foundation \
+  --feature cpp-foundation \
   --clean \
   --offline
 ```

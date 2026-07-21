@@ -113,8 +113,39 @@ foreach(index RANGE 0 ${last_dependency})
     endif()
 endforeach()
 
+if(NOT DEFINED CONFIGURATION_FILE)
+    set(CONFIGURATION_FILE
+        "${CMAKE_CURRENT_LIST_DIR}/../../../ios-deps/vcpkg-configuration.json")
+endif()
+if(NOT EXISTS "${CONFIGURATION_FILE}")
+    message(FATAL_ERROR
+        "vcpkg configuration file does not exist: ${CONFIGURATION_FILE}")
+endif()
+file(READ "${CONFIGURATION_FILE}" vcpkg_configuration)
+string(JSON registry_kind ERROR_VARIABLE registry_kind_error
+    GET "${vcpkg_configuration}" default-registry kind)
+string(JSON registry_baseline ERROR_VARIABLE registry_baseline_error
+    GET "${vcpkg_configuration}" default-registry baseline)
+if(registry_kind_error OR NOT registry_kind STREQUAL "builtin" OR
+        registry_baseline_error)
+    message(FATAL_ERROR
+        "vcpkg configuration must define a pinned builtin default registry")
+endif()
+list(FIND names "vcpkg" vcpkg_dependency_index)
+if(vcpkg_dependency_index EQUAL -1)
+    message(FATAL_ERROR "Required iOS dependency is not locked: vcpkg")
+endif()
+string(JSON vcpkg_revision GET
+    "${lock}" dependencies ${vcpkg_dependency_index} revision)
+if(NOT registry_baseline STREQUAL vcpkg_revision)
+    message(FATAL_ERROR
+        "vcpkg registry baseline does not match the locked vcpkg revision "
+        "(baseline=${registry_baseline}, lock=${vcpkg_revision})")
+endif()
+
 foreach(required
-        vcpkg sdl2 boost lz4 zlib yaml-cpp sqlite bullet recastnavigation mygui
+        vcpkg sdl2 boost-iostreams boost-program-options boost-geometry
+        lz4 zlib yaml-cpp sqlite bullet recastnavigation mygui
         freetype libpng libjpeg-turbo lua icu openal-soft ffmpeg gl4es osg)
     if(NOT required IN_LIST names)
         message(FATAL_ERROR "Required iOS dependency is not locked: ${required}")
@@ -187,6 +218,23 @@ foreach(profile_index RANGE 0 ${last_profile})
                 "'${vcpkg_port}'")
         endif()
 
+        string(JSON vcpkg_port_version ERROR_VARIABLE port_version_error
+            GET "${lock}" dependencies ${locked_dependency_index}
+            vcpkg_port_version)
+        if(port_version_error)
+            set(vcpkg_port_version 0)
+        else()
+            string(JSON vcpkg_port_version_type TYPE
+                "${lock}" dependencies ${locked_dependency_index}
+                vcpkg_port_version)
+            if(NOT vcpkg_port_version_type STREQUAL "NUMBER" OR
+                    NOT vcpkg_port_version MATCHES "^[0-9]+$")
+                message(FATAL_ERROR
+                    "${profile_name}/${profile_dependency}: "
+                    "vcpkg_port_version must be a non-negative integer")
+            endif()
+        endif()
+
         string(JSON vcpkg_sha512 GET
             "${lock}" dependencies ${locked_dependency_index} vcpkg_sha512)
         string(LENGTH "${vcpkg_sha512}" vcpkg_hash_length)
@@ -216,7 +264,8 @@ foreach(profile_index RANGE 0 ${last_profile})
                     "${lock}" dependencies ${locked_dependency_index}
                     vcpkg_features ${feature_index})
                 if(NOT locked_vcpkg_feature
-                        MATCHES "^[a-z0-9][a-z0-9-]*$")
+                        MATCHES "^[a-z0-9][a-z0-9-]*$" OR
+                        locked_vcpkg_feature STREQUAL "core")
                     message(FATAL_ERROR
                         "${profile_name}/${profile_dependency}: invalid "
                         "vcpkg feature '${locked_vcpkg_feature}'")
@@ -232,6 +281,158 @@ foreach(profile_index RANGE 0 ${last_profile})
         endif()
     endforeach()
 endforeach()
+
+# Direct dependencies remain the human-authored manifest contract.  Profiles
+# with a non-trivial resolver graph can additionally pin the exact target and
+# host-only transitive port/feature closure without repeating direct ports.
+string(JSON closure_type ERROR_VARIABLE closure_error
+    TYPE "${lock}" expected_vcpkg_transitive_ports)
+if(NOT closure_error)
+    if(NOT closure_type STREQUAL "OBJECT")
+        message(FATAL_ERROR
+            "expected_vcpkg_transitive_ports must be an object")
+    endif()
+
+    string(JSON closure_profile_count LENGTH
+        "${lock}" expected_vcpkg_transitive_ports)
+    if(closure_profile_count GREATER 0)
+        math(EXPR last_closure_profile "${closure_profile_count} - 1")
+        foreach(closure_profile_index RANGE 0 ${last_closure_profile})
+            string(JSON closure_profile MEMBER
+                "${lock}" expected_vcpkg_transitive_ports
+                ${closure_profile_index})
+            if(NOT closure_profile IN_LIST profile_names)
+                message(FATAL_ERROR
+                    "Transitive closure references unknown profile "
+                    "'${closure_profile}'")
+            endif()
+
+            string(JSON closure_profile_type TYPE
+                "${lock}" expected_vcpkg_transitive_ports
+                "${closure_profile}")
+            if(NOT closure_profile_type STREQUAL "OBJECT")
+                message(FATAL_ERROR
+                    "${closure_profile}: transitive closure must be an object")
+            endif()
+
+            set(closure_direct_ports)
+            string(JSON closure_direct_count LENGTH
+                "${lock}" build_profiles "${closure_profile}")
+            math(EXPR last_closure_direct "${closure_direct_count} - 1")
+            foreach(closure_direct_index RANGE 0 ${last_closure_direct})
+                string(JSON closure_direct_dependency GET
+                    "${lock}" build_profiles "${closure_profile}"
+                    ${closure_direct_index})
+                list(FIND names "${closure_direct_dependency}"
+                    closure_direct_dependency_index)
+                string(JSON closure_direct_port GET
+                    "${lock}" dependencies
+                    ${closure_direct_dependency_index} vcpkg_port)
+                list(APPEND closure_direct_ports "${closure_direct_port}")
+            endforeach()
+
+            foreach(closure_scope target host)
+                string(JSON closure_scope_type ERROR_VARIABLE scope_error
+                    TYPE "${lock}" expected_vcpkg_transitive_ports
+                    "${closure_profile}" "${closure_scope}")
+                if(scope_error OR NOT closure_scope_type STREQUAL "ARRAY")
+                    message(FATAL_ERROR
+                        "${closure_profile}: transitive closure '${closure_scope}' "
+                        "must be an array")
+                endif()
+
+                string(JSON closure_entry_count LENGTH
+                    "${lock}" expected_vcpkg_transitive_ports
+                    "${closure_profile}" "${closure_scope}")
+                set(closure_scope_ports)
+                if(closure_entry_count GREATER 0)
+                    math(EXPR last_closure_entry "${closure_entry_count} - 1")
+                    foreach(closure_entry_index RANGE 0 ${last_closure_entry})
+                        string(JSON closure_entry_type TYPE
+                            "${lock}" expected_vcpkg_transitive_ports
+                            "${closure_profile}" "${closure_scope}"
+                            ${closure_entry_index})
+                        if(NOT closure_entry_type STREQUAL "OBJECT")
+                            message(FATAL_ERROR
+                                "${closure_profile}/${closure_scope}: closure "
+                                "entry ${closure_entry_index} must be an object")
+                        endif()
+
+                        string(JSON closure_port ERROR_VARIABLE closure_port_error
+                            GET "${lock}" expected_vcpkg_transitive_ports
+                            "${closure_profile}" "${closure_scope}"
+                            ${closure_entry_index} port)
+                        if(closure_port_error OR NOT closure_port
+                                MATCHES "^[a-z0-9][a-z0-9-]*$")
+                            message(FATAL_ERROR
+                                "${closure_profile}/${closure_scope}: closure "
+                                "entry ${closure_entry_index} has invalid port")
+                        endif()
+                        if(closure_port IN_LIST closure_scope_ports)
+                            message(FATAL_ERROR
+                                "${closure_profile}/${closure_scope}: duplicate "
+                                "transitive port '${closure_port}'")
+                        endif()
+                        list(APPEND closure_scope_ports "${closure_port}")
+                        if(closure_scope STREQUAL "target" AND
+                                closure_port IN_LIST closure_direct_ports)
+                            message(FATAL_ERROR
+                                "${closure_profile}: direct port '${closure_port}' "
+                                "must not be repeated as target transitive")
+                        endif()
+
+                        string(JSON closure_features_type
+                            ERROR_VARIABLE closure_features_error TYPE
+                            "${lock}" expected_vcpkg_transitive_ports
+                            "${closure_profile}" "${closure_scope}"
+                            ${closure_entry_index} features)
+                        set(closure_features)
+                        if(NOT closure_features_error)
+                            if(NOT closure_features_type STREQUAL "ARRAY")
+                                message(FATAL_ERROR
+                                    "${closure_profile}/${closure_scope}/"
+                                    "${closure_port}: features must be an array")
+                            endif()
+                            string(JSON closure_feature_count LENGTH
+                                "${lock}" expected_vcpkg_transitive_ports
+                                "${closure_profile}" "${closure_scope}"
+                                ${closure_entry_index} features)
+                            if(closure_feature_count GREATER 0)
+                                math(EXPR last_closure_feature
+                                    "${closure_feature_count} - 1")
+                                foreach(closure_feature_index RANGE 0
+                                        ${last_closure_feature})
+                                    string(JSON closure_feature GET
+                                        "${lock}"
+                                        expected_vcpkg_transitive_ports
+                                        "${closure_profile}" "${closure_scope}"
+                                        ${closure_entry_index} features
+                                        ${closure_feature_index})
+                                    if(NOT closure_feature
+                                            MATCHES "^[a-z0-9][a-z0-9-]*$" OR
+                                            closure_feature STREQUAL "core")
+                                        message(FATAL_ERROR
+                                            "${closure_profile}/${closure_scope}/"
+                                            "${closure_port}: invalid feature "
+                                            "'${closure_feature}'")
+                                    endif()
+                                    if(closure_feature IN_LIST closure_features)
+                                        message(FATAL_ERROR
+                                            "${closure_profile}/${closure_scope}/"
+                                            "${closure_port}: duplicate feature "
+                                            "'${closure_feature}'")
+                                    endif()
+                                    list(APPEND closure_features
+                                        "${closure_feature}")
+                                endforeach()
+                            endif()
+                        endif()
+                    endforeach()
+                endif()
+            endforeach()
+        endforeach()
+    endif()
+endif()
 
 if(NOT DEFINED MANIFEST_FILE)
     set(MANIFEST_FILE
@@ -295,7 +496,8 @@ foreach(profile_name IN LISTS profile_names)
                         "${manifest}" features "${profile_name}" dependencies
                         ${manifest_dependency_index} features ${feature_index})
                     if(NOT manifest_dependency_feature
-                            MATCHES "^[a-z0-9][a-z0-9-]*$")
+                            MATCHES "^[a-z0-9][a-z0-9-]*$" OR
+                            manifest_dependency_feature STREQUAL "core")
                         message(FATAL_ERROR
                             "${profile_name}/${manifest_port}: invalid vcpkg "
                             "feature '${manifest_dependency_feature}'")
@@ -401,7 +603,8 @@ foreach(profile_name IN LISTS profile_names)
     endif()
 endforeach()
 
-foreach(required_profile bootstrap base-foundation image-foundation)
+foreach(required_profile
+        bootstrap base-foundation image-foundation cpp-foundation)
     if(NOT required_profile IN_LIST profile_names)
         message(FATAL_ERROR
             "Required dependency build profile is missing: "

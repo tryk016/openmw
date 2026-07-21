@@ -425,7 +425,7 @@ próbować uruchamiać binariów iOS podczas generowania CMake.
 ### Dostarczane osobno
 
 - SDL2;
-- Boost `program_options` i `iostreams`;
+- Boost `program_options`, `iostreams` oraz header-only `geometry`;
 - FFmpeg;
 - OpenAL/OpenAL Soft;
 - Lua/LuaJIT;

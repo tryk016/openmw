@@ -62,6 +62,51 @@
           "default-features": false
         }
       ]
+    },
+    "cpp-foundation": {
+      "description": "Cumulative image profile with the OpenMW Boost surface",
+      "dependencies": [
+        {
+          "name": "sdl2",
+          "default-features": false
+        },
+        {
+          "name": "lz4",
+          "default-features": false
+        },
+        {
+          "name": "zlib",
+          "default-features": false
+        },
+        {
+          "name": "freetype",
+          "default-features": false,
+          "features": [
+            "png",
+            "zlib"
+          ]
+        },
+        {
+          "name": "libpng",
+          "default-features": false
+        },
+        {
+          "name": "libjpeg-turbo",
+          "default-features": false
+        },
+        {
+          "name": "boost-iostreams",
+          "default-features": false
+        },
+        {
+          "name": "boost-program-options",
+          "default-features": false
+        },
+        {
+          "name": "boost-geometry",
+          "default-features": false
+        }
+      ]
     }
   }
 }

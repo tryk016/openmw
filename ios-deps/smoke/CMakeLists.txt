@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(OpenMWIOSDepsSmoke VERSION 0.1.0 LANGUAGES C OBJCXX)
+project(OpenMWIOSDepsSmoke VERSION 0.1.0 LANGUAGES C CXX OBJCXX)
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
     message(FATAL_ERROR "The dependency smoke app must target iOS")
@@ -41,6 +41,28 @@ find_package(lz4 1.10.0 CONFIG REQUIRED
 if(NOT TARGET lz4::lz4)
     message(FATAL_ERROR "The locked LZ4 package has no lz4::lz4 target")
 endif()
+
+# BoostConfig resolves every modular dependency with nested find_package calls.
+# Keep the entire lookup graph anchored to the verified static prefix, while
+# retaining the exact path restriction for the top-level package itself.
+block()
+    list(PREPEND CMAKE_PREFIX_PATH "${IOS_DEPS_PREFIX}")
+    set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE NEVER)
+    find_package(Boost 1.90.0 CONFIG REQUIRED
+        COMPONENTS geometry iostreams program_options
+        PATHS "${IOS_DEPS_PREFIX}/share/boost"
+        NO_DEFAULT_PATH
+        NO_CMAKE_FIND_ROOT_PATH)
+endblock()
+foreach(boost_target IN ITEMS
+        Boost::geometry
+        Boost::iostreams
+        Boost::program_options)
+    if(NOT TARGET "${boost_target}")
+        message(FATAL_ERROR
+            "The locked Boost package has no ${boost_target} target")
+    endif()
+endforeach()
 
 set(freetype_archive "${IOS_DEPS_PREFIX}/lib/libfreetype.a")
 set(png_archive "${IOS_DEPS_PREFIX}/lib/libpng16.a")
@@ -123,6 +145,19 @@ add_executable(openmw-ios-turbojpeg-probe TurboJpegProbe.c)
 target_link_libraries(openmw-ios-turbojpeg-probe PRIVATE "${turbojpeg_target}")
 set_target_properties(openmw-ios-turbojpeg-probe PROPERTIES
     OUTPUT_NAME "OpenMWTurboJPEGProbe"
+    XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
+    XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "16.4")
+
+add_executable(openmw-ios-boost-probe BoostProbe.cpp)
+target_compile_features(openmw-ios-boost-probe PRIVATE cxx_std_20)
+target_link_libraries(openmw-ios-boost-probe PRIVATE
+    Boost::geometry
+    Boost::iostreams
+    Boost::program_options)
+set_target_properties(openmw-ios-boost-probe PROPERTIES
+    OUTPUT_NAME "OpenMWBoostProbe"
     XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
     XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
     XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""

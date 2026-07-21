@@ -175,7 +175,7 @@ Port musi:
 | MyGUI | średni | GL4ES albo renderer shaderowy GLES |
 | Bullet (double precision) | dobry | statyczny arm64, test deterministyczności |
 | Recast/Detour | dobry | statyczny build, budżet wątków/pamięci |
-| Boost | dobry | tylko `program_options` i `iostreams` |
+| Boost | dobry | `program_options`, `iostreams` bez filtrów i header-only `geometry` |
 | Lua | dobry | PUC Lua, bez JIT |
 | ICU | średni | host tools + biblioteki target, ograniczenie danych |
 | SQLite | dobry | systemowa biblioteka albo statyczna amalgamacja |

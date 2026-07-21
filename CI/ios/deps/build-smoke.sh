@@ -49,6 +49,7 @@ cmake --build "$build_dir" \
         openmw-ios-deps-smoke \
         openmw-ios-jpeg-probe \
         openmw-ios-turbojpeg-probe \
+        openmw-ios-boost-probe \
     --parallel 3
 
 app="$(
@@ -68,7 +69,15 @@ turbojpeg_probe="$(
     find "$build_dir" -type f -name OpenMWTurboJPEGProbe \
         ! -path '*.dSYM/*' -print -quit
 )"
-for binary in "$app_binary" "$jpeg_probe" "$turbojpeg_probe"; do
+boost_probe="$(
+    find "$build_dir" -type f -name OpenMWBoostProbe \
+        ! -path '*.dSYM/*' -print -quit
+)"
+for binary in \
+        "$app_binary" \
+        "$jpeg_probe" \
+        "$turbojpeg_probe" \
+        "$boost_probe"; do
     if [[ -z "$binary" || ! -f "$binary" ]]; then
         echo "A dependency smoke binary was not produced" >&2
         exit 1

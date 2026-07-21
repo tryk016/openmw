@@ -176,7 +176,8 @@ jeżeli nie jest dostępny w G0.
 
 - [x] Zbudować SDL2 dla device.
 - [x] Zbudować SDL2 dla simulator.
-- [ ] Zbudować Boost tylko z `program_options` i `iostreams`.
+- [x] Zbudować Boost tylko z `program_options`, `iostreams` bez filtrów
+  kompresji oraz header-only `geometry`.
 - [x] Zbudować LZ4.
 - [x] Zbudować zlib.
 - [ ] Zbudować yaml-cpp.
@@ -237,6 +238,18 @@ obiekty NEON JPEG, symbole obu API JPEG i minimalny bundle, po czym powtórzyły
 czysty build offline i ponowny link. Workflow
 [`iOS G0` #29784186534](https://github.com/tryk016/openmw/actions/runs/29784186534)
 potwierdził brak regresji device/simulator oraz uruchomienie w symulatorze.
+
+**Dowód Boost:** commit `f5ea9a6b90`, workflow
+[`iOS dependencies` #29811362783](https://github.com/tryk016/openmw/actions/runs/29811362783)
+zbudował Boost 1.90.0 dla obu SDK z dokładnie przypiętymi
+`program_options`, `iostreams` bez filtrów kompresji i header-only `geometry`.
+Pełna closure 82 portów targetowych i 3 helperów hosta została porównana z
+`vcpkg list --x-json`; probe wymusił symbole Program Options, mapped file oraz
+R-tree Geometry. Joby zweryfikowały wszystkie człony statycznych archiwów,
+`arm64`, platformę i `minos 16.4`, zlinkowały probe, wykonały czysty rebuild
+offline i ponowny link, a następnie zebrały SPDX oraz notices. Workflow
+[`iOS G0` #29811362800](https://github.com/tryk016/openmw/actions/runs/29811362800)
+potwierdził brak regresji device/simulator oraz start w symulatorze.
 
 ---
 

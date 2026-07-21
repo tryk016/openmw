@@ -471,6 +471,50 @@ try {
         false,
     );
 
+    const missingRecast = clone(manifest);
+    missingRecast.features["navigation-foundation"].dependencies =
+        missingRecast.features["navigation-foundation"].dependencies.filter(
+            (dependency) => dependency.name !== "recastnavigation",
+        );
+    runValidator("missing-navigation-recast", lock, missingRecast, false);
+
+    const unexpectedRecastFeature = clone(manifest);
+    unexpectedRecastFeature.features[
+        "navigation-foundation"
+    ].dependencies.find(
+        (dependency) => dependency.name === "recastnavigation",
+    ).features = ["crowd"];
+    runValidator(
+        "unexpected-recast-crowd-feature",
+        lock,
+        unexpectedRecastFeature,
+        false,
+    );
+
+    const recastDefaultsEnabled = clone(manifest);
+    recastDefaultsEnabled.features[
+        "navigation-foundation"
+    ].dependencies.find(
+        (dependency) => dependency.name === "recastnavigation",
+    )["default-features"] = true;
+    runValidator(
+        "recast-default-features-enabled",
+        lock,
+        recastDefaultsEnabled,
+        false,
+    );
+
+    const missingRecastSourceHash = clone(lock);
+    delete missingRecastSourceHash.dependencies.find(
+        (dependency) => dependency.name === "recastnavigation",
+    ).vcpkg_sha512;
+    runValidator(
+        "missing-recast-vcpkg-source-hash",
+        missingRecastSourceHash,
+        manifest,
+        false,
+    );
+
     const missingPortSource = clone(lock);
     delete missingPortSource.dependencies.find(
         (dependency) => dependency.name === "bullet",

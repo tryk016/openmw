@@ -51,6 +51,7 @@ cmake --build "$build_dir" \
         openmw-ios-turbojpeg-probe \
         openmw-ios-boost-probe \
         openmw-ios-bullet-probe \
+        openmw-ios-recast-probe \
         openmw-ios-yaml-probe \
         openmw-ios-sqlite-probe \
     --parallel 3
@@ -80,6 +81,10 @@ bullet_probe="$(
     find "$build_dir" -type f -name OpenMWBulletProbe \
         ! -path '*.dSYM/*' -print -quit
 )"
+recast_probe="$(
+    find "$build_dir" -type f -name OpenMWRecastProbe \
+        ! -path '*.dSYM/*' -print -quit
+)"
 yaml_probe="$(
     find "$build_dir" -type f -name OpenMWYAMLProbe \
         ! -path '*.dSYM/*' -print -quit
@@ -94,6 +99,7 @@ for binary in \
         "$turbojpeg_probe" \
         "$boost_probe" \
         "$bullet_probe" \
+        "$recast_probe" \
         "$yaml_probe" \
         "$sqlite_probe"; do
     if [[ -z "$binary" || ! -f "$binary" ]]; then
@@ -112,8 +118,8 @@ for binary in \
         exit 1
     fi
     if otool -L "$binary" | tail -n +2 |
-            grep -E '/usr/lib/libsqlite3[^/]*\.dylib|libyaml-cpp[^/]*\.dylib'; then
-        echo "${binary}: bypassed the locked static YAML/SQLite archive" >&2
+            grep -E '/usr/lib/libsqlite3[^/]*\.dylib|libyaml-cpp[^/]*\.dylib|lib(Recast|Detour|DebugUtils)[^/]*\.dylib'; then
+        echo "${binary}: bypassed a locked static dependency archive" >&2
         exit 1
     fi
 done

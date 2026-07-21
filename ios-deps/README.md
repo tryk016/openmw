@@ -37,11 +37,11 @@ On macOS with Xcode 16.4:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature physics-foundation \
+  --feature navigation-foundation \
   --clean
 bash CI/ios/deps/build.sh \
   --platform iphonesimulator \
-  --feature physics-foundation \
+  --feature navigation-foundation \
   --clean
 ```
 
@@ -59,6 +59,13 @@ expansion; JSON1 is selected explicitly.
 only `BulletCollision` and `LinearMath`, exports a double-precision,
 thread-safe static ABI and rejects every dynamics, soft-body, Bullet3,
 demo, tool and test artifact.
+`navigation-foundation` is cumulative and adds the pinned OpenMW
+RecastNavigation fork through an iOS-only overlay. It installs exactly the
+static `Recast`, `Detour`, `DetourTileCache` and `DebugUtils` libraries with
+32-bit polygon references and a non-virtual query filter. `DetourCrowd`, demos,
+examples, tests and tools are disabled and rejected by prefix validation. The
+profile pins 13 direct target ports, 79 transitive target ports and three host
+helpers.
 `bootstrap` remains available as the smaller zlib-only pipeline proof. The
 profile-to-source mapping lives in `dependencies.lock.json`; every profile must
 have a matching vcpkg manifest feature. After installation, the build also
@@ -80,7 +87,7 @@ access:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature physics-foundation \
+  --feature navigation-foundation \
   --clean \
   --offline
 ```

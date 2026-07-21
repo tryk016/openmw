@@ -27,6 +27,7 @@
 extern "C" int openmwIosYamlProbe();
 extern "C" int openmwIosSQLiteProbe();
 extern "C" int openmwIosBulletProbe();
+extern "C" int openmwIosRecastProbe();
 
 @interface OpenMWDepsSmokeDelegate : UIResponder <UIApplicationDelegate>
 @property(nonatomic, strong) UIWindow* window;
@@ -110,13 +111,14 @@ extern "C" int openmwIosBulletProbe();
     const bool yamlPassed = openmwIosYamlProbe() == 0;
     const bool sqlitePassed = openmwIosSQLiteProbe() == 0;
     const bool bulletPassed = openmwIosBulletProbe() == 0;
+    const bool recastPassed = openmwIosRecastProbe() == 0;
     const bool smokePassed
         = sdlInitResult == 0 && lz4RoundTripPassed && imageFoundationPassed
-        && yamlPassed && sqlitePassed && bulletPassed;
+        && yamlPassed && sqlitePassed && bulletPassed && recastPassed;
 
     label.text = [NSString
         stringWithFormat:
-            @"ios-deps physics foundation: %@\n"
+            @"ios-deps navigation foundation: %@\n"
              "SDL %u.%u.%u (%d video drivers)\n"
              "LZ4 %s (round-trip %@)\n"
              "zlib %s\n"
@@ -125,7 +127,8 @@ extern "C" int openmwIosBulletProbe();
              "libjpeg-turbo %s\n"
              "yaml-cpp %@\n"
              "SQLite %s %@\n"
-             "Bullet 3.17 %@",
+             "Bullet 3.17 %@\n"
+             "RecastNavigation 1.6.0 %@",
             smokePassed ? @"PASS" : @"FAIL", sdlVersion.major,
             sdlVersion.minor, sdlVersion.patch, videoDriverCount,
             LZ4_versionString(), lz4RoundTripPassed ? @"PASS" : @"FAIL",
@@ -135,14 +138,15 @@ extern "C" int openmwIosBulletProbe();
             yamlPassed ? @"PASS" : @"FAIL",
             sqlite3_libversion(),
             sqlitePassed ? @"PASS" : @"FAIL",
-            bulletPassed ? @"PASS" : @"FAIL"];
+            bulletPassed ? @"PASS" : @"FAIL",
+            recastPassed ? @"PASS" : @"FAIL"];
     [controller.view addSubview:label];
 
     self.window.rootViewController = controller;
     [self.window makeKeyAndVisible];
     os_log_t runtimeLog =
         os_log_create("org.openmw.ios.deps-smoke", "runtime");
-    os_log_info(runtimeLog, "physics foundation %{public}s",
+    os_log_info(runtimeLog, "navigation foundation %{public}s",
         smokePassed ? "PASS" : "FAIL");
     return YES;
 }

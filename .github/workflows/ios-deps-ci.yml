@@ -46,8 +46,8 @@ jobs:
       - name: Validate shell syntax
         run: bash -n CI/ios/deps/*.sh
 
-  physics-foundation:
-    name: Physics foundation ${{ matrix.platform }}
+  navigation-foundation:
+    name: Navigation foundation ${{ matrix.platform }}
     needs: lock
     runs-on: macos-15
     timeout-minutes: 90
@@ -89,7 +89,7 @@ jobs:
           prefix="$(
             bash CI/ios/deps/build.sh \
               --platform "${{ matrix.platform }}" \
-              --feature physics-foundation \
+              --feature navigation-foundation \
               --clean
           )"
           echo "prefix=$prefix" >>"$GITHUB_OUTPUT"
@@ -112,7 +112,7 @@ jobs:
           prefix="$(
             bash CI/ios/deps/build.sh \
               --platform "${{ matrix.platform }}" \
-              --feature physics-foundation \
+              --feature navigation-foundation \
               --clean \
               --offline
           )"
@@ -137,14 +137,14 @@ jobs:
           test -n "$app"
           echo "app=$app" >>"$GITHUB_OUTPUT"
 
-      - name: Execute physics probes on an iPhone Simulator
+      - name: Execute navigation probes on an iPhone Simulator
         if: matrix.platform == 'iphonesimulator'
         run: |
           bash CI/ios/smoke-simulator.sh \
             "${{ steps.offline_smoke.outputs.app }}" \
             "build/ios-deps/${{ matrix.platform }}/runtime-smoke" \
             "org.openmw.ios.deps-smoke" \
-            "physics foundation PASS"
+            "navigation foundation PASS"
 
       - name: Collect SPDX and license evidence
         run: |
@@ -153,11 +153,11 @@ jobs:
             "${{ steps.offline.outputs.prefix }}" \
             "build/ios-deps/${{ matrix.platform }}/metadata"
 
-      - name: Upload physics foundation evidence
+      - name: Upload navigation foundation evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: ios-deps-physics-foundation-${{ matrix.platform }}-${{ github.sha }}
+          name: ios-deps-navigation-foundation-${{ matrix.platform }}-${{ github.sha }}
           path: |
             build/ios-deps/${{ matrix.platform }}/build-manifest.txt
             build/ios-deps/${{ matrix.platform }}/installed-packages.json
@@ -168,6 +168,7 @@ jobs:
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWTurboJPEGProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWBoostProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWBulletProbe
+            build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWRecastProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWYAMLProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWSQLiteProbe
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/sdl2
@@ -186,6 +187,11 @@ jobs:
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/bullet3
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libBulletCollision.a
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libLinearMath.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/recastnavigation
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libRecast.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libDetour.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libDetourTileCache.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libDebugUtils.a
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libyaml-cpp.a
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libsqlite3.a
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/include/sqlite3.h

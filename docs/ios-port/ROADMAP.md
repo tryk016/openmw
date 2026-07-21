@@ -70,7 +70,7 @@ Tabela jest aktualizowana razem z checkboxami.
 |---:|---:|---:|---|
 | 0 | 24 | 24 | ukończona |
 | 1 | 13 | 13 | ukończona |
-| 2 | 21 | 45 | w toku |
+| 2 | 22 | 45 | w toku |
 | 3 | 10 | 26 | w toku |
 | 4 | 0 | 32 | oczekuje |
 | 5 | 0 | 39 | oczekuje |
@@ -81,7 +81,7 @@ Tabela jest aktualizowana razem z checkboxami.
 | 10 | 20 | 38 | w toku |
 | 11 | 4 | 42 | w toku |
 | 12 | 0 | 16 | oczekuje |
-| **Razem** | **92** | **382** | **24,1%** |
+| **Razem** | **93** | **382** | **24,3%** |
 
 ---
 
@@ -190,7 +190,7 @@ jeżeli nie jest dostępny w G0.
 - [x] Zbudować SQLite amalgamation.
 - [x] Zbudować Bullet 3.17 z `USE_DOUBLE_PRECISION=ON`.
 - [x] Zweryfikować, że linkujemy tylko BulletCollision i LinearMath.
-- [ ] Zbudować Recast/Detour bez demo/testów/examples.
+- [x] Zbudować Recast/Detour bez demo/testów/examples.
 - [ ] Zbudować MyGUIEngine bez pluginów/narzędzi.
 - [x] Zbudować FreeType.
 - [x] Zbudować libpng i libjpeg.
@@ -296,6 +296,18 @@ człon archiwów, wykonały link probes, czysty rebuild offline i ponowny link.
 Smoke na iPhone Simulatorze utworzył dwa wątki z różnymi indeksami Bullet oraz
 wykonał convex hull i kolizję BVH. Workflow
 [`iOS G0` #29817842388](https://github.com/tryk016/openmw/actions/runs/29817842388)
+potwierdził brak regresji device/simulator.
+
+**Dowód Recast/Detour:** commity `910216c22b` i `77fa74c7fc`, workflow
+[`iOS dependencies` #29822369305](https://github.com/tryk016/openmw/actions/runs/29822369305)
+zbudował Recast, Detour, DetourTileCache i DebugUtils dla obu SDK bez Crowd,
+demo, testów i examples. Oba joby zweryfikowały przypięte źródło, dokładny
+zestaw bibliotek, każdy człon archiwów, `arm64`, platformę i `minos 16.4`,
+wykonały czysty rebuild offline oraz ponowny link. Probe uruchomiony na iPhone
+Simulatorze zrasteryzował geometrię Recast, utworzył dwupoligonową siatkę
+Detour, znalazł ścieżkę między różnymi poligonami, wykonał callbacki DebugUtils
+i sprawdził cykl życia tile cache. Workflow
+[`iOS G0` #29822369150](https://github.com/tryk016/openmw/actions/runs/29822369150)
 potwierdził brak regresji device/simulator.
 
 ---

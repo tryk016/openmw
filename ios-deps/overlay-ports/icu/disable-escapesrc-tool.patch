@@ -1,0 +1,11 @@
+diff --git a/icu4c/source/tools/Makefile.in b/icu4c/source/tools/Makefile.in
+index e0896f1..047f0b1 100644
+--- a/icu4c/source/tools/Makefile.in
++++ b/icu4c/source/tools/Makefile.in
+@@ -21,6 +21,2 @@ gentest gennorm2 gencfu gendict icuexportdata
+ 
+-ifneq (@platform_make_fragment_name@,mh-cygwin-msvc)
+-SUBDIRS += escapesrc
+-endif
+-
+ ## List of phony targets

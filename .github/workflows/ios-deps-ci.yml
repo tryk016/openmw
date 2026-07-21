@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/ios-deps-ci.yml"
       - "CI/ios/deps/**"
+      - "extern/icufilters.json"
       - "ios-deps/**"
       - "docs/ios-port/DEPENDENCY_LOCK.md"
       - "docs/ios-port/ROADMAP.md"
@@ -16,6 +17,7 @@ on:
     paths:
       - ".github/workflows/ios-deps-ci.yml"
       - "CI/ios/deps/**"
+      - "extern/icufilters.json"
       - "ios-deps/**"
       - "docs/ios-port/DEPENDENCY_LOCK.md"
       - "docs/ios-port/ROADMAP.md"
@@ -46,11 +48,11 @@ jobs:
       - name: Validate shell syntax
         run: bash -n CI/ios/deps/*.sh
 
-  navigation-foundation:
-    name: Navigation foundation ${{ matrix.platform }}
+  language-foundation:
+    name: Language foundation ${{ matrix.platform }}
     needs: lock
     runs-on: macos-15
-    timeout-minutes: 90
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
@@ -89,7 +91,7 @@ jobs:
           prefix="$(
             bash CI/ios/deps/build.sh \
               --platform "${{ matrix.platform }}" \
-              --feature navigation-foundation \
+              --feature language-foundation \
               --clean
           )"
           echo "prefix=$prefix" >>"$GITHUB_OUTPUT"
@@ -99,6 +101,15 @@ jobs:
           bash CI/ios/deps/validate-prefix.sh \
             "${{ matrix.platform }}" \
             "${{ steps.online.outputs.prefix }}"
+
+      - name: Validate online ICU host tools
+        run: |
+          bash CI/ios/deps/validate-host-tools.sh \
+            language-foundation \
+            "build/ios-deps/${{ matrix.platform }}/vcpkg_installed" \
+            arm64-osx \
+            "${{ steps.online.outputs.prefix }}" \
+            "build/ios-deps/${{ matrix.platform }}/installed-packages.json"
 
       - name: Link minimal application
         run: |
@@ -112,7 +123,7 @@ jobs:
           prefix="$(
             bash CI/ios/deps/build.sh \
               --platform "${{ matrix.platform }}" \
-              --feature navigation-foundation \
+              --feature language-foundation \
               --clean \
               --offline
           )"
@@ -123,6 +134,15 @@ jobs:
           bash CI/ios/deps/validate-prefix.sh \
             "${{ matrix.platform }}" \
             "${{ steps.offline.outputs.prefix }}"
+
+      - name: Validate offline ICU host tools
+        run: |
+          bash CI/ios/deps/validate-host-tools.sh \
+            language-foundation \
+            "build/ios-deps/${{ matrix.platform }}/vcpkg_installed" \
+            arm64-osx \
+            "${{ steps.offline.outputs.prefix }}" \
+            "build/ios-deps/${{ matrix.platform }}/installed-packages.json"
 
       - name: Relink application from offline prefix
         id: offline_smoke
@@ -137,14 +157,14 @@ jobs:
           test -n "$app"
           echo "app=$app" >>"$GITHUB_OUTPUT"
 
-      - name: Execute navigation probes on an iPhone Simulator
+      - name: Execute language probes on an iPhone Simulator
         if: matrix.platform == 'iphonesimulator'
         run: |
           bash CI/ios/smoke-simulator.sh \
             "${{ steps.offline_smoke.outputs.app }}" \
             "build/ios-deps/${{ matrix.platform }}/runtime-smoke" \
             "org.openmw.ios.deps-smoke" \
-            "navigation foundation PASS"
+            "language foundation PASS"
 
       - name: Collect SPDX and license evidence
         run: |
@@ -153,11 +173,11 @@ jobs:
             "${{ steps.offline.outputs.prefix }}" \
             "build/ios-deps/${{ matrix.platform }}/metadata"
 
-      - name: Upload navigation foundation evidence
+      - name: Upload language foundation evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: ios-deps-navigation-foundation-${{ matrix.platform }}-${{ github.sha }}
+          name: ios-deps-language-foundation-${{ matrix.platform }}-${{ github.sha }}
           path: |
             build/ios-deps/${{ matrix.platform }}/build-manifest.txt
             build/ios-deps/${{ matrix.platform }}/installed-packages.json
@@ -169,6 +189,8 @@ jobs:
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWBoostProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWBulletProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWRecastProbe
+            build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWLuaProbe
+            build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWICUProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWYAMLProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWSQLiteProbe
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/sdl2
@@ -194,6 +216,14 @@ jobs:
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libDebugUtils.a
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libyaml-cpp.a
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libsqlite3.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/lua
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/unofficial-lua
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/liblua.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/icu
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libicudata.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libicuuc.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libicui18n.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/arm64-osx/tools/icu
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/include/sqlite3.h
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/include/sqlite3-vcpkg-config.h
             ios-deps/dependencies.lock.json

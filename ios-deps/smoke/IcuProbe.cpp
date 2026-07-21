@@ -1,0 +1,92 @@
+#include <string>
+
+#include <unicode/formattable.h>
+#include <unicode/msgfmt.h>
+#include <unicode/numberformatter.h>
+#include <unicode/plurrule.h>
+#include <unicode/putil.h>
+#include <unicode/uclean.h>
+#include <unicode/unistr.h>
+#include <unicode/uversion.h>
+
+#if U_ICU_VERSION_MAJOR_NUM != 70 || U_ICU_VERSION_MINOR_NUM != 1
+#error "The iOS language foundation requires ICU 70.1"
+#endif
+
+namespace
+{
+    bool selectedPlural(const char* localeName, double value,
+        const char* expected)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        icu::PluralRules* rules = icu::PluralRules::forLocale(
+            icu::Locale(localeName), status);
+        if (U_FAILURE(status) || rules == nullptr)
+        {
+            delete rules;
+            return false;
+        }
+        const icu::UnicodeString selected = rules->select(value);
+        delete rules;
+        std::string utf8;
+        selected.toUTF8String(utf8);
+        return utf8 == expected;
+    }
+}
+
+extern "C" int openmwIosIcuProbe()
+{
+    UErrorCode status = U_ZERO_ERROR;
+    u_init(&status);
+    if (U_FAILURE(status))
+        return 1;
+
+    const std::string source = "Zażółć gęślą — OpenMW";
+    const icu::UnicodeString unicode = icu::UnicodeString::fromUTF8(source);
+    std::string roundTrip;
+    unicode.toUTF8String(roundTrip);
+    if (roundTrip != source)
+        return 2;
+
+    status = U_ZERO_ERROR;
+    icu::MessageFormat message(
+        icu::UnicodeString::fromUTF8("Hello, {0}!"),
+        icu::Locale::getEnglish(), status);
+    icu::Formattable argument(
+        icu::UnicodeString::fromUTF8("OpenMW"));
+    icu::UnicodeString formattedMessage;
+    icu::FieldPosition fieldPosition(0);
+    message.format(&argument, 1, formattedMessage, fieldPosition, status);
+    std::string messageUtf8;
+    formattedMessage.toUTF8String(messageUtf8);
+    if (U_FAILURE(status) || messageUtf8 != "Hello, OpenMW!")
+        return 3;
+
+    if (!selectedPlural("en", 1, "one")
+        || !selectedPlural("pl", 2, "few")
+        || !selectedPlural("ru", 5, "many"))
+        return 4;
+
+    status = U_ZERO_ERROR;
+    const icu::number::UnlocalizedNumberFormatter numberTemplate
+        = icu::number::NumberFormatter::forSkeleton(
+            icu::UnicodeString::fromUTF8(".00/group-off"), status);
+    const icu::UnicodeString formattedNumber = numberTemplate
+        .locale(icu::Locale::getEnglish())
+        .formatDouble(1234.5, status)
+        .toString(status);
+    std::string numberUtf8;
+    formattedNumber.toUTF8String(numberUtf8);
+    if (U_FAILURE(status) || numberUtf8 != "1234.50")
+        return 5;
+
+    u_cleanup();
+    return 0;
+}
+
+#ifndef OPENMW_IOS_PROBE_NO_MAIN
+int main()
+{
+    return openmwIosIcuProbe();
+}
+#endif

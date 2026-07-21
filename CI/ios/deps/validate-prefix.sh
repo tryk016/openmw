@@ -248,6 +248,65 @@ if [[ -d "${prefix}/share/sqlite3" \
     done
 fi
 
+if [[ -d "${prefix}/share/unofficial-lua" ]]; then
+    for lua_path in \
+            "${prefix}/lib/liblua.a" \
+            "${prefix}/include/lua.h" \
+            "${prefix}/include/lauxlib.h" \
+            "${prefix}/include/lualib.h" \
+            "${prefix}/share/lua/copyright" \
+            "${prefix}/share/unofficial-lua/unofficial-lua-config.cmake"; do
+        if [[ ! -f "$lua_path" ]]; then
+            echo "The minimal Lua package is missing: $lua_path" >&2
+            exit 1
+        fi
+    done
+    if ! grep -Eq \
+            '^[[:space:]]*#define[[:space:]]+LUA_VERSION_NUM[[:space:]]+501[[:space:]]*$' \
+            "${prefix}/include/lua.h"; then
+        echo "The target prefix does not contain PUC Lua 5.1" >&2
+        exit 1
+    fi
+    if find "${prefix}" -type f \
+            \( -path '*/bin/lua' -o -path '*/bin/luac' \
+            -o -path '*/tools/lua/*' \) -print -quit | grep -q .; then
+        echo "A Lua interpreter/compiler leaked into the target prefix" >&2
+        exit 1
+    fi
+fi
+
+if [[ -d "${prefix}/share/icu" ]]; then
+    for icu_path in \
+            "${prefix}/lib/libicudata.a" \
+            "${prefix}/lib/libicuuc.a" \
+            "${prefix}/lib/libicui18n.a" \
+            "${prefix}/include/unicode/uversion.h" \
+            "${prefix}/share/icu/copyright"; do
+        if [[ ! -f "$icu_path" ]]; then
+            echo "The minimal ICU package is missing: $icu_path" >&2
+            exit 1
+        fi
+    done
+    unexpected_icu_archive="$(
+        find "${prefix}/lib" -maxdepth 1 -type f -name 'libicu*.a' \
+            ! -name libicudata.a \
+            ! -name libicuuc.a \
+            ! -name libicui18n.a \
+            -print -quit
+    )"
+    if [[ -n "$unexpected_icu_archive" ]]; then
+        echo "Unexpected ICU target archive: $unexpected_icu_archive" >&2
+        exit 1
+    fi
+    if find "${prefix}" -type f \
+            \( -path '*/tools/icu/*' -o -path '*/bin/icu*' \
+            -o -path '*/bin/gen*' -o -path '*/sbin/*' \) \
+            -print -quit | grep -q .; then
+        echo "An ICU host tool leaked into the target prefix" >&2
+        exit 1
+    fi
+fi
+
 temporary_root="$(mktemp -d)"
 trap 'rm -rf "$temporary_root"' EXIT
 object_count=0

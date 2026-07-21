@@ -1,2 +1,9 @@
 # This vendored patch preserves Bullet's tab-indented context lines.
 /ios-deps/overlay-ports/bullet3/ios-collision-only.patch whitespace=-blank-at-eol,-space-before-tab
+
+# This vendored ICU patch preserves an upstream context line ending in a space.
+/ios-deps/overlay-ports/icu/disable-static-prefix.patch whitespace=-blank-at-eol
+/ios-deps/overlay-ports/icu/disable-escapesrc-tool.patch whitespace=-blank-at-eol
+
+# This vendored Lua patch preserves upstream blank context lines.
+/ios-deps/overlay-ports/lua/ios-disable-process.patch whitespace=-blank-at-eol,-blank-at-eof

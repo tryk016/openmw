@@ -81,6 +81,47 @@ włączone default features, dodatkowy direct port i duplikaty funkcji.
   oraz odrzucane przez walidator prefiksu. ABI zachowuje 32-bitowe `dtPolyRef`
   i niewirtualny `dtQueryFilter`. Closure profilu to 13 bezpośrednich portów
   targetu, 79 portów tranzytywnych targetu i 3 helpery hosta.
+- `language-foundation`: profil kumulatywny, który dodaje dwa lokalne overlaye:
+  PUC Lua 5.1.5#1 oraz ICU 70.1#1. Closure to 15 bezpośrednich portów targetu,
+  niezmienione 79 portów tranzytywnych targetu i 4 porty hosta. Czwartym
+  portem hosta jest dokładnie `icu[tools]`; target ICU nie ma funkcji `tools`.
+
+### Kontrakt PUC Lua
+
+Overlay Lua instaluje wyłącznie `liblua.a` i publiczne nagłówki API 5.1.
+Nie buduje `lua` ani `luac`, nie definiuje profilu POSIX/macOS i pozostawia
+dynamiczny loader w bezpiecznym wariancie stub. `os.execute` na iOS kończy się
+kontrolowanym błędem Lua, a skompilowany probe nie może mieć nierozwiązanego
+symbolu `system` ani `dlopen`.
+
+Probe runtime używa `lua_newstate` z własnym allocatorem i potwierdza
+alokację, realokację i zwalnianie. Następnie wykonuje semantykę Lua 5.1:
+tabele i metatabele, coroutine, globalne `unpack`, obsługę błędu, `_VERSION`
+oraz niedostępność procesów i modułów dynamicznych. Istniejąca ścieżka
+`CheckLuaCustomAllocator.cmake` używa `try_compile` podczas cross-builda;
+na iOS nieudana kompilacja jest teraz błędem konfiguracji.
+
+### Kontrakt ICU i danych
+
+Overlay ICU najpierw buduje na `arm64-osx` przypięty zestaw natywnych narzędzi
+i pliki `icucross.mk`/`icucross.inc`. Target device lub simulator używa tego
+katalogu przez `--with-cross-build`. Target instaluje dokładnie statyczne
+`libicudata.a`, `libicuuc.a` i `libicui18n.a`; narzędzia, `icuio`, extras,
+layoutex, sample i testy są niedozwolone. Dane są generowane bez targetowego
+obiektu asemblera (`PKGDATA_OPTS=--without-assembly`) jako statyczna biblioteka.
+
+Źródłem filtra jest `extern/icufilters.json`. Lock przechowuje ścieżkę,
+kanoniczne zakończenia linii LF oraz oba hashe:
+
+```text
+SHA-256 05533f4c0bf0b50c93ab3e0fb8a09a98965f1ea58510144b0c9e0239671f3a6f
+SHA-512 e4d91a6daa494331729e9791e17db60dc467fbbcd6c121069ccd339781bfff1419ea170f21ad7b190a8755d52afbcc8722096695128fe36b04e24279d28c25ea
+```
+
+Walidator host-tools sprawdza dokładny zbiór binariów Mach-O arm64, wersję
+70.1, metadane cross-builda i brak narzędzi w targetowym prefiksie. Probe ICU
+wykonuje `u_init`, round-trip UTF-8, `MessageFormat`, reguły plural dla
+`en=1`, `pl=2`, `ru=5` oraz skeleton liczbowy `.00/group-off`.
 
 Dodanie biblioteki do profilu przed pogodzeniem jej wersji z przypiętym
 registry albo portem overlay celowo kończy build błędem.
@@ -142,6 +183,11 @@ podczas rysowania navmesha, a osobny lifecycle sprawdza alokację i zwolnienie
 `dtTileCache`. Wszystkie zasoby natywne są chronione przez RAII, a każdy etap
 ma osobny kod błędu. Symulator musi zalogować marker
 `navigation foundation PASS`.
+
+Smoke profilu `language-foundation` dodatkowo linkuje Lua oraz wszystkie trzy
+archiwa ICU. Dedykowane binaria wymuszają statyczne rozwiązywanie symboli, a
+aplikacja symulatora musi wykonać oba probe i zalogować marker
+`language foundation PASS`.
 
 ## Pobieranie i tryb offline
 

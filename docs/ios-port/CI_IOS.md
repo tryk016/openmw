@@ -112,6 +112,14 @@ zależności ma manifest:
 - deployment target;
 - licencja.
 
+Workflow `iOS dependencies` buduje obecnie kumulatywny profil
+`language-foundation` osobno dla device i simulatora. Każdy slice wykonuje
+czysty build online, walidację targetowego prefiksu, osobną walidację
+`icu[tools]` hosta, link probe, czysty rebuild offline oraz ponowną walidację i
+link. Simulator musi dodatkowo zalogować `language foundation PASS`. Artefakt
+zawiera znormalizowaną closure vcpkg, hostowe metadane ICU, SPDX, notices i
+dedykowane binaria probe; timeout joba wynosi 180 minut.
+
 ## Artefakt SideStore
 
 CI buduje aplikację z wyłączonym podpisywaniem:

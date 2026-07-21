@@ -22,6 +22,10 @@ int main(void) {
 
 message(STATUS "Checking if Lua allows to provide a custom allocator")
 
+option(OPENMW_REQUIRE_LUA_CUSTOM_ALLOCATOR
+    "Fail configuration when the selected Lua lacks the custom allocator API"
+    ${IOS})
+
 if(CMAKE_CROSSCOMPILING)
     try_compile(COMPILE_RESULT_VAR
         ${TMP_ROOT}/temp
@@ -30,8 +34,13 @@ if(CMAKE_CROSSCOMPILING)
         LINK_LIBRARIES "${LUA_LIBRARIES}"
         )
     if(NOT COMPILE_RESULT_VAR)
-        message(WARNING
-            "Incorrect Lua library: can't compile custom allocator check")
+        if(OPENMW_REQUIRE_LUA_CUSTOM_ALLOCATOR)
+            message(FATAL_ERROR
+                "Incorrect Lua library: can't compile custom allocator check")
+        else()
+            message(WARNING
+                "Incorrect Lua library: can't compile custom allocator check")
+        endif()
     else()
         message(STATUS
             "Lua custom allocator API compiled; runtime probe skipped while cross-compiling")

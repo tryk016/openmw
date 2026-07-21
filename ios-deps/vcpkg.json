@@ -2,8 +2,24 @@
   "name": "openmw-ios-dependencies",
   "version-string": "0.1.0",
   "description": "Hermetic static dependency graph for the OpenMW iOS fork",
-  "dependencies": [],
   "features": {
+    "base-foundation": {
+      "description": "First production dependency slice used by the iOS shell",
+      "dependencies": [
+        {
+          "name": "lz4",
+          "default-features": false
+        },
+        {
+          "name": "sdl2",
+          "default-features": false
+        },
+        {
+          "name": "zlib",
+          "default-features": false
+        }
+      ]
+    },
     "bootstrap": {
       "description": "Small end-to-end superbuild proof",
       "dependencies": [
@@ -13,15 +29,100 @@
         }
       ]
     },
-    "base-foundation": {
-      "description": "First production dependency slice used by the iOS shell",
+    "cpp-foundation": {
+      "description": "Cumulative image profile with the OpenMW Boost surface",
       "dependencies": [
+        {
+          "name": "boost-geometry",
+          "default-features": false
+        },
+        {
+          "name": "boost-iostreams",
+          "default-features": false
+        },
+        {
+          "name": "boost-program-options",
+          "default-features": false
+        },
+        {
+          "name": "freetype",
+          "default-features": false,
+          "features": [
+            "png",
+            "zlib"
+          ]
+        },
+        {
+          "name": "libjpeg-turbo",
+          "default-features": false
+        },
+        {
+          "name": "libpng",
+          "default-features": false
+        },
+        {
+          "name": "lz4",
+          "default-features": false
+        },
         {
           "name": "sdl2",
           "default-features": false
         },
         {
+          "name": "zlib",
+          "default-features": false
+        }
+      ]
+    },
+    "data-foundation": {
+      "description": "Cumulative C++ profile with YAML and SQLite data support",
+      "dependencies": [
+        {
+          "name": "boost-geometry",
+          "default-features": false
+        },
+        {
+          "name": "boost-iostreams",
+          "default-features": false
+        },
+        {
+          "name": "boost-program-options",
+          "default-features": false
+        },
+        {
+          "name": "freetype",
+          "default-features": false,
+          "features": [
+            "png",
+            "zlib"
+          ]
+        },
+        {
+          "name": "libjpeg-turbo",
+          "default-features": false
+        },
+        {
+          "name": "libpng",
+          "default-features": false
+        },
+        {
           "name": "lz4",
+          "default-features": false
+        },
+        {
+          "name": "sdl2",
+          "default-features": false
+        },
+        {
+          "name": "sqlite3",
+          "default-features": false,
+          "features": [
+            "json1",
+            "omit-load-extension"
+          ]
+        },
+        {
+          "name": "yaml-cpp",
           "default-features": false
         },
         {
@@ -34,18 +135,6 @@
       "description": "Cumulative base profile with font and image codecs",
       "dependencies": [
         {
-          "name": "sdl2",
-          "default-features": false
-        },
-        {
-          "name": "lz4",
-          "default-features": false
-        },
-        {
-          "name": "zlib",
-          "default-features": false
-        },
-        {
           "name": "freetype",
           "default-features": false,
           "features": [
@@ -54,44 +143,32 @@
           ]
         },
         {
+          "name": "libjpeg-turbo",
+          "default-features": false
+        },
+        {
           "name": "libpng",
           "default-features": false
         },
         {
-          "name": "libjpeg-turbo",
+          "name": "lz4",
+          "default-features": false
+        },
+        {
+          "name": "sdl2",
+          "default-features": false
+        },
+        {
+          "name": "zlib",
           "default-features": false
         }
       ]
     },
-    "cpp-foundation": {
-      "description": "Cumulative image profile with the OpenMW Boost surface",
+    "language-foundation": {
+      "description": "Cumulative navigation profile with PUC Lua and filtered ICU",
       "dependencies": [
         {
-          "name": "sdl2",
-          "default-features": false
-        },
-        {
-          "name": "lz4",
-          "default-features": false
-        },
-        {
-          "name": "zlib",
-          "default-features": false
-        },
-        {
-          "name": "freetype",
-          "default-features": false,
-          "features": [
-            "png",
-            "zlib"
-          ]
-        },
-        {
-          "name": "libpng",
-          "default-features": false
-        },
-        {
-          "name": "libjpeg-turbo",
+          "name": "boost-geometry",
           "default-features": false
         },
         {
@@ -101,124 +178,6 @@
         {
           "name": "boost-program-options",
           "default-features": false
-        },
-        {
-          "name": "boost-geometry",
-          "default-features": false
-        }
-      ]
-    },
-    "data-foundation": {
-      "description": "Cumulative C++ profile with YAML and SQLite data support",
-      "dependencies": [
-        {
-          "name": "sdl2",
-          "default-features": false
-        },
-        {
-          "name": "lz4",
-          "default-features": false
-        },
-        {
-          "name": "zlib",
-          "default-features": false
-        },
-        {
-          "name": "freetype",
-          "default-features": false,
-          "features": [
-            "png",
-            "zlib"
-          ]
-        },
-        {
-          "name": "libpng",
-          "default-features": false
-        },
-        {
-          "name": "libjpeg-turbo",
-          "default-features": false
-        },
-        {
-          "name": "boost-iostreams",
-          "default-features": false
-        },
-        {
-          "name": "boost-program-options",
-          "default-features": false
-        },
-        {
-          "name": "boost-geometry",
-          "default-features": false
-        },
-        {
-          "name": "yaml-cpp",
-          "default-features": false
-        },
-        {
-          "name": "sqlite3",
-          "default-features": false,
-          "features": [
-            "json1",
-            "omit-load-extension"
-          ]
-        }
-      ]
-    },
-    "physics-foundation": {
-      "description": "Cumulative data profile with minimal double-precision Bullet",
-      "dependencies": [
-        {
-          "name": "sdl2",
-          "default-features": false
-        },
-        {
-          "name": "lz4",
-          "default-features": false
-        },
-        {
-          "name": "zlib",
-          "default-features": false
-        },
-        {
-          "name": "freetype",
-          "default-features": false,
-          "features": [
-            "png",
-            "zlib"
-          ]
-        },
-        {
-          "name": "libpng",
-          "default-features": false
-        },
-        {
-          "name": "libjpeg-turbo",
-          "default-features": false
-        },
-        {
-          "name": "boost-iostreams",
-          "default-features": false
-        },
-        {
-          "name": "boost-program-options",
-          "default-features": false
-        },
-        {
-          "name": "boost-geometry",
-          "default-features": false
-        },
-        {
-          "name": "yaml-cpp",
-          "default-features": false
-        },
-        {
-          "name": "sqlite3",
-          "default-features": false,
-          "features": [
-            "json1",
-            "omit-load-extension"
-          ]
         },
         {
           "name": "bullet3",
@@ -227,6 +186,58 @@
             "double-precision",
             "multithreading"
           ]
+        },
+        {
+          "name": "freetype",
+          "default-features": false,
+          "features": [
+            "png",
+            "zlib"
+          ]
+        },
+        {
+          "name": "icu",
+          "default-features": false
+        },
+        {
+          "name": "libjpeg-turbo",
+          "default-features": false
+        },
+        {
+          "name": "libpng",
+          "default-features": false
+        },
+        {
+          "name": "lua",
+          "default-features": false
+        },
+        {
+          "name": "lz4",
+          "default-features": false
+        },
+        {
+          "name": "recastnavigation",
+          "default-features": false
+        },
+        {
+          "name": "sdl2",
+          "default-features": false
+        },
+        {
+          "name": "sqlite3",
+          "default-features": false,
+          "features": [
+            "json1",
+            "omit-load-extension"
+          ]
+        },
+        {
+          "name": "yaml-cpp",
+          "default-features": false
+        },
+        {
+          "name": "zlib",
+          "default-features": false
         }
       ]
     },
@@ -234,31 +245,7 @@
       "description": "Cumulative physics profile with minimal Recast/Detour navigation",
       "dependencies": [
         {
-          "name": "sdl2",
-          "default-features": false
-        },
-        {
-          "name": "lz4",
-          "default-features": false
-        },
-        {
-          "name": "zlib",
-          "default-features": false
-        },
-        {
-          "name": "freetype",
-          "default-features": false,
-          "features": [
-            "png",
-            "zlib"
-          ]
-        },
-        {
-          "name": "libpng",
-          "default-features": false
-        },
-        {
-          "name": "libjpeg-turbo",
+          "name": "boost-geometry",
           "default-features": false
         },
         {
@@ -270,11 +257,39 @@
           "default-features": false
         },
         {
-          "name": "boost-geometry",
+          "name": "bullet3",
+          "default-features": false,
+          "features": [
+            "double-precision",
+            "multithreading"
+          ]
+        },
+        {
+          "name": "freetype",
+          "default-features": false,
+          "features": [
+            "png",
+            "zlib"
+          ]
+        },
+        {
+          "name": "libjpeg-turbo",
           "default-features": false
         },
         {
-          "name": "yaml-cpp",
+          "name": "libpng",
+          "default-features": false
+        },
+        {
+          "name": "lz4",
+          "default-features": false
+        },
+        {
+          "name": "recastnavigation",
+          "default-features": false
+        },
+        {
+          "name": "sdl2",
           "default-features": false
         },
         {
@@ -286,6 +301,31 @@
           ]
         },
         {
+          "name": "yaml-cpp",
+          "default-features": false
+        },
+        {
+          "name": "zlib",
+          "default-features": false
+        }
+      ]
+    },
+    "physics-foundation": {
+      "description": "Cumulative data profile with minimal double-precision Bullet",
+      "dependencies": [
+        {
+          "name": "boost-geometry",
+          "default-features": false
+        },
+        {
+          "name": "boost-iostreams",
+          "default-features": false
+        },
+        {
+          "name": "boost-program-options",
+          "default-features": false
+        },
+        {
           "name": "bullet3",
           "default-features": false,
           "features": [
@@ -294,7 +334,43 @@
           ]
         },
         {
-          "name": "recastnavigation",
+          "name": "freetype",
+          "default-features": false,
+          "features": [
+            "png",
+            "zlib"
+          ]
+        },
+        {
+          "name": "libjpeg-turbo",
+          "default-features": false
+        },
+        {
+          "name": "libpng",
+          "default-features": false
+        },
+        {
+          "name": "lz4",
+          "default-features": false
+        },
+        {
+          "name": "sdl2",
+          "default-features": false
+        },
+        {
+          "name": "sqlite3",
+          "default-features": false,
+          "features": [
+            "json1",
+            "omit-load-extension"
+          ]
+        },
+        {
+          "name": "yaml-cpp",
+          "default-features": false
+        },
+        {
+          "name": "zlib",
           "default-features": false
         }
       ]

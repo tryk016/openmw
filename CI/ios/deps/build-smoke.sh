@@ -52,6 +52,8 @@ cmake --build "$build_dir" \
         openmw-ios-boost-probe \
         openmw-ios-bullet-probe \
         openmw-ios-recast-probe \
+        openmw-ios-lua-probe \
+        openmw-ios-icu-probe \
         openmw-ios-yaml-probe \
         openmw-ios-sqlite-probe \
     --parallel 3
@@ -85,6 +87,14 @@ recast_probe="$(
     find "$build_dir" -type f -name OpenMWRecastProbe \
         ! -path '*.dSYM/*' -print -quit
 )"
+lua_probe="$(
+    find "$build_dir" -type f -name OpenMWLuaProbe \
+        ! -path '*.dSYM/*' -print -quit
+)"
+icu_probe="$(
+    find "$build_dir" -type f -name OpenMWICUProbe \
+        ! -path '*.dSYM/*' -print -quit
+)"
 yaml_probe="$(
     find "$build_dir" -type f -name OpenMWYAMLProbe \
         ! -path '*.dSYM/*' -print -quit
@@ -100,6 +110,8 @@ for binary in \
         "$boost_probe" \
         "$bullet_probe" \
         "$recast_probe" \
+        "$lua_probe" \
+        "$icu_probe" \
         "$yaml_probe" \
         "$sqlite_probe"; do
     if [[ -z "$binary" || ! -f "$binary" ]]; then
@@ -118,10 +130,15 @@ for binary in \
         exit 1
     fi
     if otool -L "$binary" | tail -n +2 |
-            grep -E '/usr/lib/libsqlite3[^/]*\.dylib|libyaml-cpp[^/]*\.dylib|lib(Recast|Detour|DebugUtils)[^/]*\.dylib'; then
+            grep -E '/usr/lib/libsqlite3[^/]*\.dylib|libyaml-cpp[^/]*\.dylib|lib(Recast|Detour|DebugUtils)[^/]*\.dylib|libicu(data|i18n|uc)[^/]*\.dylib|liblua[^/]*\.dylib'; then
         echo "${binary}: bypassed a locked static dependency archive" >&2
         exit 1
     fi
 done
+
+if nm -u "$lua_probe" | grep -Eq '(^|[[:space:]])_(system|dlopen)$'; then
+    echo "The Lua probe references a forbidden process or dynamic-loader symbol" >&2
+    exit 1
+fi
 
 echo "$app"

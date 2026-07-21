@@ -20,6 +20,7 @@ esac
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/../../.." && pwd)"
 lock_file="${repo_root}/ios-deps/dependencies.lock.json"
+icu_filter_file="${repo_root}/extern/icufilters.json"
 build_root="${IOS_DEPS_BUILD_ROOT:-${repo_root}/build/ios-deps}"
 vcpkg_root="${IOS_DEPS_VCPKG_ROOT:-${build_root}/tooling/vcpkg}"
 vcpkg_license="${vcpkg_root}/LICENSE.txt"
@@ -122,6 +123,44 @@ for package_dir in "${packages[@]}"; do
     fi
 done
 
+icu_filter_sha256=
+icu_filter_sha512=
+if [[ -d "${prefix}/share/icu" ]]; then
+    mkdir -p "${output_dir}/icu"
+    tr -d '\r' <"$icu_filter_file" >"${output_dir}/icu/icufilters.json"
+    icu_filter_sha256="$(
+        shasum -a 256 "${output_dir}/icu/icufilters.json" | awk '{print $1}'
+    )"
+    icu_filter_sha512="$(
+        shasum -a 512 "${output_dir}/icu/icufilters.json" | awk '{print $1}'
+    )"
+    expected_filter_sha256="$(
+        jq -er '.dependencies[] | select(.name == "icu") |
+            .data_filter.sha256' "$lock_file"
+    )"
+    expected_filter_sha512="$(
+        jq -er '.dependencies[] | select(.name == "icu") |
+            .data_filter.sha512' "$lock_file"
+    )"
+    if [[ "$icu_filter_sha256" != "$expected_filter_sha256" ||
+            "$icu_filter_sha512" != "$expected_filter_sha512" ]]; then
+        echo "ICU metadata filter hash does not match the lock" >&2
+        exit 1
+    fi
+
+    host_icu_share="$(dirname "$prefix")/arm64-osx/share/icu"
+    if [[ ! -f "${host_icu_share}/vcpkg.spdx.json" ||
+            ! -f "${host_icu_share}/copyright" ]]; then
+        echo "ICU host SPDX or notice is missing" >&2
+        exit 1
+    fi
+    cp "${host_icu_share}/vcpkg.spdx.json" \
+        "${output_dir}/sbom/icu-host.spdx.json"
+    cp "${host_icu_share}/copyright" \
+        "${output_dir}/licenses/icu-host.txt"
+    ((metadata_count += 1))
+fi
+
 if ((metadata_count == 0)); then
     echo "No package SPDX documents were generated" >&2
     exit 1
@@ -131,6 +170,10 @@ fi
     echo "platform=${platform}"
     echo "prefix=${prefix}"
     echo "package_spdx_count=${metadata_count}"
+    if [[ -n "$icu_filter_sha256" ]]; then
+        echo "icu_filter_sha256=${icu_filter_sha256}"
+        echo "icu_filter_sha512=${icu_filter_sha512}"
+    fi
 } >"${output_dir}/metadata-manifest.txt"
 
 (

@@ -1,0 +1,25 @@
+{
+  "name": "icu",
+  "version": "70.1",
+  "port-version": 1,
+  "description": "Pinned ICU 70.1 host tools and iOS static runtime for OpenMW",
+  "homepage": "https://icu.unicode.org/",
+  "license": "ICU",
+  "supports": "(ios & arm64) | (osx & arm64)",
+  "dependencies": [
+    {
+      "name": "icu",
+      "host": true,
+      "default-features": false,
+      "features": [
+        "tools"
+      ]
+    }
+  ],
+  "features": {
+    "tools": {
+      "description": "Build the native macOS tools required by the ICU cross-build",
+      "supports": "osx & arm64"
+    }
+  }
+}

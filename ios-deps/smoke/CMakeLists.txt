@@ -206,6 +206,42 @@ if(NOT TARGET SQLite3::SQLite3)
 endif()
 find_package(Threads REQUIRED)
 
+find_package(unofficial-lua CONFIG REQUIRED
+    PATHS "${IOS_DEPS_PREFIX}/share/unofficial-lua"
+    NO_DEFAULT_PATH
+    NO_CMAKE_FIND_ROOT_PATH)
+if(NOT TARGET unofficial::lua::lua)
+    message(FATAL_ERROR
+        "The locked Lua package has no unofficial::lua::lua target")
+endif()
+get_target_property(lua_target_type unofficial::lua::lua TYPE)
+get_target_property(lua_target_location
+    unofficial::lua::lua IMPORTED_LOCATION_RELEASE)
+if(NOT lua_target_type STREQUAL "STATIC_LIBRARY" OR
+        NOT lua_target_location STREQUAL "${IOS_DEPS_PREFIX}/lib/liblua.a")
+    message(FATAL_ERROR "Lua did not resolve to the locked static archive")
+endif()
+
+set(ICU_ROOT "${IOS_DEPS_PREFIX}")
+set(ICU_INCLUDE_DIR "${IOS_DEPS_PREFIX}/include")
+foreach(icu_component IN ITEMS DATA UC I18N)
+    string(TOLOWER "${icu_component}" icu_component_lower)
+    set(ICU_${icu_component}_LIBRARY
+        "${IOS_DEPS_PREFIX}/lib/libicu${icu_component_lower}.a")
+    set(ICU_${icu_component}_LIBRARY_RELEASE
+        "${ICU_${icu_component}_LIBRARY}")
+endforeach()
+find_package(ICU 70.1 EXACT MODULE REQUIRED COMPONENTS data uc i18n)
+if(NOT ICU_VERSION STREQUAL "70.1")
+    message(FATAL_ERROR "Unexpected ICU version: ${ICU_VERSION}")
+endif()
+foreach(icu_component IN ITEMS data uc i18n)
+    if(NOT TARGET "ICU::${icu_component}")
+        message(FATAL_ERROR
+            "The locked ICU package has no ICU::${icu_component} target")
+    endif()
+endforeach()
+
 set(freetype_archive "${IOS_DEPS_PREFIX}/lib/libfreetype.a")
 set(png_archive "${IOS_DEPS_PREFIX}/lib/libpng16.a")
 set(jpeg_archive "${IOS_DEPS_PREFIX}/lib/libjpeg.a")
@@ -254,6 +290,8 @@ find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
 add_executable(openmw-ios-deps-smoke MACOSX_BUNDLE
     Main.mm
     BulletProbe.cpp
+    IcuProbe.cpp
+    LuaProbe.cpp
     RecastProbe.cpp
     YamlProbe.cpp
     SQLiteProbe.c)
@@ -276,6 +314,10 @@ target_link_libraries(openmw-ios-deps-smoke PRIVATE
     RecastNavigation::Recast
     RecastNavigation::Detour
     RecastNavigation::DetourTileCache
+    unofficial::lua::lua
+    ICU::i18n
+    ICU::uc
+    ICU::data
     yaml-cpp::yaml-cpp
     SQLite3::SQLite3
     Threads::Threads
@@ -368,6 +410,29 @@ target_link_libraries(openmw-ios-sqlite-probe PRIVATE
     "${CMAKE_DL_LIBS}")
 set_target_properties(openmw-ios-sqlite-probe PROPERTIES
     OUTPUT_NAME "OpenMWSQLiteProbe"
+    XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
+    XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "16.4")
+
+add_executable(openmw-ios-lua-probe LuaProbe.cpp)
+target_compile_features(openmw-ios-lua-probe PRIVATE cxx_std_20)
+target_link_libraries(openmw-ios-lua-probe PRIVATE unofficial::lua::lua)
+set_target_properties(openmw-ios-lua-probe PROPERTIES
+    OUTPUT_NAME "OpenMWLuaProbe"
+    XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
+    XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "16.4")
+
+add_executable(openmw-ios-icu-probe IcuProbe.cpp)
+target_compile_features(openmw-ios-icu-probe PRIVATE cxx_std_20)
+target_link_libraries(openmw-ios-icu-probe PRIVATE
+    ICU::i18n
+    ICU::uc
+    ICU::data)
+set_target_properties(openmw-ios-icu-probe PROPERTIES
+    OUTPUT_NAME "OpenMWICUProbe"
     XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
     XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
     XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""

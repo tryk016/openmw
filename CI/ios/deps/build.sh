@@ -101,6 +101,12 @@ if [[ "$deployment_target" != 16.4 ]]; then
     exit 1
 fi
 
+cmake \
+    -DLOCK_FILE="${manifest_root}/dependencies.lock.json" \
+    -DCONFIGURATION_FILE="${manifest_root}/vcpkg-configuration.json" \
+    -DMANIFEST_FILE="${manifest_root}/vcpkg.json" \
+    -P "${script_dir}/validate-lock.cmake" >&2
+
 if ! jq -e --arg feature "$feature" \
         '.build_profiles[$feature] | arrays and length > 0' \
         "${manifest_root}/dependencies.lock.json" >/dev/null; then
@@ -360,6 +366,13 @@ bash "${script_dir}/validate-installed-closure.sh" \
     --profile "$feature" \
     --target-triplet "$triplet" \
     --host-triplet "$host_triplet"
+
+bash "${script_dir}/validate-host-tools.sh" \
+    "$feature" \
+    "$install_root" \
+    "$host_triplet" \
+    "$prefix" \
+    "$installed_json"
 
 {
     echo "platform=${platform}"

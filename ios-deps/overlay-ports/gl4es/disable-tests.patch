@@ -1,0 +1,19 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index ca5636e..116043b 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -215,6 +215,8 @@ endif()
+ include_directories(include)
+ add_subdirectory(src)
+-
++
++option(BUILD_TESTING "Register GL4ES trace replay tests" ON)
++if(BUILD_TESTING)
+ enable_testing()
+-
++
+ macro(create_test test_name test_filename calls_count tolerance)
+@@ -299,2 +301,3 @@ create_test_GLES(Neverball 2 neverball "0000078750" 200 "798x478+1+1")
+ create_test_GLES(OpenRA 2 openra "0000031249" 20 "638x478+1+1")
+ create_test_GLES(GLSL_lighting 2 glsl_lighting "0000505393" 20)
++endif()

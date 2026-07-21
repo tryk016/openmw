@@ -40,6 +40,8 @@ flowchart LR
 
 Obowiązkowe kontrole:
 
+- zgodność tabeli postępu `ROADMAP.md` z checkboxami faz 0–12, sumą, procentem
+  i statusem każdej fazy;
 - wypisanie wersji obrazu runnera, Xcode, SDK, CMake i Clang;
 - configure/build z deployment targetem `16.4`;
 - brak nierozwiązanych `try_run`;
@@ -71,6 +73,15 @@ innego commita. Po przejściu G5 publikuje GitHub Release zawierający:
 - odnośnik do corresponding source dokładnego tagu;
 - instrukcję SideStore/Xcode;
 - wyraźną informację „game data not included”.
+
+Kontrakt roadmapy można uruchomić lokalnie bez instalowania zależności:
+
+```bash
+node CI/ios/test-roadmap-contract.js --self-test
+```
+
+Polecenie najpierw wykonuje self-testy parsera na kopiach roadmapy zmienionych
+w pamięci, a następnie sprawdza kanoniczny `docs/ios-port/ROADMAP.md`.
 
 ## Runner i Xcode
 

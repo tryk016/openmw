@@ -41,6 +41,12 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Validate canonical roadmap contract
+        run: |
+          mkdir -p artifacts/logs
+          node CI/ios/test-roadmap-contract.js --self-test \
+            2>&1 | tee artifacts/logs/roadmap-contract.log
+
       - name: Select pinned Xcode 16.4
         run: |
           if [[ ! -d "$DEVELOPER_DIR" ]]; then

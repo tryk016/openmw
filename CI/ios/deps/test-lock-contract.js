@@ -630,6 +630,78 @@ try {
         "language-foundation",
     );
 
+    const missingUiMyGui = clone(manifest);
+    missingUiMyGui.features["ui-foundation"].dependencies =
+        missingUiMyGui.features["ui-foundation"].dependencies.filter(
+            (dependency) => dependency.name !== "mygui",
+        );
+    runValidator("missing-ui-mygui", lock, missingUiMyGui, false);
+
+    const myGuiFeatureLeak = clone(manifest);
+    myGuiFeatureLeak.features["ui-foundation"].dependencies.find(
+        (dependency) => dependency.name === "mygui",
+    ).features = ["platform-opengl"];
+    runValidator("ui-mygui-feature-leak", lock, myGuiFeatureLeak, false);
+
+    const myGuiDefaultsEnabled = clone(manifest);
+    myGuiDefaultsEnabled.features["ui-foundation"].dependencies.find(
+        (dependency) => dependency.name === "mygui",
+    )["default-features"] = true;
+    runValidator(
+        "ui-mygui-default-features-enabled",
+        lock,
+        myGuiDefaultsEnabled,
+        false,
+    );
+
+    const missingMyGuiSourceHash = clone(lock);
+    delete missingMyGuiSourceHash.dependencies.find(
+        (dependency) => dependency.name === "mygui",
+    ).vcpkg_sha512;
+    runValidator(
+        "missing-mygui-vcpkg-source-hash",
+        missingMyGuiSourceHash,
+        manifest,
+        false,
+    );
+
+    const uiTriplet = "arm64-ios-openmw";
+    const uiHostTriplet = "arm64-osx";
+    const uiClosureRecords = [
+        ...directPortEntries(lock, "ui-foundation", uiTriplet),
+        ...lock.expected_vcpkg_transitive_ports[
+            "ui-foundation"
+        ].target.map((entry) =>
+            installedRecord(entry.port, uiTriplet, entry.features ?? []),
+        ),
+        ...lock.expected_vcpkg_transitive_ports[
+            "ui-foundation"
+        ].host.map((entry) =>
+            installedRecord(entry.port, uiHostTriplet, entry.features ?? []),
+        ),
+    ];
+    runClosureValidator(
+        "valid-ui-installed-closure",
+        lock,
+        uiClosureRecords,
+        true,
+        "ui-foundation",
+    );
+
+    const uiClosureWithoutIcuTools = clone(uiClosureRecords);
+    uiClosureWithoutIcuTools.find(
+        (record) =>
+            record.package_name === "icu" &&
+            record.triplet === uiHostTriplet,
+    ).features = [];
+    runClosureValidator(
+        "missing-ui-installed-icu-host-tools",
+        lock,
+        uiClosureWithoutIcuTools,
+        false,
+        "ui-foundation",
+    );
+
     const missingPortSource = clone(lock);
     delete missingPortSource.dependencies.find(
         (dependency) => dependency.name === "bullet",

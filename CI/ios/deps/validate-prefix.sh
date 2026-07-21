@@ -308,6 +308,64 @@ if [[ -d "${prefix}/share/icu" ]]; then
     fi
 fi
 
+if [[ -d "${prefix}/share/mygui" ]]; then
+    for mygui_path in \
+            "${prefix}/lib/libMyGUIEngineStatic.a" \
+            "${prefix}/lib/pkgconfig/MYGUIStatic.pc" \
+            "${prefix}/include/MYGUI/MyGUI.h" \
+            "${prefix}/include/MYGUI/MyGUI_Prerequest.h" \
+            "${prefix}/include/MYGUI/MyGUI_UString.h" \
+            "${prefix}/include/MYGUI/MyGUI_XmlDocument.h" \
+            "${prefix}/share/mygui/copyright"; do
+        if [[ ! -f "$mygui_path" ]]; then
+            echo "The static MyGUI engine package is missing: $mygui_path" >&2
+            exit 1
+        fi
+    done
+
+    unexpected_mygui_archive="$(
+        find "${prefix}/lib" -maxdepth 1 -type f -iname '*mygui*.a' \
+            ! -name libMyGUIEngineStatic.a -print -quit
+    )"
+    if [[ -n "$unexpected_mygui_archive" ]]; then
+        echo "Unexpected MyGUI archive: $unexpected_mygui_archive" >&2
+        exit 1
+    fi
+
+    if ! grep -Eq '^[[:space:]]*#define[[:space:]]+MYGUI_VERSION_MAJOR[[:space:]]+3[[:space:]]*$' \
+            "${prefix}/include/MYGUI/MyGUI_Prerequest.h" ||
+            ! grep -Eq '^[[:space:]]*#define[[:space:]]+MYGUI_VERSION_MINOR[[:space:]]+4[[:space:]]*$' \
+            "${prefix}/include/MYGUI/MyGUI_Prerequest.h" ||
+            ! grep -Eq '^[[:space:]]*#define[[:space:]]+MYGUI_VERSION_PATCH[[:space:]]+3[[:space:]]*$' \
+            "${prefix}/include/MYGUI/MyGUI_Prerequest.h"; then
+        echo "The target prefix does not contain MyGUI 3.4.3 headers" >&2
+        exit 1
+    fi
+    if ! grep -Eq 'using[[:space:]]+unicode_char[[:space:]]*=[[:space:]]*char32_t;' \
+            "${prefix}/include/MYGUI/MyGUI_UString.h" ||
+            ! grep -Eq 'using[[:space:]]+code_point[[:space:]]*=[[:space:]]*char16_t;' \
+            "${prefix}/include/MYGUI/MyGUI_UString.h"; then
+        echo "The MyGUI LLVM char16_t/char32_t ABI patch is missing" >&2
+        exit 1
+    fi
+    if ! grep -Eq \
+            'Cflags:.*-DMYGUI_STATIC.*-DMYGUI_USE_FREETYPE.*-DMYGUI_DONT_USE_OBSOLETE' \
+            "${prefix}/lib/pkgconfig/MYGUIStatic.pc"; then
+        echo "MyGUI consumer ABI definitions are incomplete" >&2
+        exit 1
+    fi
+
+    forbidden_mygui_artifact="$(
+        find "${prefix}/bin" "${prefix}/tools" \
+                "${prefix}/lib/MYGUI" "${prefix}/share/MYGUI" \
+            -type f -print -quit 2>/dev/null || true
+    )"
+    if [[ -n "$forbidden_mygui_artifact" ]]; then
+        echo "MyGUI platform/plugin/tool/demo artifact leaked into the prefix: $forbidden_mygui_artifact" >&2
+        exit 1
+    fi
+fi
+
 temporary_root="$(mktemp -d)"
 trap 'rm -rf "$temporary_root"' EXIT
 object_count=0

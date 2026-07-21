@@ -43,6 +43,11 @@ Dla aktywnych portów z builtin registry dodatkowo:
    opcjonalne i dla starszych wpisów oznacza `0`;
 6. `default-registry.baseline` w `vcpkg-configuration.json` musi być identyczny
    z rewizją wpisu `vcpkg` w locku.
+7. `vcpkg_port_source` jawnie wybiera `builtin` albo lokalny `overlay`;
+   skrypt sprawdza marker i SHA-512 w portfile z wybranego źródła, bez
+   fallbacku do drugiego. Do vcpkg przekazywane są tylko katalogi overlay
+   wybrane przez aktywny profil, więc nie mogą niejawnie przesłonić portu
+   oznaczonego w locku jako `builtin`.
 
 W ten sposób cache źródeł locka i niezależny asset cache vcpkg odnoszą się do
 identycznego archiwum, mimo że vcpkg zarządza własną kopią downloadu.
@@ -65,6 +70,10 @@ włączone default features, dodatkowy direct port i duplikaty funkcji.
   SQLite 3.51.2 z JSON1 i bez runtime loadable extensions. Nie buduje narzędzia
   `sqlite3`, integracji ICU ani funkcji domyślnych. Closure Boost pozostaje
   identyczna: dwa nowe porty są bezpośrednimi zależnościami targetu.
+- `physics-foundation`: profil kumulatywny, który dodaje iOS-only overlay
+  Bullet 3.17#6 z funkcjami `double-precision` i `multithreading`. Instaluje
+  wyłącznie `BulletCollision` i `LinearMath`; definicje ABI są PUBLIC na
+  eksportowanych targetach.
 
 Dodanie biblioteki do profilu przed pogodzeniem jej wersji z przypiętym
 registry albo portem overlay celowo kończy build błędem.

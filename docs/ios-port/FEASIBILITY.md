@@ -59,9 +59,10 @@ docelowego portu. Minimalny deployment target to iOS/iPadOS 16.4.
 - Przypięty fork OSG zawiera historyczną ścieżkę iPhone, ale zakłada stary SDK
   i wybiera macOS-owe nagłówki dla profilu GL2. Nie jest gotowym rozwiązaniem;
   wymaga aktualizacji toolchainu i integracji nagłówków GL4ES.
-- `CheckLuaCustomAllocator.cmake` wykonuje `try_run`, którego binarium arm64
-  iOS nie uruchomi się na hoście. Wynik trzeba ustawić dla cross-build albo
-  zmienić test na compile-only.
+- `CheckLuaCustomAllocator.cmake` ma już osobną ścieżkę cross-compile:
+  wykonuje `try_compile` i wraca przed `try_run`. Trzeba ją jeszcze potwierdzić
+  z przypiętym PUC Lua i wymusić błąd konfiguracji iOS, gdy compile-only probe
+  nie przejdzie.
 
 ### Rendering
 
@@ -233,8 +234,8 @@ architekturze jest NO-GO; rewrite renderera wymaga nowego projektu i estymacji.
 - `apps/openmw/engine.cpp:500-691` — tworzenie okna/kontekstu SDL OpenGL.
 - `components/sdlutil/sdlgraphicswindow.cpp` — profil GLES i inicjalizacja
   GL4ES.
-- `cmake/CheckLuaCustomAllocator.cmake` — hostowy `try_run` blokujący
-  cross-compile bez override.
+- `cmake/CheckLuaCustomAllocator.cmake` — natywny `try_run` oraz istniejąca
+  ścieżka cross-compile oparta na `try_compile`, czekająca na próbę z PUC Lua.
 - `components/sdlutil/sdlinputwrapper.cpp:213-235` — ignorowane touch i
   lifecycle.
 - `components/files/fixedpath.hpp` — każde `__APPLE__` wybiera `MacOsPath`.

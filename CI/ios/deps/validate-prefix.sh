@@ -91,6 +91,50 @@ if [[ -d "${prefix}/share/boost" ]]; then
     done
 fi
 
+if [[ -d "${prefix}/share/bullet" ]]; then
+    for bullet_path in \
+            "${prefix}/lib/libBulletCollision.a" \
+            "${prefix}/lib/libLinearMath.a" \
+            "${prefix}/include/bullet/BulletCollision/CollisionShapes/btBvhTriangleMeshShape.h" \
+            "${prefix}/include/bullet/LinearMath/btConvexHullComputer.h" \
+            "${prefix}/share/bullet/BulletConfig.cmake" \
+            "${prefix}/share/bullet3/copyright"; do
+        if [[ ! -f "$bullet_path" ]]; then
+            echo "Minimal Bullet package is missing: $bullet_path" >&2
+            exit 1
+        fi
+    done
+
+    unexpected_bullet_archive="$(
+        find "${prefix}/lib" -maxdepth 1 -type f \
+            \( -name 'libBulletDynamics*.a' \
+            -o -name 'libBulletSoftBody*.a' \
+            -o -name 'libBullet3*.a' \
+            -o -name 'libBulletInverseDynamics*.a' \) \
+            -print -quit
+    )"
+    if [[ -n "$unexpected_bullet_archive" ]]; then
+        echo "Unexpected Bullet archive: $unexpected_bullet_archive" >&2
+        exit 1
+    fi
+
+    for bullet_tool_root in \
+            "${prefix}/tools" \
+            "${prefix}/bin" \
+            "${prefix}/share/bullet3"; do
+        [[ -d "$bullet_tool_root" ]] || continue
+        bullet_tool="$(
+            find "$bullet_tool_root" -type f \
+                \( -iname '*bullet*' -o -iname '*demo*' -o -iname '*test*' \) \
+                -print -quit
+        )"
+        if [[ -n "$bullet_tool" ]]; then
+            echo "Bullet tool/demo/test leaked into the target prefix: ${bullet_tool}" >&2
+            exit 1
+        fi
+    done
+fi
+
 if [[ -d "${prefix}/share/yaml-cpp" ]]; then
     for yaml_path in \
             "${prefix}/lib/libyaml-cpp.a" \

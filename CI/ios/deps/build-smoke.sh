@@ -50,6 +50,7 @@ cmake --build "$build_dir" \
         openmw-ios-jpeg-probe \
         openmw-ios-turbojpeg-probe \
         openmw-ios-boost-probe \
+        openmw-ios-bullet-probe \
         openmw-ios-yaml-probe \
         openmw-ios-sqlite-probe \
     --parallel 3
@@ -75,6 +76,10 @@ boost_probe="$(
     find "$build_dir" -type f -name OpenMWBoostProbe \
         ! -path '*.dSYM/*' -print -quit
 )"
+bullet_probe="$(
+    find "$build_dir" -type f -name OpenMWBulletProbe \
+        ! -path '*.dSYM/*' -print -quit
+)"
 yaml_probe="$(
     find "$build_dir" -type f -name OpenMWYAMLProbe \
         ! -path '*.dSYM/*' -print -quit
@@ -88,6 +93,7 @@ for binary in \
         "$jpeg_probe" \
         "$turbojpeg_probe" \
         "$boost_probe" \
+        "$bullet_probe" \
         "$yaml_probe" \
         "$sqlite_probe"; do
     if [[ -z "$binary" || ! -f "$binary" ]]; then

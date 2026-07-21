@@ -37,11 +37,11 @@ On macOS with Xcode 16.4:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature data-foundation \
+  --feature physics-foundation \
   --clean
 bash CI/ios/deps/build.sh \
   --platform iphonesimulator \
-  --feature data-foundation \
+  --feature physics-foundation \
   --clean
 ```
 
@@ -55,6 +55,10 @@ pinned vcpkg baseline.
 enabled and runtime extension loading omitted. It intentionally excludes the
 SQLite command-line tool, ICU integration and implicit default-feature
 expansion; JSON1 is selected explicitly.
+`physics-foundation` adds the local iOS-only Bullet 3.17 overlay. It builds
+only `BulletCollision` and `LinearMath`, exports a double-precision,
+thread-safe static ABI and rejects every dynamics, soft-body, Bullet3,
+demo, tool and test artifact.
 `bootstrap` remains available as the smaller zlib-only pipeline proof. The
 profile-to-source mapping lives in `dependencies.lock.json`; every profile must
 have a matching vcpkg manifest feature. After installation, the build also
@@ -76,7 +80,7 @@ access:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature data-foundation \
+  --feature physics-foundation \
   --clean \
   --offline
 ```

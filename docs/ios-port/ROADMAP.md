@@ -1,9 +1,9 @@
 # Roadmapa portu OpenMW na iOS
 
-**Ostatnia aktualizacja:** 2026-07-20
+**Ostatnia aktualizacja:** 2026-07-21
 **Bazowy upstream:** `7a5e77a45130aca9b33db1d2eb6b412a8a848c9b`
 **Repo docelowe:** `tryk016/openmw`
-**Branch dokumentacji:** `codex/ios-port-plan`
+**Pierwotny branch dokumentacji:** `codex/ios-port-plan`
 **Branch integracyjny:** `ios/main`
 
 ## Zaakceptowany zakres
@@ -70,9 +70,9 @@ Tabela jest aktualizowana razem z checkboxami.
 |---:|---:|---:|---|
 | 0 | 24 | 24 | ukończona |
 | 1 | 13 | 13 | ukończona |
-| 2 | 11 | 34 | w toku |
+| 2 | 21 | 45 | w toku |
 | 3 | 10 | 26 | w toku |
-| 4 | 0 | 41 | oczekuje |
+| 4 | 0 | 32 | oczekuje |
 | 5 | 0 | 39 | oczekuje |
 | 6 | 0 | 33 | oczekuje |
 | 7 | 0 | 17 | oczekuje |
@@ -81,7 +81,7 @@ Tabela jest aktualizowana razem z checkboxami.
 | 10 | 20 | 38 | w toku |
 | 11 | 4 | 42 | w toku |
 | 12 | 0 | 16 | oczekuje |
-| **Razem** | **82** | **380** | **21,6%** |
+| **Razem** | **92** | **382** | **24,1%** |
 
 ---
 
@@ -146,7 +146,8 @@ forka, a praca nie może przypadkowo trafić do upstreamu.
   [#1](https://github.com/tryk016/openmw/issues/1).
 - [x] Zbudować pusty bundle dla `iphonesimulator/arm64`.
 - [x] Uruchomić pusty bundle w symulatorze.
-- [x] Dodać log do unified logging i potwierdzić go w Console/Xcode.
+- [x] Dodać log do unified logging i potwierdzić go przez `simctl` w CI;
+  Console/Xcode pozostają równoważną ścieżką diagnostyczną dla urządzenia.
 - [x] Potwierdzić działanie symboli debug i breakpointu C++.
 - [x] Zapisać dokładne komendy jako CMake Presets.
 
@@ -170,8 +171,9 @@ jeżeli nie jest dostępny w G0.
 - [ ] Dodać komendę czystego rebuilda wszystkich zależności.
 - [ ] Utrzymać kumulatywny ciąg profili: `base-foundation` →
   `image-foundation` → `cpp-foundation` → `data-foundation` →
-  `language-foundation` → `ui-foundation` → `multimedia-foundation` →
-  `render-foundation` → `full-openmw`.
+  `physics-foundation` → `navigation-foundation` →
+  `language-foundation` → `ui-foundation` → `multimedia-foundation`
+  → `render-foundation` → `full-openmw`.
 - [x] Dodać kontrolę architektury każdego artefaktu.
 - [x] Dodać kontrolę platform load commands każdego artefaktu.
 - [x] Wygenerować SBOM i zestawienie licencji.
@@ -186,8 +188,8 @@ jeżeli nie jest dostępny w G0.
 - [x] Zbudować zlib.
 - [x] Zbudować yaml-cpp.
 - [x] Zbudować SQLite amalgamation.
-- [ ] Zbudować Bullet 3.17 z `USE_DOUBLE_PRECISION=ON`.
-- [ ] Zweryfikować, że linkujemy tylko BulletCollision i LinearMath.
+- [x] Zbudować Bullet 3.17 z `USE_DOUBLE_PRECISION=ON`.
+- [x] Zweryfikować, że linkujemy tylko BulletCollision i LinearMath.
 - [ ] Zbudować Recast/Detour bez demo/testów/examples.
 - [ ] Zbudować MyGUIEngine bez pluginów/narzędzi.
 - [x] Zbudować FreeType.
@@ -196,9 +198,9 @@ jeżeli nie jest dostępny w G0.
 ### Język i lokalizacja
 
 - [ ] Zbudować PUC Lua dla device/simulator.
-- [x] Ustawić `USE_LUAJIT=OFF` w presetach bazowych.
-- [ ] Usunąć/pominąć `try_run` z `CheckLuaCustomAllocator.cmake` podczas
-  cross-compile.
+- [x] Ustawić `USE_LUAJIT=OFF` w bazowym profilu CMake dla iOS.
+- [ ] Zweryfikować z docelowym PUC Lua istniejącą ścieżkę cross-compile:
+  `CheckLuaCustomAllocator.cmake` używa `try_compile` i pomija `try_run`.
 - [ ] Zbudować narzędzia ICU na hoście.
 - [ ] Zbudować targetowe ICU `uc`, `i18n`, `data`.
 - [ ] Ograniczyć ICU data do faktycznie wymaganych danych.
@@ -283,6 +285,19 @@ loadable extensions. Workflow
 [`iOS G0` #29813819367](https://github.com/tryk016/openmw/actions/runs/29813819367)
 potwierdził brak regresji device/simulator.
 
+**Dowód Bullet:** commit `8743184554`, workflow
+[`iOS dependencies` #29817842440](https://github.com/tryk016/openmw/actions/runs/29817842440)
+zbudował iOS-only Bullet 3.17#6 dla obu SDK z publicznym ABI
+`BT_USE_DOUBLE_PRECISION` i `BT_THREADSAFE=1`. Prefiksy zawierają wyłącznie
+`BulletCollision` i `LinearMath`; walidacja odrzuca dynamics, soft body,
+Bullet3, narzędzia, demo i testy. Closure obejmuje 12 bezpośrednich portów,
+79 tranzytywnych portów targetu oraz 3 helpery hosta. Oba joby sprawdziły każdy
+człon archiwów, wykonały link probes, czysty rebuild offline i ponowny link.
+Smoke na iPhone Simulatorze utworzył dwa wątki z różnymi indeksami Bullet oraz
+wykonał convex hull i kolizję BVH. Workflow
+[`iOS G0` #29817842388](https://github.com/tryk016/openmw/actions/runs/29817842388)
+potwierdził brak regresji device/simulator.
+
 ---
 
 ## Faza 3 — build system OpenMW dla iOS
@@ -351,7 +366,9 @@ bootstrapu device/simulator. Pełna konfiguracja i link core pozostają otwarte.
 
 ### Bring-up sceny
 
-- [ ] Wyświetlić trójkąt SDL → GLES → GL4ES.
+- [ ] Wyświetlić trójkąt SDL → GLES → GL4ES. Po zielonym teście symulatora
+  jest to pierwszy punkt zatrzymania autonomicznej pracy: wynik wymaga
+  potwierdzenia na fizycznym iPhonie.
 - [ ] Wyświetlić prostą scenę OSG.
 - [ ] Wczytać teksturę PNG/JPEG.
 - [ ] Wczytać teksturę DDS.

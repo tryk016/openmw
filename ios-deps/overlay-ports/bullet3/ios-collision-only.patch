@@ -1,0 +1,223 @@
+diff --git a/BulletConfig.cmake.in b/BulletConfig.cmake.in
+index f5dc7bd..db0c947 100644
+--- a/BulletConfig.cmake.in
++++ b/BulletConfig.cmake.in
+@@ -1,7 +1,4 @@
+-#                                               -*- cmake -*-
+-#
+-#  BulletConfig.cmake(.in)
+-#
++@PACKAGE_INIT@
+ 
+ # Use the following variables to compile and link against Bullet:
+ #  BULLET_FOUND              - True if Bullet was found on your system
+@@ -13,13 +10,33 @@
+ #  BULLET_LIBRARY_DIRS       - List of directories containing Bullet' libraries
+ #  BULLET_ROOT_DIR           - The base directory of Bullet
+ #  BULLET_VERSION_STRING     - A human-readable string containing the version
++#
++# The OpenMW iOS overlay exports exactly these targets:
++#  LinearMath
++#  BulletCollision
+ 
+ set ( BULLET_FOUND 1 )
+-set ( BULLET_USE_FILE     "@BULLET_USE_FILE@" )
++set ( Bullet_FOUND TRUE )
++set ( BULLET_USE_FILE     "${CMAKE_CURRENT_LIST_DIR}/UseBullet.cmake" )
+ set ( BULLET_DEFINITIONS  "@BULLET_DEFINITIONS@" )
+-set ( BULLET_INCLUDE_DIR  "@INCLUDE_INSTALL_DIR@" )
+-set ( BULLET_INCLUDE_DIRS "@INCLUDE_INSTALL_DIR@" )
++set_and_check ( BULLET_INCLUDE_DIR  "@PACKAGE_INCLUDE_INSTALL_DIR@" )
++set ( BULLET_INCLUDE_DIRS "${BULLET_INCLUDE_DIR}" )
+ set ( BULLET_LIBRARIES    "@BULLET_LIBRARIES@" )
+-set ( BULLET_LIBRARY_DIRS "@LIB_DESTINATION@" )
+-set ( BULLET_ROOT_DIR     "@CMAKE_INSTALL_PREFIX@" )
+-set ( BULLET_VERSION_STRING "@BULLET_VERSION@" )
+\ No newline at end of file
++set_and_check ( BULLET_LIBRARY_DIRS "@PACKAGE_LIB_DESTINATION@" )
++set ( BULLET_ROOT_DIR     "${PACKAGE_PREFIX_DIR}" )
++set ( BULLET_VERSION_STRING "@BULLET_VERSION@" )
++
++include(CMakeFindDependencyMacro)
++if(@BULLET2_MULTITHREADING@)
++    find_dependency(Threads)
++endif()
++include("${CMAKE_CURRENT_LIST_DIR}/BulletTargets.cmake")
++
++foreach(_bullet_component IN LISTS Bullet_FIND_COMPONENTS)
++    if(TARGET "${_bullet_component}")
++        set("Bullet_${_bullet_component}_FOUND" TRUE)
++    else()
++        set("Bullet_${_bullet_component}_FOUND" FALSE)
++    endif()
++endforeach()
++check_required_components(Bullet)
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index a695b71..324b765 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,4 +1,4 @@
+-cmake_minimum_required(VERSION 2.4.3)
++cmake_minimum_required(VERSION 3.20)
+ set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS true)
+ cmake_policy(SET CMP0017 NEW)
+ #this line has to appear before 'PROJECT' in order to be able to disable incremental linking
+@@ -443,7 +443,12 @@ IF(BUILD_EXTRAS)
+ ENDIF(BUILD_EXTRAS)
+ 
+ 
+ 
++set(LIB_SUFFIX "" CACHE STRING "Define suffix of directory name (32/64)")
++set(LIB_DESTINATION "lib${LIB_SUFFIX}" CACHE STRING "Library directory name")
++set(INCLUDE_INSTALL_DIR "include/bullet" CACHE PATH "The subdirectory to the header prefix")
++set(BULLET_CONFIG_CMAKE_PATH "share/bullet")
++
+ SUBDIRS(src)
+ 
+ IF("${CMAKE_GENERATOR}" MATCHES "Unix Makefiles")
+@@ -489,24 +494,36 @@ IF (BUILD_UNIT_TESTS)
+ 	SUBDIRS(test)
+ ENDIF()
+ 
+-set (BULLET_CONFIG_CMAKE_PATH lib${LIB_SUFFIX}/cmake/bullet )
+-list (APPEND BULLET_DEFINITIONS ${BULLET_DOUBLE_DEF})
+-list (APPEND BULLET_LIBRARIES LinearMath)
+-list (APPEND BULLET_LIBRARIES Bullet3Common)
+-list (APPEND BULLET_LIBRARIES BulletInverseDynamics)
+-list (APPEND BULLET_LIBRARIES BulletCollision)
+-list (APPEND BULLET_LIBRARIES BulletDynamics)
+-list (APPEND BULLET_LIBRARIES BulletSoftBody)
+-set (BULLET_USE_FILE ${BULLET_CONFIG_CMAKE_PATH}/UseBullet.cmake)
+-configure_file 	( ${CMAKE_CURRENT_SOURCE_DIR}/BulletConfig.cmake.in
+-					${CMAKE_CURRENT_BINARY_DIR}/BulletConfig.cmake
+-					@ONLY ESCAPE_QUOTES
+-				)
++include(CMakePackageConfigHelpers)
++set(BULLET_DEFINITIONS "")
++if(USE_DOUBLE_PRECISION)
++	list(APPEND BULLET_DEFINITIONS -DBT_USE_DOUBLE_PRECISION)
++endif()
++if(BULLET2_MULTITHREADING)
++	list(APPEND BULLET_DEFINITIONS -DBT_THREADSAFE=1)
++endif()
++set(BULLET_LIBRARIES BulletCollision LinearMath)
++configure_package_config_file(
++	${CMAKE_CURRENT_SOURCE_DIR}/BulletConfig.cmake.in
++	${CMAKE_CURRENT_BINARY_DIR}/BulletConfig.cmake
++	INSTALL_DESTINATION ${BULLET_CONFIG_CMAKE_PATH}
++	PATH_VARS INCLUDE_INSTALL_DIR LIB_DESTINATION
++)
++write_basic_package_version_file(
++	${CMAKE_CURRENT_BINARY_DIR}/BulletConfigVersion.cmake
++	VERSION ${BULLET_VERSION}
++	COMPATIBILITY AnyNewerVersion
++)
+ OPTION(INSTALL_CMAKE_FILES "Install generated CMake files" ON)
+ 
+ IF (INSTALL_CMAKE_FILES)
+ 	install ( FILES ${CMAKE_CURRENT_SOURCE_DIR}/UseBullet.cmake
+ 		${CMAKE_CURRENT_BINARY_DIR}/BulletConfig.cmake
++		${CMAKE_CURRENT_BINARY_DIR}/BulletConfigVersion.cmake
+ 		DESTINATION ${BULLET_CONFIG_CMAKE_PATH}
+ 	)
++	install(EXPORT BulletTargets
++		FILE BulletTargets.cmake
++		DESTINATION ${BULLET_CONFIG_CMAKE_PATH}
++	)
+ ENDIF (INSTALL_CMAKE_FILES)
+diff --git a/src/BulletCollision/CMakeLists.txt b/src/BulletCollision/CMakeLists.txt
+index f5d7255..26c610c 100644
+--- a/src/BulletCollision/CMakeLists.txt
++++ b/src/BulletCollision/CMakeLists.txt
+@@ -255,11 +255,19 @@ SET(BulletCollision_HDRS
+ 
+ 
+ ADD_LIBRARY(BulletCollision ${BulletCollision_SRCS} ${BulletCollision_HDRS})
++TARGET_INCLUDE_DIRECTORIES(BulletCollision PUBLIC
++	$<BUILD_INTERFACE:${BULLET_PHYSICS_SOURCE_DIR}/src>
++	$<INSTALL_INTERFACE:${INCLUDE_INSTALL_DIR}>
++)
++IF(USE_DOUBLE_PRECISION)
++	TARGET_COMPILE_DEFINITIONS(BulletCollision PUBLIC BT_USE_DOUBLE_PRECISION)
++ENDIF()
++IF(BULLET2_MULTITHREADING)
++	TARGET_COMPILE_DEFINITIONS(BulletCollision PUBLIC BT_THREADSAFE=1)
++ENDIF()
+ SET_TARGET_PROPERTIES(BulletCollision PROPERTIES VERSION ${BULLET_VERSION})
+ SET_TARGET_PROPERTIES(BulletCollision PROPERTIES SOVERSION ${BULLET_VERSION})
+-IF (BUILD_SHARED_LIBS)
+-  TARGET_LINK_LIBRARIES(BulletCollision LinearMath)
+-ENDIF (BUILD_SHARED_LIBS)
++TARGET_LINK_LIBRARIES(BulletCollision PUBLIC LinearMath)
+ 
+ 
+ IF (INSTALL_LIBS)
+@@ -269,7 +277,9 @@ IF (INSTALL_LIBS)
+ 			IF (APPLE AND BUILD_SHARED_LIBS AND FRAMEWORK)
+ 				INSTALL(TARGETS BulletCollision DESTINATION .)
+ 			ELSE (APPLE AND BUILD_SHARED_LIBS AND FRAMEWORK)
+-				INSTALL(TARGETS BulletCollision RUNTIME DESTINATION bin
++				INSTALL(TARGETS BulletCollision
++								EXPORT BulletTargets
++								RUNTIME DESTINATION bin
+ 								LIBRARY DESTINATION lib${LIB_SUFFIX}
+ 								ARCHIVE DESTINATION lib${LIB_SUFFIX})
+ 				INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 1e65fae..cff50b2 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -1,11 +1,5 @@
+ 
+-IF(BUILD_BULLET3)
+-	SUBDIRS(  Bullet3OpenCL Bullet3Serialize/Bullet2FileLoader Bullet3Dynamics Bullet3Collision Bullet3Geometry )
+-ENDIF(BUILD_BULLET3)
+-
+-
+-SUBDIRS(   BulletInverseDynamics BulletSoftBody BulletCollision BulletDynamics LinearMath Bullet3Common)
+-
++SUBDIRS(LinearMath BulletCollision)
+ 
+ IF(INSTALL_LIBS)
+ 	#INSTALL of other files requires CMake 2.6
+@@ -13,7 +7,7 @@ IF(INSTALL_LIBS)
+ 		IF (APPLE AND BUILD_SHARED_LIBS AND FRAMEWORK)
+ 			# Don't actually need to install any common files, the frameworks include everything
+ 		ELSE (APPLE AND BUILD_SHARED_LIBS AND FRAMEWORK)
+-			INSTALL(FILES btBulletCollisionCommon.h btBulletDynamicsCommon.h  DESTINATION ${INCLUDE_INSTALL_DIR})
++			INSTALL(FILES btBulletCollisionCommon.h DESTINATION ${INCLUDE_INSTALL_DIR})
+ 		ENDIF (APPLE AND BUILD_SHARED_LIBS AND FRAMEWORK)
+ 	ENDIF (${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION} GREATER 2.5)
+ ENDIF(INSTALL_LIBS)
+diff --git a/src/LinearMath/CMakeLists.txt b/src/LinearMath/CMakeLists.txt
+index a0532c7..f13e3d0 100644
+--- a/src/LinearMath/CMakeLists.txt
++++ b/src/LinearMath/CMakeLists.txt
+@@ -56,6 +56,19 @@ SET(LinearMath_HDRS
+ )
+ 
+ ADD_LIBRARY(LinearMath ${LinearMath_SRCS} ${LinearMath_HDRS})
++TARGET_INCLUDE_DIRECTORIES(LinearMath PUBLIC
++	$<BUILD_INTERFACE:${BULLET_PHYSICS_SOURCE_DIR}/src>
++	$<INSTALL_INTERFACE:${INCLUDE_INSTALL_DIR}>
++)
++IF(USE_DOUBLE_PRECISION)
++	TARGET_COMPILE_DEFINITIONS(LinearMath PUBLIC BT_USE_DOUBLE_PRECISION)
++ENDIF()
++IF(BULLET2_MULTITHREADING)
++	TARGET_COMPILE_DEFINITIONS(LinearMath PUBLIC BT_THREADSAFE=1)
++	IF(TARGET Threads::Threads)
++		TARGET_LINK_LIBRARIES(LinearMath PUBLIC Threads::Threads)
++	ENDIF()
++ENDIF()
+ SET_TARGET_PROPERTIES(LinearMath PROPERTIES VERSION ${BULLET_VERSION})
+ SET_TARGET_PROPERTIES(LinearMath PROPERTIES SOVERSION ${BULLET_VERSION})
+ 
+@@ -66,6 +79,7 @@ IF (INSTALL_LIBS)
+ 				INSTALL(TARGETS LinearMath DESTINATION .)
+ 			ELSE (APPLE AND BUILD_SHARED_LIBS AND FRAMEWORK)
+ 				INSTALL(TARGETS LinearMath
++					EXPORT BulletTargets
+ 					RUNTIME DESTINATION bin
+ 					LIBRARY DESTINATION lib${LIB_SUFFIX}
+ 					ARCHIVE DESTINATION lib${LIB_SUFFIX})

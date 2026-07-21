@@ -114,8 +114,10 @@ extern "C" int openmwIosRecastProbe();
     const bool sqlitePassed = openmwIosSQLiteProbe() == 0;
     const bool bulletPassed = openmwIosBulletProbe() == 0;
     const bool recastPassed = openmwIosRecastProbe() == 0;
-    const bool luaPassed = openmwIosLuaProbe() == 0;
-    const bool icuPassed = openmwIosIcuProbe() == 0;
+    const int luaResult = openmwIosLuaProbe();
+    const int icuResult = openmwIosIcuProbe();
+    const bool luaPassed = luaResult == 0;
+    const bool icuPassed = icuResult == 0;
     const bool smokePassed
         = sdlInitResult == 0 && lz4RoundTripPassed && imageFoundationPassed
         && yamlPassed && sqlitePassed && bulletPassed && recastPassed
@@ -134,8 +136,8 @@ extern "C" int openmwIosRecastProbe();
              "SQLite %s %@\n"
              "Bullet 3.17 %@\n"
              "RecastNavigation 1.6.0 %@\n"
-             "PUC Lua 5.1.5 %@\n"
-             "ICU 70.1 %@",
+             "PUC Lua 5.1.5 %@ (result %d)\n"
+             "ICU 70.1 %@ (result %d)",
             smokePassed ? @"PASS" : @"FAIL", sdlVersion.major,
             sdlVersion.minor, sdlVersion.patch, videoDriverCount,
             LZ4_versionString(), lz4RoundTripPassed ? @"PASS" : @"FAIL",
@@ -147,16 +149,17 @@ extern "C" int openmwIosRecastProbe();
             sqlitePassed ? @"PASS" : @"FAIL",
             bulletPassed ? @"PASS" : @"FAIL",
             recastPassed ? @"PASS" : @"FAIL",
-            luaPassed ? @"PASS" : @"FAIL",
-            icuPassed ? @"PASS" : @"FAIL"];
+            luaPassed ? @"PASS" : @"FAIL", luaResult,
+            icuPassed ? @"PASS" : @"FAIL", icuResult];
     [controller.view addSubview:label];
 
     self.window.rootViewController = controller;
     [self.window makeKeyAndVisible];
     os_log_t runtimeLog =
         os_log_create("org.openmw.ios.deps-smoke", "runtime");
-    os_log_info(runtimeLog, "language foundation %{public}s",
-        smokePassed ? "PASS" : "FAIL");
+    os_log_info(runtimeLog,
+        "language foundation %{public}s lua=%{public}d icu=%{public}d",
+        smokePassed ? "PASS" : "FAIL", luaResult, icuResult);
     return YES;
 }
 

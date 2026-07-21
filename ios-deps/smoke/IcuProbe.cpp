@@ -57,10 +57,12 @@ namespace
         if (U_FAILURE(status) || messageUtf8 != "Hello, OpenMW!")
             return 3;
 
-        if (!selectedPlural("en", 1, "one")
-            || !selectedPlural("pl", 2, "few")
-            || !selectedPlural("ru", 5, "many"))
+        if (!selectedPlural("en", 1, "one"))
             return 4;
+        if (!selectedPlural("pl", 2, "few"))
+            return 5;
+        if (!selectedPlural("ru", 5, "many"))
+            return 6;
 
         status = U_ZERO_ERROR;
         const icu::number::UnlocalizedNumberFormatter numberTemplate
@@ -73,7 +75,7 @@ namespace
         std::string numberUtf8;
         formattedNumber.toUTF8String(numberUtf8);
         if (U_FAILURE(status) || numberUtf8 != "1234.50")
-            return 5;
+            return 7;
 
         return 0;
     }

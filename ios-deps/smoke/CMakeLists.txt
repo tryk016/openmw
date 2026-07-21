@@ -42,11 +42,17 @@ if(NOT TARGET lz4::lz4)
     message(FATAL_ERROR "The locked LZ4 package has no lz4::lz4 target")
 endif()
 
-find_package(Boost 1.90.0 CONFIG REQUIRED
-    COMPONENTS geometry iostreams program_options
-    PATHS "${IOS_DEPS_PREFIX}/share/boost"
-    NO_DEFAULT_PATH
-    NO_CMAKE_FIND_ROOT_PATH)
+# BoostConfig resolves every modular dependency with nested find_package calls.
+# Keep the entire lookup graph anchored to the verified static prefix, while
+# retaining the exact path restriction for the top-level package itself.
+block()
+    list(PREPEND CMAKE_PREFIX_PATH "${IOS_DEPS_PREFIX}")
+    find_package(Boost 1.90.0 CONFIG REQUIRED
+        COMPONENTS geometry iostreams program_options
+        PATHS "${IOS_DEPS_PREFIX}/share/boost"
+        NO_DEFAULT_PATH
+        NO_CMAKE_FIND_ROOT_PATH)
+endblock()
 foreach(boost_target IN ITEMS
         Boost::geometry
         Boost::iostreams

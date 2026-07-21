@@ -97,6 +97,18 @@ const ffmpegProbe = fs.readFileSync(
     path.join(repoRoot, "ios-deps/smoke/FFmpegProbe.cpp"),
     "utf8",
 );
+const gl4esPortfile = fs.readFileSync(
+    path.join(repoRoot, "ios-deps/overlay-ports/gl4es/portfile.cmake"),
+    "utf8",
+);
+const osgPortfile = fs.readFileSync(
+    path.join(repoRoot, "ios-deps/overlay-ports/osg/portfile.cmake"),
+    "utf8",
+);
+const renderProbe = fs.readFileSync(
+    path.join(repoRoot, "ios-deps/smoke/RenderProbe.cpp"),
+    "utf8",
+);
 const iosProductProfile = fs.readFileSync(
     path.join(repoRoot, "cmake/OpenMWIOSProfile.cmake"),
     "utf8",
@@ -576,10 +588,10 @@ try {
         "only overlay ports selected by the active lock profile may reach vcpkg",
     );
     requireBuildScriptContract(
-        "language-ui-and-multimedia-host-tools-are-validated",
+        "language-ui-multimedia-and-render-host-tools-are-validated",
         /validate-host-tools\.sh/.test(buildScript) &&
             /profile="\$1"/.test(hostToolsScript) &&
-            /case "\$profile" in\s*language-foundation\|ui-foundation\|multimedia-foundation\) ;;\s*\*\) exit 0 ;;\s*esac/.test(
+            /case "\$profile" in\s*language-foundation\|ui-foundation\|multimedia-foundation\|render-foundation\) ;;\s*\*\) exit 0 ;;\s*esac/.test(
                 hostToolsScript,
             ) &&
             /icuinfo/.test(hostToolsScript) &&
@@ -588,7 +600,7 @@ try {
             /echo "Validated ICU 70\.1#1 host tools and target\/host separation"/.test(
                 hostToolsScript,
             ),
-        "the language, UI and multimedia profiles must validate pinned ICU host tools and report success",
+        "the language, UI, multimedia and render profiles must validate pinned ICU host tools and report success",
     );
     requireBuildScriptContract(
         "stdout-is-reserved-for-prefix",
@@ -790,6 +802,47 @@ try {
             /AV_CODEC_ID_H264/.test(ffmpegProbe) &&
             /AV_CODEC_ID_AAC/.test(ffmpegProbe),
         "FFmpeg must retain its exact no-network LGPL allowlist and compliance evidence",
+    );
+    requireBuildScriptContract(
+        "gl4es-gles2-manual-init-contract",
+        /-DDEFAULT_ES=2/.test(gl4esPortfile) &&
+            /-DNOX11=ON/.test(gl4esPortfile) &&
+            /-DNOEGL=ON/.test(gl4esPortfile) &&
+            /-DSTATICLIB=ON/.test(gl4esPortfile) &&
+            /-DNO_LOADER=ON/.test(gl4esPortfile) &&
+            /-DNO_INIT_CONSTRUCTOR=ON/.test(gl4esPortfile) &&
+            /set_getprocaddress\(SDL_GL_GetProcAddress\)/.test(renderProbe) &&
+            /SDL_GL_GetDrawableSize/.test(renderProbe) &&
+            /initialize_gl4es\(\)/.test(renderProbe) &&
+            /SDL_GL_CONTEXT_MAJOR_VERSION, 2/.test(renderProbe) &&
+            /glReadPixels/.test(renderProbe),
+        "GL4ES must remain static, GLES2-backed and manually initialized after SDL",
+    );
+    requireBuildScriptContract(
+        "osg-minimal-static-plugin-contract",
+        /BUILD_OSG_PLUGIN_DAE=OFF/.test(osgPortfile) &&
+            /BUILD_OSG_APPLICATIONS=OFF/.test(osgPortfile) &&
+            /BUILD_OSG_EXAMPLES=OFF/.test(osgPortfile) &&
+            /DYNAMIC_OPENSCENEGRAPH=OFF/.test(osgPortfile) &&
+            /find_package\(unofficial-osg 3\.6\.5 EXACT CONFIG REQUIRED/.test(
+                smokeCmake,
+            ) &&
+            (smokeCmake.match(/LINKER:-force_load/g) ?? []).length === 1 &&
+            /foreach\(osg_plugin_target IN LISTS osg_plugin_targets\)/.test(
+                smokeCmake,
+            ) &&
+            !/(?:LINKER:|Wl,)-all_load/.test(smokeCmake) &&
+            ["bmp", "dds", "freetype", "jpeg", "osg", "png", "tga"].every(
+                (plugin) =>
+                    new RegExp(`USE_OSGPLUGIN\\(${plugin}\\)`).test(
+                        renderProbe,
+                    ),
+            ) &&
+            /USE_DOTOSGWRAPPER_LIBRARY\(osg\)/.test(renderProbe) &&
+            /USE_SERIALIZER_WRAPPER_LIBRARY\(osg\)/.test(renderProbe) &&
+            /getReaderWriterForExtension\("osgt"\)/.test(renderProbe) &&
+            /getReaderWriterForExtension\("osg"\)/.test(renderProbe),
+        "OSG must expose only the allowlisted statically registered plugins and serializers",
     );
     requireBuildScriptContract(
         "boost-uninstall-notice-is-narrow",
@@ -1293,6 +1346,69 @@ try {
         ),
         false,
         "multimedia-foundation",
+    );
+
+    const missingRenderGl4es = clone(manifest);
+    missingRenderGl4es.features["render-foundation"].dependencies =
+        missingRenderGl4es.features["render-foundation"].dependencies.filter(
+            (dependency) => dependency.name !== "gl4es",
+        );
+    runValidator(
+        "missing-render-gl4es",
+        lock,
+        missingRenderGl4es,
+        false,
+    );
+
+    const missingRenderOsg = clone(manifest);
+    missingRenderOsg.features["render-foundation"].dependencies =
+        missingRenderOsg.features["render-foundation"].dependencies.filter(
+            (dependency) => dependency.name !== "osg",
+        );
+    runValidator("missing-render-osg", lock, missingRenderOsg, false);
+
+    const renderDefaultsEnabled = clone(manifest);
+    renderDefaultsEnabled.features["render-foundation"].dependencies.find(
+        (dependency) => dependency.name === "osg",
+    )["default-features"] = true;
+    runValidator(
+        "render-osg-default-features-enabled",
+        lock,
+        renderDefaultsEnabled,
+        false,
+    );
+
+    const renderTriplet = "arm64-ios-openmw";
+    const renderHostTriplet = "arm64-osx";
+    const renderClosureRecords = [
+        ...directPortEntries(lock, "render-foundation", renderTriplet),
+        ...lock.expected_vcpkg_transitive_ports[
+            "render-foundation"
+        ].target.map((entry) =>
+            installedRecord(entry.port, renderTriplet, entry.features ?? []),
+        ),
+        ...lock.expected_vcpkg_transitive_ports[
+            "render-foundation"
+        ].host.map((entry) =>
+            installedRecord(entry.port, renderHostTriplet, entry.features ?? []),
+        ),
+    ];
+    runClosureValidator(
+        "valid-render-installed-closure",
+        lock,
+        renderClosureRecords,
+        true,
+        "render-foundation",
+    );
+
+    runClosureValidator(
+        "missing-render-cmake-get-vars",
+        lock,
+        renderClosureRecords.filter(
+            (record) => record.package_name !== "vcpkg-cmake-get-vars",
+        ),
+        false,
+        "render-foundation",
     );
 
     const missingPortSource = clone(lock);

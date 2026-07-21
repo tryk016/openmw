@@ -568,6 +568,127 @@ if [[ -d "${prefix}/share/ffmpeg" \
     rm -rf "$ffmpeg_policy_root"
 fi
 
+if [[ -d "${prefix}/share/gl4es" \
+        || -f "${prefix}/lib/libGL.a" ]]; then
+    for gl4es_path in \
+            "${prefix}/lib/libGL.a" \
+            "${prefix}/include/GL/gl.h" \
+            "${prefix}/include/gl4es/gl4esinit.h" \
+            "${prefix}/include/gl4es/gl4eshint.h" \
+            "${prefix}/share/gl4es/gl4es-config.cmake" \
+            "${prefix}/share/gl4es/copyright"; do
+        if [[ ! -f "$gl4es_path" ]]; then
+            echo "The static GL4ES package is missing: $gl4es_path" >&2
+            exit 1
+        fi
+    done
+    unexpected_gl4es_archive="$(
+        find "${prefix}/lib" -maxdepth 1 -type f -name 'libGL*.a' \
+            ! -name libGL.a -print -quit
+    )"
+    if [[ -n "$unexpected_gl4es_archive" ]]; then
+        echo "Unexpected GL4ES archive: $unexpected_gl4es_archive" >&2
+        exit 1
+    fi
+    gl4es_symbols="$(nm -g "${prefix}/lib/libGL.a")"
+    for gl4es_symbol in \
+            _initialize_gl4es \
+            _set_getprocaddress \
+            _set_getmainfbsize \
+            _glBegin \
+            _glReadPixels; do
+        if ! grep -Eq "[[:space:]][A-Za-z][[:space:]]${gl4es_symbol}([[:space:]]|$)" \
+                <<<"$gl4es_symbols"; then
+            echo "GL4ES archive is missing public symbol: ${gl4es_symbol}" >&2
+            exit 1
+        fi
+    done
+fi
+
+if [[ -d "${prefix}/share/unofficial-osg" \
+        || -f "${prefix}/lib/libosg.a" ]]; then
+    for osg_path in \
+            "${prefix}/include/osg/Node" \
+            "${prefix}/include/osgDB/Registry" \
+            "${prefix}/include/osgViewer/Viewer" \
+            "${prefix}/share/osg/copyright" \
+            "${prefix}/share/unofficial-osg/unofficial-osg-config.cmake" \
+            "${prefix}/share/unofficial-osg/unofficial-osg-config-version.cmake" \
+            "${prefix}/share/unofficial-osg/osg-targets.cmake" \
+            "${prefix}/share/unofficial-osg/osg-plugins.cmake"; do
+        if [[ ! -f "$osg_path" ]]; then
+            echo "The minimal static OSG package is missing: $osg_path" >&2
+            exit 1
+        fi
+    done
+
+    expected_osg_archives="$(printf '%s\n' \
+        "${prefix}/lib/libOpenThreads.a" \
+        "${prefix}/lib/libosg.a" \
+        "${prefix}/lib/libosgAnimation.a" \
+        "${prefix}/lib/libosgDB.a" \
+        "${prefix}/lib/libosgFX.a" \
+        "${prefix}/lib/libosgGA.a" \
+        "${prefix}/lib/libosgParticle.a" \
+        "${prefix}/lib/libosgShadow.a" \
+        "${prefix}/lib/libosgSim.a" \
+        "${prefix}/lib/libosgText.a" \
+        "${prefix}/lib/libosgUtil.a" \
+        "${prefix}/lib/libosgViewer.a" \
+        "${prefix}/lib/osgPlugins-3.6.5/libosgdb_bmp.a" \
+        "${prefix}/lib/osgPlugins-3.6.5/libosgdb_dds.a" \
+        "${prefix}/lib/osgPlugins-3.6.5/libosgdb_deprecated_osg.a" \
+        "${prefix}/lib/osgPlugins-3.6.5/libosgdb_freetype.a" \
+        "${prefix}/lib/osgPlugins-3.6.5/libosgdb_jpeg.a" \
+        "${prefix}/lib/osgPlugins-3.6.5/libosgdb_osg.a" \
+        "${prefix}/lib/osgPlugins-3.6.5/libosgdb_png.a" \
+        "${prefix}/lib/osgPlugins-3.6.5/libosgdb_serializers_osg.a" \
+        "${prefix}/lib/osgPlugins-3.6.5/libosgdb_tga.a" | sort)"
+    actual_osg_archives="$(
+        find "${prefix}/lib" -type f \
+            \( -name 'libosg*.a' -o -name libOpenThreads.a \) \
+            -print | sort
+    )"
+    if [[ "$actual_osg_archives" != "$expected_osg_archives" ]]; then
+        echo "Unexpected OSG core/plugin archive set" >&2
+        diff -u <(printf '%s\n' "$expected_osg_archives") \
+            <(printf '%s\n' "$actual_osg_archives") >&2 || true
+        exit 1
+    fi
+    if find "${prefix}/lib/osgPlugins-3.6.5" \
+            "${prefix}/share/unofficial-osg" \
+            -type f -iname '*dae*' -print -quit | grep -q .; then
+        echo "The forbidden DAE plugin or metadata leaked into OSG" >&2
+        exit 1
+    fi
+
+    for osg_plugin in bmp dds freetype jpeg osg png tga; do
+        if ! nm -g \
+                "${prefix}/lib/osgPlugins-3.6.5/libosgdb_${osg_plugin}.a" |
+                grep -Eq "[[:space:]][A-Za-z][[:space:]]_osgdb_${osg_plugin}([[:space:]]|$)"; then
+            echo "OSG plugin registration symbol is missing: ${osg_plugin}" >&2
+            exit 1
+        fi
+    done
+    if ! nm -g \
+            "${prefix}/lib/osgPlugins-3.6.5/libosgdb_deprecated_osg.a" |
+            grep -Eq '[[:space:]][A-Za-z][[:space:]]_dotosgwrapper_library_osg([[:space:]]|$)'; then
+        echo "OSG legacy .osg wrapper registration is missing" >&2
+        exit 1
+    fi
+    if ! nm -g \
+            "${prefix}/lib/osgPlugins-3.6.5/libosgdb_serializers_osg.a" |
+            grep -Eq '[[:space:]][A-Za-z][[:space:]]_wrapper_serializer_library_osg([[:space:]]|$)'; then
+        echo "OSG native serializer wrapper registration is missing" >&2
+        exit 1
+    fi
+    if ! nm -u "${prefix}/lib/libosg.a" |
+            grep -Eq '(^|[[:space:]])_gl4es_GetProcAddress([[:space:]]|$)'; then
+        echo "OSG does not retain its GL4ES procedure lookup edge" >&2
+        exit 1
+    fi
+fi
+
 temporary_root="$(mktemp -d)"
 trap 'rm -rf "$temporary_root"' EXIT
 object_count=0

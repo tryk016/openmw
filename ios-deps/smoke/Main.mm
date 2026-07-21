@@ -33,6 +33,7 @@ extern "C" int openmwIosLuaProbe();
 extern "C" int openmwIosMyGuiProbe();
 extern "C" int openmwIosOpenALProbe();
 extern "C" int openmwIosRecastProbe();
+extern "C" int openmwIosRenderProbe();
 
 @interface OpenMWDepsSmokeDelegate : UIResponder <UIApplicationDelegate>
 @property(nonatomic, strong) UIWindow* window;
@@ -132,15 +133,17 @@ extern "C" int openmwIosRecastProbe();
     const int ffmpegResult = openmwIosFFmpegProbe();
     const bool openALPassed = openALResult == 0;
     const bool ffmpegPassed = ffmpegResult == 0;
+    const int renderResult = openmwIosRenderProbe();
+    const bool renderPassed = renderResult == 0;
     const bool smokePassed
         = sdlInitResult == 0 && lz4RoundTripPassed && imageFoundationPassed
         && yamlPassed && sqlitePassed && bulletPassed && recastPassed
         && luaPassed && icuPassed && myGuiPassed && openALPassed
-        && ffmpegPassed;
+        && ffmpegPassed && renderPassed;
 
     label.text = [NSString
         stringWithFormat:
-            @"ios-deps multimedia foundation: %@\n"
+            @"ios-deps render foundation: %@\n"
              "SDL %u.%u.%u (%d video drivers)\n"
              "LZ4 %s (round-trip %@)\n"
              "zlib %s\n"
@@ -155,7 +158,8 @@ extern "C" int openmwIosRecastProbe();
              "ICU 70.1 %@ (result %d)\n"
              "MyGUI 3.4.3 engine %@\n"
              "OpenAL Soft 1.24.3 %@\n"
-             "FFmpeg 7.1.1 allowlist %@",
+             "FFmpeg 7.1.1 allowlist %@\n"
+             "GL4ES 1.1.6 + OSG 3.6.5 %@ (%d)",
             smokePassed ? @"PASS" : @"FAIL", sdlVersion.major,
             sdlVersion.minor, sdlVersion.patch, videoDriverCount,
             LZ4_versionString(), lz4RoundTripPassed ? @"PASS" : @"FAIL",
@@ -171,7 +175,8 @@ extern "C" int openmwIosRecastProbe();
             icuPassed ? @"PASS" : @"FAIL", icuResult,
             myGuiPassed ? @"PASS" : @"FAIL",
             openALPassed ? @"PASS" : @"FAIL",
-            ffmpegPassed ? @"PASS" : @"FAIL"];
+            ffmpegPassed ? @"PASS" : @"FAIL",
+            renderPassed ? @"PASS" : @"FAIL", renderResult];
     [controller.view addSubview:label];
 
     self.window.rootViewController = controller;
@@ -179,7 +184,7 @@ extern "C" int openmwIosRecastProbe();
     os_log_t runtimeLog =
         os_log_create("org.openmw.ios.deps-smoke", "runtime");
     os_log_info(runtimeLog,
-        "multimedia foundation %{public}s "
+        "render foundation %{public}s "
         "sdlInitResult=%{public}d videoDriverCount=%{public}d "
         "lz4CompressedSize=%{public}d lz4RestoredSize=%{public}d "
         "lz4RoundTripPassed=%{public}d "
@@ -195,6 +200,7 @@ extern "C" int openmwIosRecastProbe();
         "myGuiResult=%{public}d myGuiPassed=%{public}d "
         "openALResult=%{public}d openALPassed=%{public}d "
         "ffmpegResult=%{public}d ffmpegPassed=%{public}d "
+        "renderResult=%{public}d renderPassed=%{public}d "
         "smokePassed=%{public}d",
         smokePassed ? "PASS" : "FAIL", sdlInitResult, videoDriverCount,
         compressedSize, restoredSize, lz4RoundTripPassed,
@@ -203,7 +209,7 @@ extern "C" int openmwIosRecastProbe();
         sqlitePassed, bulletResult, bulletPassed, recastResult, recastPassed,
         luaResult, luaPassed, icuResult, icuPassed, myGuiResult, myGuiPassed,
         openALResult, openALPassed, ffmpegResult, ffmpegPassed,
-        smokePassed);
+        renderResult, renderPassed, smokePassed);
     return YES;
 }
 

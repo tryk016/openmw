@@ -377,6 +377,46 @@ try {
     ).features.push("png");
     runValidator("duplicate-feature", lock, duplicateFeature, false);
 
+    const missingSqliteRestriction = clone(manifest);
+    missingSqliteRestriction.features["data-foundation"].dependencies.find(
+        (dependency) => dependency.name === "sqlite3",
+    ).features = ["json1"];
+    runValidator(
+        "missing-sqlite-omit-load-extension",
+        lock,
+        missingSqliteRestriction,
+        false,
+    );
+
+    const sqliteToolLeak = clone(manifest);
+    sqliteToolLeak.features["data-foundation"].dependencies.find(
+        (dependency) => dependency.name === "sqlite3",
+    ).features.push("tool");
+    runValidator("unexpected-sqlite-tool", lock, sqliteToolLeak, false);
+
+    const dataDefaultsEnabled = clone(manifest);
+    dataDefaultsEnabled.features["data-foundation"].dependencies.find(
+        (dependency) => dependency.name === "yaml-cpp",
+    )["default-features"] = true;
+    runValidator(
+        "data-default-features-enabled",
+        lock,
+        dataDefaultsEnabled,
+        false,
+    );
+
+    const malformedUrlMarker = clone(lock);
+    malformedUrlMarker.dependencies.find(
+        (dependency) => dependency.name === "sqlite",
+    ).vcpkg_source_marker =
+        "URLS \"http://sqlite.org/sqlite-autoconf-${SQLITE_VERSION}.tar.gz\"";
+    runValidator(
+        "non-https-source-marker",
+        malformedUrlMarker,
+        manifest,
+        false,
+    );
+
     const closureLock = clone(lock);
     closureLock.expected_vcpkg_transitive_ports ??= {};
     closureLock.expected_vcpkg_transitive_ports["image-foundation"] = {

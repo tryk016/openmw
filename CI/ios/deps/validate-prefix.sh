@@ -91,6 +91,54 @@ if [[ -d "${prefix}/share/boost" ]]; then
     done
 fi
 
+if [[ -d "${prefix}/share/yaml-cpp" ]]; then
+    for yaml_path in \
+            "${prefix}/lib/libyaml-cpp.a" \
+            "${prefix}/include/yaml-cpp/yaml.h"; do
+        if [[ ! -f "$yaml_path" ]]; then
+            echo "yaml-cpp package is missing: $yaml_path" >&2
+            exit 1
+        fi
+    done
+fi
+
+if [[ -d "${prefix}/share/sqlite3" \
+        || -d "${prefix}/share/unofficial-sqlite3" ]]; then
+    for sqlite_path in \
+            "${prefix}/lib/libsqlite3.a" \
+            "${prefix}/include/sqlite3.h" \
+            "${prefix}/include/sqlite3-vcpkg-config.h"; do
+        if [[ ! -f "$sqlite_path" ]]; then
+            echo "SQLite package is missing: $sqlite_path" >&2
+            exit 1
+        fi
+    done
+    if ! grep -Eq \
+            '^[[:space:]]*#define[[:space:]]+SQLITE_OMIT_LOAD_EXTENSION([[:space:]]+1)?[[:space:]]*$' \
+            "${prefix}/include/sqlite3-vcpkg-config.h"; then
+        echo "SQLite extension loading was not omitted" >&2
+        exit 1
+    fi
+    if grep -Eq \
+            '^[[:space:]]*#define[[:space:]]+SQLITE_OMIT_JSON([[:space:]]+1)?[[:space:]]*$' \
+            "${prefix}/include/sqlite3-vcpkg-config.h"; then
+        echo "SQLite JSON support was unexpectedly omitted" >&2
+        exit 1
+    fi
+    for sqlite_tool_root in "${prefix}/tools" "${prefix}/bin"; do
+        [[ -d "$sqlite_tool_root" ]] || continue
+        sqlite_tool="$(
+            find "$sqlite_tool_root" -type f \
+                \( -name sqlite3 -o -name 'sqlite3*' \) \
+                -print -quit
+        )"
+        if [[ -n "$sqlite_tool" ]]; then
+            echo "SQLite command-line tool leaked into the target prefix: ${sqlite_tool}" >&2
+            exit 1
+        fi
+    done
+fi
+
 temporary_root="$(mktemp -d)"
 trap 'rm -rf "$temporary_root"' EXIT
 object_count=0

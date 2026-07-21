@@ -2,13 +2,15 @@
 
 set -euo pipefail
 
-[[ $# -eq 2 ]] || {
-    echo "Usage: $0 <path-to-OpenMW.app> <log-directory>" >&2
+[[ $# -eq 2 || $# -eq 4 ]] || {
+    echo "Usage: $0 <path-to-app> <log-directory> [subsystem expected-marker]" >&2
     exit 64
 }
 
 app="$1"
 log_dir="$2"
+log_subsystem="${3:-org.openmw.ios.bootstrap}"
+expected_marker="${4:-G0 bootstrap view is visible}"
 mkdir -p "$log_dir"
 
 plist="${app}/Info.plist"
@@ -103,10 +105,10 @@ xcrun simctl spawn "$udid" log show \
     --last 2m \
     --info \
     --style compact \
-    --predicate "subsystem == \"org.openmw.ios.bootstrap\"" \
+    --predicate "subsystem == \"${log_subsystem}\"" \
     >"${log_dir}/openmw-unified.log" 2>&1
 
-if ! grep -Fq "G0 bootstrap view is visible" "${log_dir}/openmw-unified.log"; then
+if ! grep -Fq "$expected_marker" "${log_dir}/openmw-unified.log"; then
     echo "Expected OpenMW unified-log marker was not captured" >&2
     cat "${log_dir}/openmw-unified.log" >&2
     exit 1

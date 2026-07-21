@@ -299,6 +299,13 @@ try {
         "the language profile must validate pinned ICU host tools and cross metadata",
     );
     requireBuildScriptContract(
+        "stdout-is-reserved-for-prefix",
+        /exec 3>&1/.test(buildScript) &&
+            /exec 1>&2/.test(buildScript) &&
+            /printf '%s\\n' "\$prefix" >&3/.test(buildScript),
+        "build.sh stdout must contain only the prefix consumed by GitHub Actions",
+    );
+    requireBuildScriptContract(
         "boost-uninstall-notice-is-narrow",
         /IOS_DEPS_BUILD_ROOT/.test(packageMetadataScript) &&
             /IOS_DEPS_VCPKG_ROOT/.test(packageMetadataScript) &&

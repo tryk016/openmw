@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# stdout is the script API consumed by GitHub Actions: it must contain exactly
+# one line with the completed prefix path. Route all dependency/tool output to
+# stderr, while preserving the caller's stdout for that final value.
+exec 3>&1
+exec 1>&2
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/../../.." && pwd)"
 manifest_root="${repo_root}/ios-deps"
@@ -395,4 +401,4 @@ bash "${script_dir}/validate-host-tools.sh" \
     done
 } >"${platform_root}/build-manifest.txt"
 
-printf '%s\n' "$prefix"
+printf '%s\n' "$prefix" >&3

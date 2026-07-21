@@ -83,12 +83,16 @@ for package_dir in "${packages[@]}"; do
                         echo "boost-uninstall: unexpected SPDX identity or license" >&2
                         exit 1
                     fi
-                    if [[ ! -f "$vcpkg_stamp" ]] ||
-                            [[ "$(<"$vcpkg_stamp")" !=
-                                "$expected_vcpkg_revision" ]] ||
-                            [[ "$(git -C "$vcpkg_root" rev-parse HEAD \
-                                2>/dev/null || true)" !=
-                                "$expected_vcpkg_revision" ]]; then
+                    actual_stamp_revision=
+                    if [[ -f "$vcpkg_stamp" ]]; then
+                        actual_stamp_revision="$(<"$vcpkg_stamp")"
+                    fi
+                    actual_head_revision="$(
+                        git -C "$vcpkg_root" rev-parse HEAD \
+                            2>/dev/null || true
+                    )"
+                    if [[ "$actual_stamp_revision" != "$expected_vcpkg_revision" ]] ||
+                            [[ "$actual_head_revision" != "$expected_vcpkg_revision" ]]; then
                         echo "boost-uninstall: vcpkg notice checkout is not pinned" >&2
                         exit 1
                     fi

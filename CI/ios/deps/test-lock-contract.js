@@ -673,7 +673,21 @@ try {
     );
     requireBuildScriptContract(
         "openal-static-coreaudio-contract",
-        openALManifest.license ===
+        lock.dependencies
+            .find((dependency) => dependency.name === "openal-soft")
+            .license_files.includes("core/bs2b.cpp") &&
+            lock.dependencies
+                .find((dependency) => dependency.name === "openal-soft")
+                .license_files.includes("common/filesystem.cpp") &&
+            lock.dependencies
+                .find((dependency) => dependency.name === "openal-soft")
+                .license_files.includes("common/ghc_filesystem.h") &&
+            /deterministically extracts complete MIT notices/.test(
+                lock.dependencies.find(
+                    (dependency) => dependency.name === "openal-soft",
+                ).license_notice,
+            ) &&
+            openALManifest.license ===
             "LGPL-2.0-or-later AND BSD-3-Clause AND MIT" &&
             /ALSOFT_BACKEND_COREAUDIO=ON/.test(openALPortfile) &&
             /ALSOFT_REQUIRE_COREAUDIO=ON/.test(openALPortfile) &&
@@ -685,6 +699,20 @@ try {
             ) &&
             /BSD-3Clause/.test(openALPortfile) &&
             /fmt-11\.1\.1\/LICENSE/.test(openALPortfile) &&
+            /core\/bs2b\.cpp/.test(openALPortfile) &&
+            /common\/filesystem\.cpp/.test(openALPortfile) &&
+            /common\/ghc_filesystem\.h/.test(openALPortfile) &&
+            /bs2b-MIT\.txt/.test(openALPortfile) &&
+            /filesystem-MIT\.txt/.test(openALPortfile) &&
+            /ghc-filesystem-MIT\.txt/.test(openALPortfile) &&
+            /NOT notice MATCHES "included in all"/.test(openALPortfile) &&
+            /NOT notice MATCHES "copies or substantial portions"/.test(
+                openALPortfile,
+            ) &&
+            /THE SOFTWARE IS PROVIDED \.AS IS\./.test(openALPortfile) &&
+            /validate_openal_mit_notice/.test(prefixValidator) &&
+            /Copyright \(c\) 2005 Boris Mikhaylov/.test(prefixValidator) &&
+            /Copyright \(c\) 2018, Steffen/.test(prefixValidator) &&
             /OPENAL_INCLUDE_DIR "\$\{OPENMW_IOS_DEPS_ROOT\}\/include\/AL"/.test(
                 iosProductProfile,
             ) &&

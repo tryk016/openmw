@@ -431,6 +431,9 @@ if [[ -d "${prefix}/share/openal-soft" \
             "${prefix}/include/AL/al.h" \
             "${prefix}/include/AL/alc.h" \
             "${prefix}/include/AL/alext.h" \
+            "${prefix}/share/openal-soft/notices/bs2b-MIT.txt" \
+            "${prefix}/share/openal-soft/notices/filesystem-MIT.txt" \
+            "${prefix}/share/openal-soft/notices/ghc-filesystem-MIT.txt" \
             "${prefix}/share/openal-soft/copyright"; do
         if [[ ! -f "$openal_path" ]]; then
             echo "The static OpenAL Soft package is missing: $openal_path" >&2
@@ -446,6 +449,41 @@ if [[ -d "${prefix}/share/openal-soft" \
         echo "An OpenAL utility leaked into the target prefix: $unexpected_openal_artifact" >&2
         exit 1
     fi
+
+    validate_openal_mit_notice() {
+        local notice_file="$1"
+        local attribution="$2"
+        for required_text in \
+                "$attribution" \
+                "Permission is hereby granted" \
+                "included in all" \
+                "copies or substantial portions" \
+                'THE SOFTWARE IS PROVIDED "AS IS"' \
+                "LIABILITY"; do
+            if ! grep -Fq "$required_text" "$notice_file"; then
+                echo "OpenAL MIT notice is incomplete: ${notice_file}" >&2
+                exit 1
+            fi
+        done
+    }
+    validate_openal_mit_notice \
+        "${prefix}/share/openal-soft/notices/bs2b-MIT.txt" \
+        "Copyright (c) 2005 Boris Mikhaylov"
+    validate_openal_mit_notice \
+        "${prefix}/share/openal-soft/notices/filesystem-MIT.txt" \
+        "Copyright (c) 2018, Steffen"
+    validate_openal_mit_notice \
+        "${prefix}/share/openal-soft/notices/ghc-filesystem-MIT.txt" \
+        "Copyright (c) 2018, Steffen"
+    for merged_attribution in \
+            "Copyright (c) 2005 Boris Mikhaylov" \
+            "Copyright (c) 2018, Steffen"; do
+        if ! grep -Fq "$merged_attribution" \
+                "${prefix}/share/openal-soft/copyright"; then
+            echo "OpenAL copyright omitted a generated MIT notice" >&2
+            exit 1
+        fi
+    done
 fi
 
 if [[ -d "${prefix}/share/ffmpeg" \

@@ -166,7 +166,13 @@ AudioToolbox.
 
 Pakiet ma wyrażenie SPDX
 `LGPL-2.0-or-later AND BSD-3-Clause AND MIT`. Notices obejmują `COPYING`,
-`LICENSE-pffft`, `BSD-3Clause` oraz licencję vendored `fmt-11.1.1`.
+`LICENSE-pffft`, `BSD-3Clause`, licencję vendored `fmt-11.1.1` oraz pełne
+granty MIT osadzone w `core/bs2b.cpp`, `common/filesystem.cpp` i
+`common/ghc_filesystem.h`. Port deterministycznie wycina granty z przypiętych
+źródeł do `bs2b-MIT.txt`, `filesystem-MIT.txt` i
+`ghc-filesystem-MIT.txt`, waliduje ich attribution, permission, warranty i
+liability clauses, a następnie dołącza wszystkie trzy do `copyright` i
+osobnego katalogu `share/openal-soft/notices`.
 
 ### Kontrakt FFmpeg
 

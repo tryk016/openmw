@@ -16,6 +16,72 @@ vcpkg_extract_source_archive(
     ARCHIVE "${ARCHIVE}"
 )
 
+# OpenAL Soft compiles MIT-licensed implementation sources whose notices are
+# embedded in source headers rather than separate license files. Extract the
+# complete leading MIT grants from the pinned sources instead of maintaining
+# hand-copied text that could drift from the archive.
+function(openmw_extract_mit_notice SOURCE_FILE OUTPUT_FILE STYLE ATTRIBUTION)
+    file(STRINGS "${SOURCE_FILE}" source_lines ENCODING UTF-8)
+    set(capturing FALSE)
+    set(complete FALSE)
+    set(notice "")
+    foreach(source_line IN LISTS source_lines)
+        if(NOT capturing)
+            if(STYLE STREQUAL "BLOCK" AND source_line MATCHES "^/\\*-")
+                set(capturing TRUE)
+            elseif(STYLE STREQUAL "LINE" AND
+                    source_line MATCHES "^// Copyright \\(c\\)")
+                set(capturing TRUE)
+            endif()
+        endif()
+        if(capturing)
+            string(APPEND notice "${source_line}\n")
+            if(STYLE STREQUAL "BLOCK" AND
+                    source_line MATCHES "^[ \\t]*\\*/$")
+                set(complete TRUE)
+                break()
+            elseif(STYLE STREQUAL "LINE" AND
+                    source_line STREQUAL "// SOFTWARE.")
+                set(complete TRUE)
+                break()
+            endif()
+        endif()
+    endforeach()
+    if(NOT complete OR NOT notice MATCHES "${ATTRIBUTION}" OR
+            NOT notice MATCHES "Permission is hereby granted" OR
+            NOT notice MATCHES "included in all" OR
+            NOT notice MATCHES "copies or substantial portions" OR
+            NOT notice MATCHES "THE SOFTWARE IS PROVIDED .AS IS." OR
+            NOT notice MATCHES "LIABILITY")
+        message(FATAL_ERROR
+            "Unable to extract the complete MIT notice from ${SOURCE_FILE}")
+    endif()
+    file(WRITE "${OUTPUT_FILE}" "${notice}")
+endfunction()
+
+set(OPENMW_OPENAL_NOTICE_DIR
+    "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}-notices")
+file(REMOVE_RECURSE "${OPENMW_OPENAL_NOTICE_DIR}")
+file(MAKE_DIRECTORY "${OPENMW_OPENAL_NOTICE_DIR}")
+set(OPENMW_OPENAL_BS2B_NOTICE
+    "${OPENMW_OPENAL_NOTICE_DIR}/bs2b-MIT.txt")
+set(OPENMW_OPENAL_FILESYSTEM_NOTICE
+    "${OPENMW_OPENAL_NOTICE_DIR}/filesystem-MIT.txt")
+set(OPENMW_OPENAL_GHC_FILESYSTEM_NOTICE
+    "${OPENMW_OPENAL_NOTICE_DIR}/ghc-filesystem-MIT.txt")
+openmw_extract_mit_notice(
+    "${SOURCE_PATH}/core/bs2b.cpp"
+    "${OPENMW_OPENAL_BS2B_NOTICE}"
+    BLOCK "Copyright \\(c\\) 2005 Boris Mikhaylov")
+openmw_extract_mit_notice(
+    "${SOURCE_PATH}/common/filesystem.cpp"
+    "${OPENMW_OPENAL_FILESYSTEM_NOTICE}"
+    LINE "Copyright \\(c\\) 2018, Steffen")
+openmw_extract_mit_notice(
+    "${SOURCE_PATH}/common/ghc_filesystem.h"
+    "${OPENMW_OPENAL_GHC_FILESYSTEM_NOTICE}"
+    LINE "Copyright \\(c\\) 2018, Steffen")
+
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
@@ -96,10 +162,20 @@ file(REMOVE_RECURSE
     "${CURRENT_PACKAGES_DIR}/debug/bin"
 )
 
+file(INSTALL
+    "${OPENMW_OPENAL_BS2B_NOTICE}"
+    "${OPENMW_OPENAL_FILESYSTEM_NOTICE}"
+    "${OPENMW_OPENAL_GHC_FILESYSTEM_NOTICE}"
+    DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}/notices"
+)
+
 vcpkg_install_copyright(
     FILE_LIST
         "${SOURCE_PATH}/COPYING"
         "${SOURCE_PATH}/BSD-3Clause"
         "${SOURCE_PATH}/LICENSE-pffft"
         "${SOURCE_PATH}/fmt-11.1.1/LICENSE"
+        "${OPENMW_OPENAL_BS2B_NOTICE}"
+        "${OPENMW_OPENAL_FILESYSTEM_NOTICE}"
+        "${OPENMW_OPENAL_GHC_FILESYSTEM_NOTICE}"
 )

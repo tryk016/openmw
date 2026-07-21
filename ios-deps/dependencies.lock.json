@@ -1028,8 +1028,12 @@
         "COPYING",
         "BSD-3Clause",
         "LICENSE-pffft",
-        "fmt-11.1.1/LICENSE"
-      ]
+        "fmt-11.1.1/LICENSE",
+        "core/bs2b.cpp",
+        "common/filesystem.cpp",
+        "common/ghc_filesystem.h"
+      ],
+      "license_notice": "The package deterministically extracts complete MIT notices from core/bs2b.cpp, common/filesystem.cpp and common/ghc_filesystem.h into three named notice files and includes them in the installed copyright payload."
     },
     {
       "name": "ffmpeg",

@@ -1,0 +1,19 @@
+{
+  "name": "openal-soft",
+  "version": "1.24.3",
+  "port-version": 2,
+  "description": "iOS-only static OpenAL Soft with the CoreAudio backend for OpenMW",
+  "homepage": "https://github.com/kcat/openal-soft",
+  "license": "LGPL-2.0-or-later",
+  "supports": "ios & arm64",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ]
+}

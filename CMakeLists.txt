@@ -392,6 +392,11 @@ if(OPENMW_IOS)
             _openmw_ios_ffmpeg_library_name)
         set(_openmw_ios_expected_ffmpeg_library
             "${OPENMW_IOS_DEPS_ROOT}/lib/lib${_openmw_ios_ffmpeg_library_name}.a")
+        if(NOT EXISTS "${_openmw_ios_expected_ffmpeg_library}")
+            message(FATAL_ERROR
+                "Locked FFmpeg archive is missing: "
+                "${_openmw_ios_expected_ffmpeg_library}")
+        endif()
         if(NOT "${FFmpeg_${_openmw_ios_ffmpeg_component}_LIBRARY}" STREQUAL
                 "${_openmw_ios_expected_ffmpeg_library}")
             message(FATAL_ERROR
@@ -570,7 +575,13 @@ endif()
 find_package(SDL2 2.0.20 REQUIRED)
 find_package(OpenAL REQUIRED)
 if(OPENMW_IOS)
-    if(NOT OPENAL_INCLUDE_DIR STREQUAL "${OPENMW_IOS_DEPS_ROOT}/include"
+    if(NOT EXISTS "${OPENMW_IOS_DEPS_ROOT}/include/AL/al.h"
+            OR NOT EXISTS "${OPENMW_IOS_DEPS_ROOT}/include/AL/alc.h"
+            OR NOT EXISTS "${OPENMW_IOS_DEPS_ROOT}/lib/libopenal.a")
+        message(FATAL_ERROR
+            "The locked iOS OpenAL Soft package is incomplete")
+    endif()
+    if(NOT OPENAL_INCLUDE_DIR STREQUAL "${OPENMW_IOS_DEPS_ROOT}/include/AL"
             OR NOT OPENAL_LIBRARY STREQUAL
                 "${OPENMW_IOS_DEPS_ROOT}/lib/libopenal.a")
         message(FATAL_ERROR

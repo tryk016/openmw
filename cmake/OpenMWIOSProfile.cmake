@@ -45,7 +45,7 @@ set(CMAKE_FIND_FRAMEWORK LAST)
 
 # FindOpenAL otherwise prefers Apple's deprecated OpenAL.framework. Pin the
 # iOS product to the verified OpenAL Soft archive before dependency discovery.
-set(OPENAL_INCLUDE_DIR "${OPENMW_IOS_DEPS_ROOT}/include" CACHE PATH
+set(OPENAL_INCLUDE_DIR "${OPENMW_IOS_DEPS_ROOT}/include/AL" CACHE PATH
     "OpenAL Soft headers from the locked iOS prefix" FORCE)
 set(OPENAL_LIBRARY "${OPENMW_IOS_DEPS_ROOT}/lib/libopenal.a" CACHE FILEPATH
     "OpenAL Soft archive from the locked iOS prefix" FORCE)

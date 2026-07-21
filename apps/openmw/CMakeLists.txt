@@ -194,7 +194,7 @@ target_link_libraries(openmw-lib
 if(OPENMW_IOS)
     # Static OpenAL Soft and FFmpeg do not carry their Apple framework edges
     # through OpenMW's legacy Find modules. Keep the target closure explicit.
-    target_link_options(openmw-lib PRIVATE
+    target_link_options(openmw-lib INTERFACE
         "LINKER:SHELL:-framework CoreAudio"
         "LINKER:SHELL:-framework CoreFoundation"
         "LINKER:SHELL:-framework AudioToolbox"

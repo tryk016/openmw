@@ -1011,7 +1011,7 @@
       "name": "openal-soft",
       "version": "1.24.3",
       "phase": 2,
-      "group": "base",
+      "group": "multimedia",
       "archive": "openal-soft-1.24.3.tar.gz",
       "url": "https://codeload.github.com/kcat/openal-soft/tar.gz/refs/tags/1.24.3",
       "sha256": "7e1fecdeb45e7f78722b776c5cf30bd33934b961d7fd2a11e0494e064cc631ce",
@@ -1035,7 +1035,7 @@
       "name": "ffmpeg",
       "version": "7.1.1",
       "phase": 2,
-      "group": "base",
+      "group": "multimedia",
       "archive": "ffmpeg-7.1.1.tar.xz",
       "url": "https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz",
       "sha256": "733984395e0dbbe5c046abda2dc49a5544e7e0e1e2366bba849222ae9e3a03b1",
@@ -1165,36 +1165,6 @@
       "license": "ICU",
       "license_files": [
         "icu4c/LICENSE"
-      ]
-    },
-    {
-      "name": "openal-soft",
-      "version": "1.24.3",
-      "phase": 2,
-      "group": "multimedia",
-      "archive": "openal-soft-1.24.3.tar.gz",
-      "url": "https://codeload.github.com/kcat/openal-soft/tar.gz/refs/tags/1.24.3",
-      "sha256": "7e1fecdeb45e7f78722b776c5cf30bd33934b961d7fd2a11e0494e064cc631ce",
-      "source_root": "openal-soft-1.24.3",
-      "license": "LGPL-2.0-or-later",
-      "license_files": [
-        "COPYING"
-      ]
-    },
-    {
-      "name": "ffmpeg",
-      "version": "7.1.1",
-      "phase": 2,
-      "group": "multimedia",
-      "archive": "ffmpeg-7.1.1.tar.xz",
-      "url": "https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz",
-      "sha256": "733984395e0dbbe5c046abda2dc49a5544e7e0e1e2366bba849222ae9e3a03b1",
-      "source_root": "ffmpeg-7.1.1",
-      "license": "LGPL-2.1-or-later",
-      "license_files": [
-        "COPYING.LGPLv2.1",
-        "COPYING.LGPLv3",
-        "LICENSE.md"
       ]
     },
     {

@@ -518,6 +518,12 @@ try {
     );
 
     requireBuildScriptContract(
+        "dependency-names-are-unique",
+        new Set(lock.dependencies.map((dependency) => dependency.name)).size ===
+            lock.dependencies.length,
+        "every dependency must have exactly one source/port policy record",
+    );
+    requireBuildScriptContract(
         "offline-downloads-are-fresh",
         /downloads="\$\{platform_root\}\/offline-downloads"/.test(buildScript) &&
             /rm -rf "\$downloads"/.test(buildScript),
@@ -679,12 +685,16 @@ try {
             ) &&
             /BSD-3Clause/.test(openALPortfile) &&
             /fmt-11\.1\.1\/LICENSE/.test(openALPortfile) &&
+            /OPENAL_INCLUDE_DIR "\$\{OPENMW_IOS_DEPS_ROOT\}\/include\/AL"/.test(
+                iosProductProfile,
+            ) &&
             /OPENAL_LIBRARY "\$\{OPENMW_IOS_DEPS_ROOT\}\/lib\/libopenal\.a"/.test(
                 iosProductProfile,
             ) &&
             /framework CoreAudio/.test(openmwAppCmake) &&
             /framework CoreFoundation/.test(openmwAppCmake) &&
-            /framework AudioToolbox/.test(openmwAppCmake),
+            /framework AudioToolbox/.test(openmwAppCmake) &&
+            /target_link_options\(openmw-lib INTERFACE/.test(openmwAppCmake),
         "OpenAL Soft must be prefix-pinned, CoreAudio-only and carry all notices/frameworks",
     );
     requireBuildScriptContract(

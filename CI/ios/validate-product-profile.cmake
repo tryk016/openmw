@@ -85,7 +85,7 @@ if(NOT CMAKE_FIND_FRAMEWORK STREQUAL "LAST")
     message(FATAL_ERROR "The iOS profile may prefer a system framework")
 endif()
 
-if(NOT OPENAL_INCLUDE_DIR STREQUAL "${contract_prefix}/include" OR
+if(NOT OPENAL_INCLUDE_DIR STREQUAL "${contract_prefix}/include/AL" OR
         NOT OPENAL_LIBRARY STREQUAL "${contract_prefix}/lib/libopenal.a")
     message(FATAL_ERROR "The iOS product profile did not pin OpenAL Soft")
 endif()

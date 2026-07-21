@@ -1,0 +1,21 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 37914d5..9abc946 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -9,6 +9,7 @@ set_property(GLOBAL PROPERTY CXX_STANDARD 98)
+ option(RECASTNAVIGATION_DEMO "Build demo" ON)
+ option(RECASTNAVIGATION_TESTS "Build tests" ON)
+ option(RECASTNAVIGATION_EXAMPLES "Build examples" ON)
++option(RECASTNAVIGATION_DETOURCROWD "Build DetourCrowd" ON)
+ option(RECASTNAVIGATION_DT_POLYREF64 "Use 64bit polyrefs instead of 32bit for Detour" OFF)
+ option(RECASTNAVIGATION_DT_VIRTUAL_QUERYFILTER "Use dynamic dispatch for dtQueryFilter in Detour to allow for custom filters" OFF)
+ set(RECASTNAVIGATION_ENABLE_ASSERTS "$<CONFIG:Debug>" CACHE STRING "Condition to enable custom recastnavigation asserts, evaluated as generator expression")
+@@ -52,5 +53,7 @@
+ add_subdirectory(DebugUtils)
+ add_subdirectory(Detour)
+-add_subdirectory(DetourCrowd)
++if (RECASTNAVIGATION_DETOURCROWD)
++    add_subdirectory(DetourCrowd)
++endif ()
+ add_subdirectory(DetourTileCache)
+ add_subdirectory(Recast)

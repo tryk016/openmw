@@ -74,6 +74,13 @@ włączone default features, dodatkowy direct port i duplikaty funkcji.
   Bullet 3.17#6 z funkcjami `double-precision` i `multithreading`. Instaluje
   wyłącznie `BulletCollision` i `LinearMath`; definicje ABI są PUBLIC na
   eksportowanych targetach.
+- `navigation-foundation`: profil kumulatywny, który dodaje przypięty commit
+  forka `OpenMW/recastnavigation` jako iOS-only overlay w wersji projektu
+  1.6.0. Instaluje dokładnie statyczne `Recast`, `Detour`, `DetourTileCache`
+  i `DebugUtils`; `DetourCrowd`, demo, testy, przykłady i narzędzia są wyłączone
+  oraz odrzucane przez walidator prefiksu. ABI zachowuje 32-bitowe `dtPolyRef`
+  i niewirtualny `dtQueryFilter`. Closure profilu to 13 bezpośrednich portów
+  targetu, 79 portów tranzytywnych targetu i 3 helpery hosta.
 
 Dodanie biblioteki do profilu przed pogodzeniem jej wersji z przypiętym
 registry albo portem overlay celowo kończy build błędem.
@@ -124,6 +131,12 @@ Smoke profilu `data-foundation` dodatkowo parsuje i ponownie emituje dokument
 YAML oraz linkuje SQLite przez eksportowany target vcpkg. Próba SQLite sprawdza
 wersję nagłówka i biblioteki, thread safety, konfigurację bez ładowania
 rozszerzeń i wykonuje zapytanie `json_extract` na bazie in-memory.
+
+Smoke profilu `navigation-foundation` dodatkowo wymusza link wszystkich
+czterech archiwów RecastNavigation. Próba runtime oblicza granice geometrii,
+alokuje i zwalnia heightfield Recast, navmesh Detour oraz tile cache, a także
+wywołuje funkcję koloru z DebugUtils. Symulator musi zalogować marker
+`navigation foundation PASS`.
 
 ## Pobieranie i tryb offline
 

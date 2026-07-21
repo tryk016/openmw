@@ -135,6 +135,57 @@ if [[ -d "${prefix}/share/bullet" ]]; then
     done
 fi
 
+if [[ -d "${prefix}/share/recastnavigation" ]]; then
+    for recast_path in \
+            "${prefix}/lib/libRecast.a" \
+            "${prefix}/lib/libDetour.a" \
+            "${prefix}/lib/libDetourTileCache.a" \
+            "${prefix}/lib/libDebugUtils.a" \
+            "${prefix}/include/recastnavigation/Recast.h" \
+            "${prefix}/include/recastnavigation/DetourNavMesh.h" \
+            "${prefix}/include/recastnavigation/DetourTileCache.h" \
+            "${prefix}/include/recastnavigation/DebugDraw.h" \
+            "${prefix}/include/recastnavigation/version.h" \
+            "${prefix}/share/recastnavigation/recastnavigation-config.cmake" \
+            "${prefix}/share/recastnavigation/recastnavigation-config-version.cmake" \
+            "${prefix}/share/recastnavigation/recastnavigation-targets.cmake" \
+            "${prefix}/share/recastnavigation/recastnavigation-targets-release.cmake" \
+            "${prefix}/share/recastnavigation/copyright"; do
+        if [[ ! -f "$recast_path" ]]; then
+            echo "Minimal RecastNavigation package is missing: $recast_path" >&2
+            exit 1
+        fi
+    done
+
+    unexpected_recast_archive="$(
+        find "${prefix}/lib" -maxdepth 1 -type f \
+            \( -iname '*recast*.a' -o -iname '*detour*.a' \
+            -o -iname '*debugutils*.a' \) \
+            ! -name 'libRecast.a' \
+            ! -name 'libDetour.a' \
+            ! -name 'libDetourTileCache.a' \
+            ! -name 'libDebugUtils.a' \
+            -print -quit
+    )"
+    if [[ -n "$unexpected_recast_archive" ]]; then
+        echo "Unexpected RecastNavigation archive: $unexpected_recast_archive" >&2
+        exit 1
+    fi
+
+    forbidden_recast_path="$(
+        find "${prefix}/include" "${prefix}/share/recastnavigation" \
+            "${prefix}/tools" "${prefix}/bin" \
+            -type f \
+            \( -iname '*crowd*' -o -iname '*demo*' \
+            -o -iname '*example*' -o -iname '*test*' \) \
+            -print -quit 2>/dev/null || true
+    )"
+    if [[ -n "$forbidden_recast_path" ]]; then
+        echo "Crowd/tool/demo/test leaked into RecastNavigation: $forbidden_recast_path" >&2
+        exit 1
+    fi
+fi
+
 if [[ -d "${prefix}/share/yaml-cpp" ]]; then
     for yaml_path in \
             "${prefix}/lib/libyaml-cpp.a" \

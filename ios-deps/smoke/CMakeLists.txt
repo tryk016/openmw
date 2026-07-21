@@ -115,6 +115,46 @@ foreach(forbidden_bullet_component IN ITEMS
     endif()
 endforeach()
 
+set(recast_archives
+    "${IOS_DEPS_PREFIX}/lib/libRecast.a"
+    "${IOS_DEPS_PREFIX}/lib/libDetour.a"
+    "${IOS_DEPS_PREFIX}/lib/libDetourTileCache.a"
+    "${IOS_DEPS_PREFIX}/lib/libDebugUtils.a")
+foreach(recast_archive IN LISTS recast_archives)
+    if(NOT EXISTS "${recast_archive}")
+        message(FATAL_ERROR
+            "A locked navigation archive is missing: ${recast_archive}")
+    endif()
+endforeach()
+find_package(recastnavigation 1.6.0 EXACT CONFIG REQUIRED
+    PATHS "${IOS_DEPS_PREFIX}/share/recastnavigation"
+    NO_DEFAULT_PATH
+    NO_CMAKE_FIND_ROOT_PATH)
+foreach(recast_target IN ITEMS Recast Detour DetourTileCache DebugUtils)
+    set(qualified_recast_target "RecastNavigation::${recast_target}")
+    if(NOT TARGET "${qualified_recast_target}")
+        message(FATAL_ERROR
+            "The locked navigation package has no ${qualified_recast_target} target")
+    endif()
+    get_target_property(recast_target_type
+        "${qualified_recast_target}" TYPE)
+    get_target_property(recast_target_location
+        "${qualified_recast_target}" IMPORTED_LOCATION_RELEASE)
+    if(NOT recast_target_type STREQUAL "STATIC_LIBRARY")
+        message(FATAL_ERROR
+            "${qualified_recast_target} is not an imported static library")
+    endif()
+    if(NOT recast_target_location STREQUAL
+            "${IOS_DEPS_PREFIX}/lib/lib${recast_target}.a")
+        message(FATAL_ERROR
+            "${qualified_recast_target} does not resolve to the locked archive")
+    endif()
+endforeach()
+if(TARGET RecastNavigation::DetourCrowd
+        OR EXISTS "${IOS_DEPS_PREFIX}/lib/libDetourCrowd.a")
+    message(FATAL_ERROR "DetourCrowd leaked into the navigation foundation")
+endif()
+
 set(yaml_archive "${IOS_DEPS_PREFIX}/lib/libyaml-cpp.a")
 if(NOT EXISTS "${yaml_archive}")
     message(FATAL_ERROR
@@ -214,6 +254,7 @@ find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
 add_executable(openmw-ios-deps-smoke MACOSX_BUNDLE
     Main.mm
     BulletProbe.cpp
+    RecastProbe.cpp
     YamlProbe.cpp
     SQLiteProbe.c)
 target_compile_definitions(openmw-ios-deps-smoke PRIVATE
@@ -231,6 +272,10 @@ target_link_libraries(openmw-ios-deps-smoke PRIVATE
     "${turbojpeg_target}"
     BulletCollision
     LinearMath
+    RecastNavigation::DebugUtils
+    RecastNavigation::Recast
+    RecastNavigation::Detour
+    RecastNavigation::DetourTileCache
     yaml-cpp::yaml-cpp
     SQLite3::SQLite3
     Threads::Threads
@@ -296,6 +341,20 @@ target_link_libraries(openmw-ios-bullet-probe PRIVATE
     Threads::Threads)
 set_target_properties(openmw-ios-bullet-probe PROPERTIES
     OUTPUT_NAME "OpenMWBulletProbe"
+    XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
+    XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "16.4")
+
+add_executable(openmw-ios-recast-probe RecastProbe.cpp)
+target_compile_features(openmw-ios-recast-probe PRIVATE cxx_std_20)
+target_link_libraries(openmw-ios-recast-probe PRIVATE
+    RecastNavigation::DebugUtils
+    RecastNavigation::Recast
+    RecastNavigation::Detour
+    RecastNavigation::DetourTileCache)
+set_target_properties(openmw-ios-recast-probe PROPERTIES
+    OUTPUT_NAME "OpenMWRecastProbe"
     XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
     XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
     XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""

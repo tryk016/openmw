@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SOURCE_PATH="@SOURCE_PATH@"
+BUILD_PATH="@BUILD_PATH@"
+PACKAGE_PATH="@PACKAGE_PATH@"
+MAKE="@MAKE@"
+JOBS="@VCPKG_CONCURRENCY@"
+
+if [[ -z "$JOBS" ]]; then
+    JOBS="$(sysctl -n hw.logicalcpu)"
+fi
+
+export CFLAGS="@@CFLAGS_RSP@"
+export ASFLAGS="@@CFLAGS_RSP@"
+export LDFLAGS="@@LDFLAGS_RSP@"
+export ARFLAGS="@VCPKG_COMBINED_STATIC_LINKER_FLAGS_RELEASE@"
+
+cd "$BUILD_PATH"
+
+"$SOURCE_PATH/configure" \
+    "--prefix=$PACKAGE_PATH" \
+    "--cc=@VCPKG_DETECTED_CMAKE_C_COMPILER@" \
+    "--cxx=@VCPKG_DETECTED_CMAKE_CXX_COMPILER@" \
+    "--host-cc=@HOST_CC@" \
+    "--as=@VCPKG_DETECTED_CMAKE_C_COMPILER@" \
+    "--ld=@VCPKG_DETECTED_CMAKE_C_COMPILER@" \
+    "--ar=@VCPKG_DETECTED_CMAKE_AR@" \
+    "--nm=@VCPKG_DETECTED_CMAKE_NM@" \
+    "--ranlib=@VCPKG_DETECTED_CMAKE_RANLIB@" \
+    "--strip=@VCPKG_DETECTED_CMAKE_STRIP@" \
+    "--sysroot=@IOS_SDK_PATH@" \
+    @CONFIGURE_OPTIONS@
+
+"$MAKE" -j"$JOBS" V=1
+"$MAKE" install

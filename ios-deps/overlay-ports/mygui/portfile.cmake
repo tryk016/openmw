@@ -51,16 +51,15 @@ file(REMOVE_RECURSE
     "${CURRENT_PACKAGES_DIR}/bin"
     "${CURRENT_PACKAGES_DIR}/debug/bin"
     "${CURRENT_PACKAGES_DIR}/debug/include"
+    "${CURRENT_PACKAGES_DIR}/debug/lib"
     "${CURRENT_PACKAGES_DIR}/debug/share"
     "${CURRENT_PACKAGES_DIR}/lib/MYGUI"
-    "${CURRENT_PACKAGES_DIR}/debug/lib/MYGUI"
 )
 
 foreach(required_file IN ITEMS
     "${CURRENT_PACKAGES_DIR}/include/MYGUI/MyGUI.h"
     "${CURRENT_PACKAGES_DIR}/include/MYGUI/MyGUI_Prerequest.h"
     "${CURRENT_PACKAGES_DIR}/lib/libMyGUIEngineStatic.a"
-    "${CURRENT_PACKAGES_DIR}/debug/lib/libMyGUIEngineStatic.a"
 )
     if(NOT EXISTS "${required_file}")
         message(FATAL_ERROR "MyGUI engine-only install is missing ${required_file}")
@@ -73,7 +72,6 @@ file(GLOB_RECURSE INSTALLED_STATIC_LIBRARIES LIST_DIRECTORIES false
 )
 list(SORT INSTALLED_STATIC_LIBRARIES)
 set(EXPECTED_STATIC_LIBRARIES
-    "${CURRENT_PACKAGES_DIR}/debug/lib/libMyGUIEngineStatic.a"
     "${CURRENT_PACKAGES_DIR}/lib/libMyGUIEngineStatic.a"
 )
 list(SORT EXPECTED_STATIC_LIBRARIES)

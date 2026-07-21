@@ -184,8 +184,8 @@ jeżeli nie jest dostępny w G0.
   kompresji oraz header-only `geometry`.
 - [x] Zbudować LZ4.
 - [x] Zbudować zlib.
-- [ ] Zbudować yaml-cpp.
-- [ ] Zbudować SQLite amalgamation.
+- [x] Zbudować yaml-cpp.
+- [x] Zbudować SQLite amalgamation.
 - [ ] Zbudować Bullet 3.17 z `USE_DOUBLE_PRECISION=ON`.
 - [ ] Zweryfikować, że linkujemy tylko BulletCollision i LinearMath.
 - [ ] Zbudować Recast/Detour bez demo/testów/examples.
@@ -270,6 +270,18 @@ R-tree Geometry. Joby zweryfikowały wszystkie człony statycznych archiwów,
 offline i ponowny link, a następnie zebrały SPDX oraz notices. Workflow
 [`iOS G0` #29811362800](https://github.com/tryk016/openmw/actions/runs/29811362800)
 potwierdził brak regresji device/simulator oraz start w symulatorze.
+
+**Dowód yaml-cpp/SQLite:** commit `9da889e01d`, workflow
+[`iOS dependencies` #29813819396](https://github.com/tryk016/openmw/actions/runs/29813819396)
+zbudował yaml-cpp 0.8.0 i SQLite 3.51.2 dla obu SDK, zweryfikował pełną
+closure 11 bezpośrednich portów, 79 tranzytywnych portów targetu i 3 helperów
+hosta, każdy człon archiwów, `arm64`, platformę oraz `minos 16.4`. Oba joby
+wykonały czysty rebuild offline i ponowny link. Aplikacja smoke uruchomiona na
+iPhone Simulatorze wykonała parse/emit YAML oraz zapytanie SQLite `json_extract`
+na bazie in-memory, potwierdzając jednocześnie thread safety i brak runtime
+loadable extensions. Workflow
+[`iOS G0` #29813819367](https://github.com/tryk016/openmw/actions/runs/29813819367)
+potwierdził brak regresji device/simulator.
 
 ---
 

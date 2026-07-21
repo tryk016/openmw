@@ -1,0 +1,42 @@
+{
+  "name": "osg",
+  "version": "3.6.5",
+  "description": "Minimal static OpenMW OpenSceneGraph fork for iOS",
+  "homepage": "https://github.com/OpenMW/osg",
+  "license": "LicenseRef-OSGPL-1.0",
+  "supports": "ios & arm64",
+  "dependencies": [
+    {
+      "name": "freetype",
+      "default-features": false,
+      "features": [
+        "png",
+        "zlib"
+      ]
+    },
+    {
+      "name": "gl4es",
+      "default-features": false
+    },
+    {
+      "name": "libjpeg-turbo",
+      "default-features": false
+    },
+    {
+      "name": "libpng",
+      "default-features": false
+    },
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    },
+    {
+      "name": "zlib",
+      "default-features": false
+    }
+  ]
+}

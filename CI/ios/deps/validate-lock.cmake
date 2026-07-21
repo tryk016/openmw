@@ -248,10 +248,14 @@ foreach(profile_index RANGE 0 ${last_profile})
         string(JSON vcpkg_source_marker GET
             "${lock}" dependencies ${locked_dependency_index}
             vcpkg_source_marker)
-        if(NOT vcpkg_source_marker MATCHES "^REPO [A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+        if(NOT vcpkg_source_marker MATCHES
+                    "^REPO [A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+                AND NOT vcpkg_source_marker MATCHES
+                    "^URLS \"https://[^\" \t\r\n]+\"$")
             message(FATAL_ERROR
                 "${profile_name}/${profile_dependency}: invalid "
-                "vcpkg_source_marker '${vcpkg_source_marker}'")
+                "vcpkg_source_marker '${vcpkg_source_marker}'; expected an "
+                "exact REPO owner/name or quoted HTTPS URLS marker")
         endif()
 
         string(JSON vcpkg_feature_count LENGTH
@@ -604,7 +608,8 @@ foreach(profile_name IN LISTS profile_names)
 endforeach()
 
 foreach(required_profile
-        bootstrap base-foundation image-foundation cpp-foundation)
+        bootstrap base-foundation image-foundation cpp-foundation
+        data-foundation)
     if(NOT required_profile IN_LIST profile_names)
         message(FATAL_ERROR
             "Required dependency build profile is missing: "

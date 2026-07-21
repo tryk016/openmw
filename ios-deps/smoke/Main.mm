@@ -1,4 +1,5 @@
 #import <UIKit/UIKit.h>
+#import <os/log.h>
 
 #include <array>
 #include <cstddef>
@@ -12,6 +13,7 @@
 #include <jpeglib.h>
 #include <lz4.h>
 #include <png.h>
+#include <sqlite3.h>
 #include <turbojpeg.h>
 #include <zlib.h>
 
@@ -21,6 +23,9 @@
 #ifndef FT_CONFIG_OPTION_SYSTEM_ZLIB
 #error "The locked FreeType build must use the external zlib package"
 #endif
+
+extern "C" int openmwIosYamlProbe();
+extern "C" int openmwIosSQLiteProbe();
 
 @interface OpenMWDepsSmokeDelegate : UIResponder <UIApplicationDelegate>
 @property(nonatomic, strong) UIWindow* window;
@@ -101,28 +106,40 @@
 
     const bool imageFoundationPassed = freeTypeInitResult == 0 && pngPassed
         && turboJpegPassed;
+    const bool yamlPassed = openmwIosYamlProbe() == 0;
+    const bool sqlitePassed = openmwIosSQLiteProbe() == 0;
     const bool smokePassed
-        = sdlInitResult == 0 && lz4RoundTripPassed && imageFoundationPassed;
+        = sdlInitResult == 0 && lz4RoundTripPassed && imageFoundationPassed
+        && yamlPassed && sqlitePassed;
 
     label.text = [NSString
         stringWithFormat:
-            @"ios-deps image foundation: %@\n"
+            @"ios-deps data foundation: %@\n"
              "SDL %u.%u.%u (%d video drivers)\n"
              "LZ4 %s (round-trip %@)\n"
              "zlib %s\n"
              "FreeType %d.%d.%d\n"
              "libpng %s\n"
-             "libjpeg-turbo %s",
+             "libjpeg-turbo %s\n"
+             "yaml-cpp %@\n"
+             "SQLite %s %@",
             smokePassed ? @"PASS" : @"FAIL", sdlVersion.major,
             sdlVersion.minor, sdlVersion.patch, videoDriverCount,
             LZ4_versionString(), lz4RoundTripPassed ? @"PASS" : @"FAIL",
             zlibVersion(), freeTypeMajor, freeTypeMinor, freeTypePatch,
             png_get_libpng_ver(nullptr),
-            turboJpegPassed ? "PASS" : "FAIL"];
+            turboJpegPassed ? "PASS" : "FAIL",
+            yamlPassed ? @"PASS" : @"FAIL",
+            sqlite3_libversion(),
+            sqlitePassed ? @"PASS" : @"FAIL"];
     [controller.view addSubview:label];
 
     self.window.rootViewController = controller;
     [self.window makeKeyAndVisible];
+    os_log_t runtimeLog =
+        os_log_create("org.openmw.ios.deps-smoke", "runtime");
+    os_log_info(runtimeLog, "data foundation %{public}s",
+        smokePassed ? "PASS" : "FAIL");
     return YES;
 }
 

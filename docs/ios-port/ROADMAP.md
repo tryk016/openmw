@@ -168,6 +168,10 @@ jeżeli nie jest dostępny w G0.
 - [x] Przypiąć wersję/commit i SHA-256 każdego źródła.
 - [x] Dodać cache pobranych źródeł działający offline.
 - [ ] Dodać komendę czystego rebuilda wszystkich zależności.
+- [ ] Utrzymać kumulatywny ciąg profili: `base-foundation` →
+  `image-foundation` → `cpp-foundation` → `data-foundation` →
+  `language-foundation` → `ui-foundation` → `multimedia-foundation` →
+  `render-foundation` → `full-openmw`.
 - [x] Dodać kontrolę architektury każdego artefaktu.
 - [x] Dodać kontrolę platform load commands każdego artefaktu.
 - [x] Wygenerować SBOM i zestawienie licencji.
@@ -180,8 +184,8 @@ jeżeli nie jest dostępny w G0.
   kompresji oraz header-only `geometry`.
 - [x] Zbudować LZ4.
 - [x] Zbudować zlib.
-- [ ] Zbudować yaml-cpp.
-- [ ] Zbudować SQLite amalgamation.
+- [x] Zbudować yaml-cpp.
+- [x] Zbudować SQLite amalgamation.
 - [ ] Zbudować Bullet 3.17 z `USE_DOUBLE_PRECISION=ON`.
 - [ ] Zweryfikować, że linkujemy tylko BulletCollision i LinearMath.
 - [ ] Zbudować Recast/Detour bez demo/testów/examples.
@@ -208,6 +212,22 @@ jeżeli nie jest dostępny w G0.
 - [ ] Wyłączyć programy, devices, network i niepotrzebne kodeki FFmpeg.
 - [ ] Zapisać pełne transitive libraries/frameworks FFmpeg.
 - [ ] Zamknąć audyt konfiguracji LGPL/GPL FFmpeg.
+
+### Closure renderera
+
+- [ ] Zbudować GL4ES statycznie dla device.
+- [ ] Zbudować GL4ES statycznie dla simulator.
+- [ ] Ustawić `NOX11=ON`, `NOEGL=ON`, `STATICLIB=ON`, `NO_LOADER=ON` i
+  `NO_INIT_CONSTRUCTOR=ON`.
+- [ ] Usunąć hardkodowany stary iPhone SDK z przypiętego forka OSG.
+- [ ] Poprawić wybór nagłówków GL2 tak, by używał GL4ES, nie macOS OpenGL.
+- [ ] Zbudować OSG i OpenThreads statycznie.
+- [ ] Zbudować osgDB/osgViewer/osgGA/osgText/osgAnimation/osgParticle/osgFX/
+  osgShadow/osgSim/osgUtil.
+- [ ] Zbudować statyczne pluginy BMP/DDS/JPEG/PNG/TGA/OSG/serializers/FreeType.
+- [ ] Wyłączyć DAE/collada-dom w MVP i zapisać tę różnicę funkcjonalną.
+- [ ] Utworzyć `full-openmw` jako dwa kompletne, osobne prefiksy device i
+  simulator; ten profil jest wejściem fazy 3.
 
 **DoD fazy:** dwa zestawy zależności linkują się do minimalnej aplikacji; nie
 ma pomieszanych slice'ów, nieprzypiętych downloadów ani wymaganych dylib
@@ -250,6 +270,18 @@ R-tree Geometry. Joby zweryfikowały wszystkie człony statycznych archiwów,
 offline i ponowny link, a następnie zebrały SPDX oraz notices. Workflow
 [`iOS G0` #29811362800](https://github.com/tryk016/openmw/actions/runs/29811362800)
 potwierdził brak regresji device/simulator oraz start w symulatorze.
+
+**Dowód yaml-cpp/SQLite:** commit `9da889e01d`, workflow
+[`iOS dependencies` #29813819396](https://github.com/tryk016/openmw/actions/runs/29813819396)
+zbudował yaml-cpp 0.8.0 i SQLite 3.51.2 dla obu SDK, zweryfikował pełną
+closure 11 bezpośrednich portów, 79 tranzytywnych portów targetu i 3 helperów
+hosta, każdy człon archiwów, `arm64`, platformę oraz `minos 16.4`. Oba joby
+wykonały czysty rebuild offline i ponowny link. Aplikacja smoke uruchomiona na
+iPhone Simulatorze wykonała parse/emit YAML oraz zapytanie SQLite `json_extract`
+na bazie in-memory, potwierdzając jednocześnie thread safety i brak runtime
+loadable extensions. Workflow
+[`iOS G0` #29813819367](https://github.com/tryk016/openmw/actions/runs/29813819367)
+potwierdził brak regresji device/simulator.
 
 ---
 
@@ -306,10 +338,6 @@ bootstrapu device/simulator. Pełna konfiguracja i link core pozostają otwarte.
 
 ### GL4ES i kontekst
 
-- [ ] Zbudować GL4ES statycznie dla device.
-- [ ] Zbudować GL4ES statycznie dla simulator.
-- [ ] Ustawić `NOX11=ON`, `NOEGL=ON`, `STATICLIB=ON`, `NO_LOADER=ON` i
-  `NO_INIT_CONSTRUCTOR=ON`.
 - [ ] Ustawić deterministyczny baseline GLES wspierany przez iOS; nie polegać
   na zmiennej środowiskowej.
 - [ ] Włączyć `OPENMW_GL4ES_MANUAL_INIT=ON`.
@@ -319,13 +347,6 @@ bootstrapu device/simulator. Pełna konfiguracja i link core pozostają otwarte.
 
 ### Fork OpenSceneGraph
 
-- [ ] Usunąć hardkodowany stary iPhone SDK z przypiętego forka OSG.
-- [ ] Poprawić wybór nagłówków GL2 tak, by używał GL4ES, nie macOS OpenGL.
-- [ ] Zbudować OSG i OpenThreads statycznie.
-- [ ] Zbudować osgDB/osgViewer/osgGA/osgText/osgAnimation/osgParticle/osgFX/
-  osgShadow/osgSim/osgUtil.
-- [ ] Zbudować statyczne pluginy BMP/DDS/JPEG/PNG/TGA/OSG/serializers/FreeType.
-- [ ] Wyłączyć DAE/collada-dom w MVP i zapisać tę różnicę funkcjonalną.
 - [ ] Potwierdzić rejestrację każdego pluginu przy starcie.
 
 ### Bring-up sceny

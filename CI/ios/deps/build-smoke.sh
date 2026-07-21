@@ -50,6 +50,8 @@ cmake --build "$build_dir" \
         openmw-ios-jpeg-probe \
         openmw-ios-turbojpeg-probe \
         openmw-ios-boost-probe \
+        openmw-ios-yaml-probe \
+        openmw-ios-sqlite-probe \
     --parallel 3
 
 app="$(
@@ -73,11 +75,21 @@ boost_probe="$(
     find "$build_dir" -type f -name OpenMWBoostProbe \
         ! -path '*.dSYM/*' -print -quit
 )"
+yaml_probe="$(
+    find "$build_dir" -type f -name OpenMWYAMLProbe \
+        ! -path '*.dSYM/*' -print -quit
+)"
+sqlite_probe="$(
+    find "$build_dir" -type f -name OpenMWSQLiteProbe \
+        ! -path '*.dSYM/*' -print -quit
+)"
 for binary in \
         "$app_binary" \
         "$jpeg_probe" \
         "$turbojpeg_probe" \
-        "$boost_probe"; do
+        "$boost_probe" \
+        "$yaml_probe" \
+        "$sqlite_probe"; do
     if [[ -z "$binary" || ! -f "$binary" ]]; then
         echo "A dependency smoke binary was not produced" >&2
         exit 1
@@ -91,6 +103,11 @@ for binary in \
     if otool -L "$binary" | tail -n +2 |
             grep -Ev '^[[:space:]]+(/System/Library/Frameworks/|/usr/lib/)'; then
         echo "${binary}: links a non-system dynamic dependency" >&2
+        exit 1
+    fi
+    if otool -L "$binary" | tail -n +2 |
+            grep -E '/usr/lib/libsqlite3[^/]*\.dylib|libyaml-cpp[^/]*\.dylib'; then
+        echo "${binary}: bypassed the locked static YAML/SQLite archive" >&2
         exit 1
     fi
 done

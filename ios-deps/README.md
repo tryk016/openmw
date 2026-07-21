@@ -37,11 +37,11 @@ On macOS with Xcode 16.4:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature cpp-foundation \
+  --feature data-foundation \
   --clean
 bash CI/ios/deps/build.sh \
   --platform iphonesimulator \
-  --feature cpp-foundation \
+  --feature data-foundation \
   --clean
 ```
 
@@ -51,6 +51,10 @@ bash CI/ios/deps/build.sh \
 Geometry, Iostreams without compression filters, and Program Options. Its
 checked-in closure records every target and host helper port resolved by the
 pinned vcpkg baseline.
+`data-foundation` is cumulative and adds yaml-cpp plus SQLite with JSON1
+enabled and runtime extension loading omitted. It intentionally excludes the
+SQLite command-line tool, ICU integration and implicit default-feature
+expansion; JSON1 is selected explicitly.
 `bootstrap` remains available as the smaller zlib-only pipeline proof. The
 profile-to-source mapping lives in `dependencies.lock.json`; every profile must
 have a matching vcpkg manifest feature. After installation, the build also
@@ -72,7 +76,7 @@ access:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature cpp-foundation \
+  --feature data-foundation \
   --clean \
   --offline
 ```

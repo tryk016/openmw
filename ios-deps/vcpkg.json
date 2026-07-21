@@ -107,6 +107,63 @@
           "default-features": false
         }
       ]
+    },
+    "data-foundation": {
+      "description": "Cumulative C++ profile with YAML and SQLite data support",
+      "dependencies": [
+        {
+          "name": "sdl2",
+          "default-features": false
+        },
+        {
+          "name": "lz4",
+          "default-features": false
+        },
+        {
+          "name": "zlib",
+          "default-features": false
+        },
+        {
+          "name": "freetype",
+          "default-features": false,
+          "features": [
+            "png",
+            "zlib"
+          ]
+        },
+        {
+          "name": "libpng",
+          "default-features": false
+        },
+        {
+          "name": "libjpeg-turbo",
+          "default-features": false
+        },
+        {
+          "name": "boost-iostreams",
+          "default-features": false
+        },
+        {
+          "name": "boost-program-options",
+          "default-features": false
+        },
+        {
+          "name": "boost-geometry",
+          "default-features": false
+        },
+        {
+          "name": "yaml-cpp",
+          "default-features": false
+        },
+        {
+          "name": "sqlite3",
+          "default-features": false,
+          "features": [
+            "json1",
+            "omit-load-extension"
+          ]
+        }
+      ]
     }
   }
 }

@@ -46,8 +46,8 @@ jobs:
       - name: Validate shell syntax
         run: bash -n CI/ios/deps/*.sh
 
-  cpp-foundation:
-    name: C++ foundation ${{ matrix.platform }}
+  data-foundation:
+    name: Data foundation ${{ matrix.platform }}
     needs: lock
     runs-on: macos-15
     timeout-minutes: 90
@@ -89,7 +89,7 @@ jobs:
           prefix="$(
             bash CI/ios/deps/build.sh \
               --platform "${{ matrix.platform }}" \
-              --feature cpp-foundation \
+              --feature data-foundation \
               --clean
           )"
           echo "prefix=$prefix" >>"$GITHUB_OUTPUT"
@@ -112,7 +112,7 @@ jobs:
           prefix="$(
             bash CI/ios/deps/build.sh \
               --platform "${{ matrix.platform }}" \
-              --feature cpp-foundation \
+              --feature data-foundation \
               --clean \
               --offline
           )"
@@ -125,10 +125,26 @@ jobs:
             "${{ steps.offline.outputs.prefix }}"
 
       - name: Relink application from offline prefix
+        id: offline_smoke
         run: |
           bash CI/ios/deps/build-smoke.sh \
             "${{ matrix.platform }}" \
             "${{ steps.offline.outputs.prefix }}"
+          app="$(
+            find "build/ios-deps/${{ matrix.platform }}/smoke" \
+              -type d -name OpenMWDepsSmoke.app -print -quit
+          )"
+          test -n "$app"
+          echo "app=$app" >>"$GITHUB_OUTPUT"
+
+      - name: Execute data probes on an iPhone Simulator
+        if: matrix.platform == 'iphonesimulator'
+        run: |
+          bash CI/ios/smoke-simulator.sh \
+            "${{ steps.offline_smoke.outputs.app }}" \
+            "build/ios-deps/${{ matrix.platform }}/runtime-smoke" \
+            "org.openmw.ios.deps-smoke" \
+            "data foundation PASS"
 
       - name: Collect SPDX and license evidence
         run: |
@@ -137,19 +153,22 @@ jobs:
             "${{ steps.offline.outputs.prefix }}" \
             "build/ios-deps/${{ matrix.platform }}/metadata"
 
-      - name: Upload C++ foundation evidence
+      - name: Upload data foundation evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: ios-deps-cpp-foundation-${{ matrix.platform }}-${{ github.sha }}
+          name: ios-deps-data-foundation-${{ matrix.platform }}-${{ github.sha }}
           path: |
             build/ios-deps/${{ matrix.platform }}/build-manifest.txt
             build/ios-deps/${{ matrix.platform }}/installed-packages.json
             build/ios-deps/${{ matrix.platform }}/metadata
+            build/ios-deps/${{ matrix.platform }}/runtime-smoke
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWDepsSmoke.app
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWJPEGProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWTurboJPEGProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWBoostProbe
+            build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWYAMLProbe
+            build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWSQLiteProbe
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/sdl2
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/lz4
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/zlib
@@ -159,6 +178,13 @@ jobs:
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/libjpeg-turbo
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/jpeg
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/boost*
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/yaml-cpp
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/sqlite3
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/unofficial-sqlite3
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libyaml-cpp.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libsqlite3.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/include/sqlite3.h
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/include/sqlite3-vcpkg-config.h
             ios-deps/dependencies.lock.json
           if-no-files-found: warn
           retention-days: 7

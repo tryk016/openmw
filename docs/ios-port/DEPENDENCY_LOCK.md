@@ -24,7 +24,7 @@ zasady jego użycia i decyzje, których sam JSON nie wyjaśnia.
 | `base` | SDL2, Boost, LZ4, zlib, yaml-cpp, SQLite, Bullet, Recast, MyGUI, FreeType, PNG i JPEG |
 | `language` | PUC Lua i ICU wraz z osobnym buildem narzędzi hosta |
 | `multimedia` | OpenAL Soft i minimalny FFmpeg |
-| `render` | GL4ES i fork OSG; grupa należy do fazy 4, lecz korzysta z tego samego locka |
+| `render` | GL4ES i fork OSG; artefakty należą do closure fazy 2, a ich runtime bring-up do fazy 4 |
 
 ## Profile aktywnego buildu
 
@@ -61,6 +61,10 @@ włączone default features, dodatkowy direct port i duplikaty funkcji.
   Boost: `geometry`, `iostreams` bez filtrów kompresji oraz `program_options`.
   Pełna closure Boost — 82 porty targetowe i 3 helpery hosta — jest jawnie
   przypięta.
+- `data-foundation`: profil kumulatywny, który dodaje yaml-cpp 0.8.0 oraz
+  SQLite 3.51.2 z JSON1 i bez runtime loadable extensions. Nie buduje narzędzia
+  `sqlite3`, integracji ICU ani funkcji domyślnych. Closure Boost pozostaje
+  identyczna: dwa nowe porty są bezpośrednimi zależnościami targetu.
 
 Dodanie biblioteki do profilu przed pogodzeniem jej wersji z przypiętym
 registry albo portem overlay celowo kończy build błędem.
@@ -106,6 +110,11 @@ wykonuje pełny round-trip LZ4.
 Smoke profilu `image-foundation` dodatkowo inicjalizuje FreeType, tworzy i
 niszczy reader libpng oraz dekodery libjpeg i TurboJPEG. Sprawdza też w czasie
 kompilacji, że FreeType faktycznie używa zewnętrznego zlib i obsługi PNG.
+
+Smoke profilu `data-foundation` dodatkowo parsuje i ponownie emituje dokument
+YAML oraz linkuje SQLite przez eksportowany target vcpkg. Próba SQLite sprawdza
+wersję nagłówka i biblioteki, thread safety, konfigurację bez ładowania
+rozszerzeń i wykonuje zapytanie `json_extract` na bazie in-memory.
 
 ## Pobieranie i tryb offline
 

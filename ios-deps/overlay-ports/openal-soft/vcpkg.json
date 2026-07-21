@@ -4,7 +4,7 @@
   "port-version": 2,
   "description": "iOS-only static OpenAL Soft with the CoreAudio backend for OpenMW",
   "homepage": "https://github.com/kcat/openal-soft",
-  "license": "LGPL-2.0-or-later",
+  "license": "LGPL-2.0-or-later AND BSD-3-Clause AND MIT",
   "supports": "ios & arm64",
   "dependencies": [
     {

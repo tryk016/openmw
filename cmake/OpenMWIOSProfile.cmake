@@ -41,6 +41,30 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+set(CMAKE_FIND_FRAMEWORK LAST)
+
+# FindOpenAL otherwise prefers Apple's deprecated OpenAL.framework. Pin the
+# iOS product to the verified OpenAL Soft archive before dependency discovery.
+set(OPENAL_INCLUDE_DIR "${OPENMW_IOS_DEPS_ROOT}/include" CACHE PATH
+    "OpenAL Soft headers from the locked iOS prefix" FORCE)
+set(OPENAL_LIBRARY "${OPENMW_IOS_DEPS_ROOT}/lib/libopenal.a" CACHE FILEPATH
+    "OpenAL Soft archive from the locked iOS prefix" FORCE)
+
+# Seed the custom FindFFmpeg module with exact static archives. The module
+# still reads the component versions from the locked pkg-config metadata.
+foreach(_openmw_ios_ffmpeg_component IN ITEMS
+        AVCODEC AVFORMAT AVUTIL SWSCALE SWRESAMPLE)
+    string(TOLOWER "${_openmw_ios_ffmpeg_component}"
+        _openmw_ios_ffmpeg_library_name)
+    set(FFmpeg_${_openmw_ios_ffmpeg_component}_INCLUDE_DIR
+        "${OPENMW_IOS_DEPS_ROOT}/include" CACHE PATH
+        "FFmpeg headers from the locked iOS prefix" FORCE)
+    set(FFmpeg_${_openmw_ios_ffmpeg_component}_LIBRARY
+        "${OPENMW_IOS_DEPS_ROOT}/lib/lib${_openmw_ios_ffmpeg_library_name}.a"
+        CACHE FILEPATH "FFmpeg archive from the locked iOS prefix" FORCE)
+endforeach()
+unset(_openmw_ios_ffmpeg_component)
+unset(_openmw_ios_ffmpeg_library_name)
 
 # The fork is an iOS product, not a collection of desktop utilities.  Keep the
 # one engine entry point and make accidental Qt, host-tool or test enablement a

@@ -129,12 +129,19 @@ set(CONFIGURE_OPTIONS
     --enable-parser=mpegaudio,vp9
     --enable-bsf=vp9_superframe_split
 )
+list(JOIN CONFIGURE_OPTIONS "\n" CONFIGURE_OPTIONS_EVIDENCE)
 list(JOIN CONFIGURE_OPTIONS " " CONFIGURE_OPTIONS)
 
 set(BUILD_PATH "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}-rel")
 set(PACKAGE_PATH "${CURRENT_PACKAGES_DIR}")
 file(REMOVE_RECURSE "${BUILD_PATH}")
 file(MAKE_DIRECTORY "${BUILD_PATH}")
+file(WRITE "${BUILD_PATH}/openmw-configure-options.txt"
+    "${CONFIGURE_OPTIONS_EVIDENCE}\n")
+file(WRITE "${BUILD_PATH}/openmw-corresponding-source.txt"
+    "source=https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz\n"
+    "sha256=733984395e0dbbe5c046abda2dc49a5544e7e0e1e2366bba849222ae9e3a03b1\n"
+    "patch=0020-fix-aarch64-libswscale.patch\n")
 
 set(CFLAGS_RSP "${BUILD_PATH}/cflags.rsp")
 string(REGEX REPLACE "(^| )-arch +[^ ]+" "\\1" release_c_flags
@@ -156,6 +163,15 @@ vcpkg_execute_required_process(
 )
 
 vcpkg_fixup_pkgconfig()
+
+file(INSTALL
+    "${BUILD_PATH}/config.h"
+    "${BUILD_PATH}/config_components.h"
+    "${BUILD_PATH}/openmw-configure-options.txt"
+    "${BUILD_PATH}/openmw-corresponding-source.txt"
+    "${CMAKE_CURRENT_LIST_DIR}/0020-fix-aarch64-libswscale.patch"
+    DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}"
+)
 
 file(REMOVE_RECURSE
     "${CURRENT_PACKAGES_DIR}/debug"

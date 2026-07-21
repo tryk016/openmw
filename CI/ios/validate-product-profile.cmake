@@ -81,5 +81,22 @@ if(NOT CMAKE_FIND_ROOT_PATH_MODE_PROGRAM STREQUAL "NEVER" OR
         NOT CMAKE_FIND_ROOT_PATH_MODE_PACKAGE STREQUAL "ONLY")
     message(FATAL_ERROR "The iOS dependency root isolation contract changed")
 endif()
+if(NOT CMAKE_FIND_FRAMEWORK STREQUAL "LAST")
+    message(FATAL_ERROR "The iOS profile may prefer a system framework")
+endif()
+
+if(NOT OPENAL_INCLUDE_DIR STREQUAL "${contract_prefix}/include" OR
+        NOT OPENAL_LIBRARY STREQUAL "${contract_prefix}/lib/libopenal.a")
+    message(FATAL_ERROR "The iOS product profile did not pin OpenAL Soft")
+endif()
+foreach(component IN ITEMS AVCODEC AVFORMAT AVUTIL SWSCALE SWRESAMPLE)
+    string(TOLOWER "${component}" library_name)
+    if(NOT FFmpeg_${component}_INCLUDE_DIR STREQUAL "${contract_prefix}/include"
+            OR NOT FFmpeg_${component}_LIBRARY STREQUAL
+                "${contract_prefix}/lib/lib${library_name}.a")
+        message(FATAL_ERROR
+            "The iOS product profile did not pin FFmpeg ${component}")
+    endif()
+endforeach()
 
 message(STATUS "Validated the pruned static OpenMW iOS product profile")

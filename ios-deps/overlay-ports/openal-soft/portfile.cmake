@@ -99,5 +99,7 @@ file(REMOVE_RECURSE
 vcpkg_install_copyright(
     FILE_LIST
         "${SOURCE_PATH}/COPYING"
+        "${SOURCE_PATH}/BSD-3Clause"
         "${SOURCE_PATH}/LICENSE-pffft"
+        "${SOURCE_PATH}/fmt-11.1.1/LICENSE"
 )

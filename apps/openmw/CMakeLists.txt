@@ -191,6 +191,17 @@ target_link_libraries(openmw-lib
     components
 )
 
+if(OPENMW_IOS)
+    # Static OpenAL Soft and FFmpeg do not carry their Apple framework edges
+    # through OpenMW's legacy Find modules. Keep the target closure explicit.
+    target_link_options(openmw-lib PRIVATE
+        "LINKER:SHELL:-framework CoreAudio"
+        "LINKER:SHELL:-framework CoreFoundation"
+        "LINKER:SHELL:-framework AudioToolbox"
+        "LINKER:SHELL:-framework CoreMedia"
+        "LINKER:SHELL:-framework CoreVideo")
+endif()
+
 if (MSVC AND PRECOMPILE_HEADERS_WITH_MSVC)
     target_precompile_headers(openmw-lib PRIVATE
         <boost/program_options/options_description.hpp>

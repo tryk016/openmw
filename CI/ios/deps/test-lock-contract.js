@@ -75,6 +75,32 @@ const simulatorSmokeScript = fs.readFileSync(
     path.join(repoRoot, "CI/ios/smoke-simulator.sh"),
     "utf8",
 );
+const openALPortfile = fs.readFileSync(
+    path.join(repoRoot, "ios-deps/overlay-ports/openal-soft/portfile.cmake"),
+    "utf8",
+);
+const openALManifest = JSON.parse(
+    fs.readFileSync(
+        path.join(repoRoot, "ios-deps/overlay-ports/openal-soft/vcpkg.json"),
+        "utf8",
+    ),
+);
+const ffmpegPortfile = fs.readFileSync(
+    path.join(repoRoot, "ios-deps/overlay-ports/ffmpeg/portfile.cmake"),
+    "utf8",
+);
+const ffmpegProbe = fs.readFileSync(
+    path.join(repoRoot, "ios-deps/smoke/FFmpegProbe.cpp"),
+    "utf8",
+);
+const iosProductProfile = fs.readFileSync(
+    path.join(repoRoot, "cmake/OpenMWIOSProfile.cmake"),
+    "utf8",
+);
+const openmwAppCmake = fs.readFileSync(
+    path.join(repoRoot, "apps/openmw/CMakeLists.txt"),
+    "utf8",
+);
 const boostUninstallSpdxValidator = path.join(
     __dirname,
     "validate-boost-uninstall-spdx.jq",
@@ -640,6 +666,47 @@ try {
         "the MyGUI target must carry its full static closure for consumers",
     );
     requireBuildScriptContract(
+        "openal-static-coreaudio-contract",
+        openALManifest.license ===
+            "LGPL-2.0-or-later AND BSD-3-Clause AND MIT" &&
+            /ALSOFT_BACKEND_COREAUDIO=ON/.test(openALPortfile) &&
+            /ALSOFT_REQUIRE_COREAUDIO=ON/.test(openALPortfile) &&
+            ["PIPEWIRE", "PULSEAUDIO", "ALSA", "JACK", "SDL2", "WAVE"].every(
+                (backend) =>
+                    new RegExp(`ALSOFT_BACKEND_${backend}=OFF`).test(
+                        openALPortfile,
+                    ),
+            ) &&
+            /BSD-3Clause/.test(openALPortfile) &&
+            /fmt-11\.1\.1\/LICENSE/.test(openALPortfile) &&
+            /OPENAL_LIBRARY "\$\{OPENMW_IOS_DEPS_ROOT\}\/lib\/libopenal\.a"/.test(
+                iosProductProfile,
+            ) &&
+            /framework CoreAudio/.test(openmwAppCmake) &&
+            /framework CoreFoundation/.test(openmwAppCmake) &&
+            /framework AudioToolbox/.test(openmwAppCmake),
+        "OpenAL Soft must be prefix-pinned, CoreAudio-only and carry all notices/frameworks",
+    );
+    requireBuildScriptContract(
+        "ffmpeg-minimal-lgpl-contract",
+        /--disable-network/.test(ffmpegPortfile) &&
+            /--disable-protocols/.test(ffmpegPortfile) &&
+            /--disable-devices/.test(ffmpegPortfile) &&
+            /--disable-programs/.test(ffmpegPortfile) &&
+            /--disable-gpl/.test(ffmpegPortfile) &&
+            /--disable-nonfree/.test(ffmpegPortfile) &&
+            /--disable-version3/.test(ffmpegPortfile) &&
+            /--enable-demuxer=bink,matroska,mp3,ogg,wav/.test(ffmpegPortfile) &&
+            /--enable-decoder=bink,binkaudio_dct,binkaudio_rdft,mp3,pcm_s16le,pcm_u8,vorbis,opus,vp8,vp9/.test(
+                ffmpegPortfile,
+            ) &&
+            /openmw-corresponding-source\.txt/.test(ffmpegPortfile) &&
+            /avio_enum_protocols/.test(ffmpegProbe) &&
+            /AV_CODEC_ID_H264/.test(ffmpegProbe) &&
+            /AV_CODEC_ID_AAC/.test(ffmpegProbe),
+        "FFmpeg must retain its exact no-network LGPL allowlist and compliance evidence",
+    );
+    requireBuildScriptContract(
         "boost-uninstall-notice-is-narrow",
         /IOS_DEPS_BUILD_ROOT/.test(packageMetadataScript) &&
             /IOS_DEPS_VCPKG_ROOT/.test(packageMetadataScript) &&
@@ -1061,6 +1128,82 @@ try {
         uiClosureWithoutIcuTools,
         false,
         "ui-foundation",
+    );
+
+    const missingMultimediaOpenAL = clone(manifest);
+    missingMultimediaOpenAL.features[
+        "multimedia-foundation"
+    ].dependencies = missingMultimediaOpenAL.features[
+        "multimedia-foundation"
+    ].dependencies.filter((dependency) => dependency.name !== "openal-soft");
+    runValidator(
+        "missing-multimedia-openal",
+        lock,
+        missingMultimediaOpenAL,
+        false,
+    );
+
+    const missingMultimediaFFmpeg = clone(manifest);
+    missingMultimediaFFmpeg.features[
+        "multimedia-foundation"
+    ].dependencies = missingMultimediaFFmpeg.features[
+        "multimedia-foundation"
+    ].dependencies.filter((dependency) => dependency.name !== "ffmpeg");
+    runValidator(
+        "missing-multimedia-ffmpeg",
+        lock,
+        missingMultimediaFFmpeg,
+        false,
+    );
+
+    const multimediaDefaultsEnabled = clone(manifest);
+    multimediaDefaultsEnabled.features[
+        "multimedia-foundation"
+    ].dependencies.find(
+        (dependency) => dependency.name === "openal-soft",
+    )["default-features"] = true;
+    runValidator(
+        "multimedia-openal-default-features-enabled",
+        lock,
+        multimediaDefaultsEnabled,
+        false,
+    );
+
+    const multimediaTriplet = "arm64-ios-openmw";
+    const multimediaHostTriplet = "arm64-osx";
+    const multimediaClosureRecords = [
+        ...directPortEntries(lock, "multimedia-foundation", multimediaTriplet),
+        ...lock.expected_vcpkg_transitive_ports[
+            "multimedia-foundation"
+        ].target.map((entry) =>
+            installedRecord(entry.port, multimediaTriplet, entry.features ?? []),
+        ),
+        ...lock.expected_vcpkg_transitive_ports[
+            "multimedia-foundation"
+        ].host.map((entry) =>
+            installedRecord(
+                entry.port,
+                multimediaHostTriplet,
+                entry.features ?? [],
+            ),
+        ),
+    ];
+    runClosureValidator(
+        "valid-multimedia-installed-closure",
+        lock,
+        multimediaClosureRecords,
+        true,
+        "multimedia-foundation",
+    );
+
+    runClosureValidator(
+        "missing-multimedia-cmake-get-vars",
+        lock,
+        multimediaClosureRecords.filter(
+            (record) => record.package_name !== "vcpkg-cmake-get-vars",
+        ),
+        false,
+        "multimedia-foundation",
     );
 
     const missingPortSource = clone(lock);

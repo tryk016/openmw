@@ -32,6 +32,51 @@ namespace
         selected.toUTF8String(utf8);
         return utf8 == expected;
     }
+
+    int runIcuChecks()
+    {
+        const std::string source = "Zażółć gęślą — OpenMW";
+        const icu::UnicodeString unicode
+            = icu::UnicodeString::fromUTF8(source);
+        std::string roundTrip;
+        unicode.toUTF8String(roundTrip);
+        if (roundTrip != source)
+            return 2;
+
+        UErrorCode status = U_ZERO_ERROR;
+        icu::MessageFormat message(
+            icu::UnicodeString::fromUTF8("Hello, {0}!"),
+            icu::Locale::getEnglish(), status);
+        icu::Formattable argument(
+            icu::UnicodeString::fromUTF8("OpenMW"));
+        icu::UnicodeString formattedMessage;
+        icu::FieldPosition fieldPosition(0);
+        message.format(&argument, 1, formattedMessage, fieldPosition, status);
+        std::string messageUtf8;
+        formattedMessage.toUTF8String(messageUtf8);
+        if (U_FAILURE(status) || messageUtf8 != "Hello, OpenMW!")
+            return 3;
+
+        if (!selectedPlural("en", 1, "one")
+            || !selectedPlural("pl", 2, "few")
+            || !selectedPlural("ru", 5, "many"))
+            return 4;
+
+        status = U_ZERO_ERROR;
+        const icu::number::UnlocalizedNumberFormatter numberTemplate
+            = icu::number::NumberFormatter::forSkeleton(
+                icu::UnicodeString::fromUTF8(".00/group-off"), status);
+        const icu::UnicodeString formattedNumber = numberTemplate
+            .locale(icu::Locale::getEnglish())
+            .formatDouble(1234.5, status)
+            .toString(status);
+        std::string numberUtf8;
+        formattedNumber.toUTF8String(numberUtf8);
+        if (U_FAILURE(status) || numberUtf8 != "1234.50")
+            return 5;
+
+        return 0;
+    }
 }
 
 extern "C" int openmwIosIcuProbe()
@@ -41,47 +86,9 @@ extern "C" int openmwIosIcuProbe()
     if (U_FAILURE(status))
         return 1;
 
-    const std::string source = "Zażółć gęślą — OpenMW";
-    const icu::UnicodeString unicode = icu::UnicodeString::fromUTF8(source);
-    std::string roundTrip;
-    unicode.toUTF8String(roundTrip);
-    if (roundTrip != source)
-        return 2;
-
-    status = U_ZERO_ERROR;
-    icu::MessageFormat message(
-        icu::UnicodeString::fromUTF8("Hello, {0}!"),
-        icu::Locale::getEnglish(), status);
-    icu::Formattable argument(
-        icu::UnicodeString::fromUTF8("OpenMW"));
-    icu::UnicodeString formattedMessage;
-    icu::FieldPosition fieldPosition(0);
-    message.format(&argument, 1, formattedMessage, fieldPosition, status);
-    std::string messageUtf8;
-    formattedMessage.toUTF8String(messageUtf8);
-    if (U_FAILURE(status) || messageUtf8 != "Hello, OpenMW!")
-        return 3;
-
-    if (!selectedPlural("en", 1, "one")
-        || !selectedPlural("pl", 2, "few")
-        || !selectedPlural("ru", 5, "many"))
-        return 4;
-
-    status = U_ZERO_ERROR;
-    const icu::number::UnlocalizedNumberFormatter numberTemplate
-        = icu::number::NumberFormatter::forSkeleton(
-            icu::UnicodeString::fromUTF8(".00/group-off"), status);
-    const icu::UnicodeString formattedNumber = numberTemplate
-        .locale(icu::Locale::getEnglish())
-        .formatDouble(1234.5, status)
-        .toString(status);
-    std::string numberUtf8;
-    formattedNumber.toUTF8String(numberUtf8);
-    if (U_FAILURE(status) || numberUtf8 != "1234.50")
-        return 5;
-
+    const int result = runIcuChecks();
     u_cleanup();
-    return 0;
+    return result;
 }
 
 #ifndef OPENMW_IOS_PROBE_NO_MAIN

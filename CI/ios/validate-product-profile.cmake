@@ -65,6 +65,16 @@ foreach(option IN ITEMS
     endif()
 endforeach()
 
+foreach(definition IN ITEMS
+        MYGUI_USE_FREETYPE=ON
+        MYGUI_DONT_USE_OBSOLETE=ON)
+    if(NOT definition IN_LIST OPENMW_IOS_MYGUI_COMPILE_DEFINITIONS)
+        message(FATAL_ERROR
+            "The iOS product profile is missing MyGUI ABI definition: "
+            "${definition}")
+    endif()
+endforeach()
+
 if(NOT CMAKE_FIND_ROOT_PATH_MODE_PROGRAM STREQUAL "NEVER" OR
         NOT CMAKE_FIND_ROOT_PATH_MODE_LIBRARY STREQUAL "ONLY" OR
         NOT CMAKE_FIND_ROOT_PATH_MODE_INCLUDE STREQUAL "ONLY" OR

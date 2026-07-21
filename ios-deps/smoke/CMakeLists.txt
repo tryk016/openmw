@@ -261,6 +261,29 @@ set(FREETYPE_LIBRARY "${freetype_archive}")
 set(FREETYPE_LIBRARY_RELEASE "${freetype_archive}")
 find_package(Freetype 2.13.3 REQUIRED)
 
+set(mygui_archive "${IOS_DEPS_PREFIX}/lib/libMyGUIEngineStatic.a")
+if(NOT EXISTS "${mygui_archive}")
+    message(FATAL_ERROR
+        "The locked static MyGUI engine archive is missing: ${mygui_archive}")
+endif()
+add_library(OpenMWIOS::MyGUI STATIC IMPORTED GLOBAL)
+set_target_properties(OpenMWIOS::MyGUI PROPERTIES
+    IMPORTED_CONFIGURATIONS RELEASE
+    IMPORTED_LOCATION_RELEASE "${mygui_archive}"
+    INTERFACE_INCLUDE_DIRECTORIES "${IOS_DEPS_PREFIX}/include/MYGUI"
+    INTERFACE_COMPILE_DEFINITIONS
+        "MYGUI_STATIC;MYGUI_USE_FREETYPE;MYGUI_DONT_USE_OBSOLETE")
+set_property(TARGET OpenMWIOS::MyGUI APPEND PROPERTY
+    INTERFACE_LINK_LIBRARIES Freetype::Freetype)
+get_target_property(mygui_target_type OpenMWIOS::MyGUI TYPE)
+get_target_property(mygui_target_location
+    OpenMWIOS::MyGUI IMPORTED_LOCATION_RELEASE)
+if(NOT mygui_target_type STREQUAL "STATIC_LIBRARY"
+        OR NOT mygui_target_location STREQUAL mygui_archive)
+    message(FATAL_ERROR
+        "MyGUI did not resolve to the locked static engine archive")
+endif()
+
 set(PNG_PNG_INCLUDE_DIR "${IOS_DEPS_PREFIX}/include")
 set(PNG_LIBRARY "${png_archive}")
 set(PNG_LIBRARY_RELEASE "${png_archive}")
@@ -292,6 +315,7 @@ add_executable(openmw-ios-deps-smoke MACOSX_BUNDLE
     BulletProbe.cpp
     IcuProbe.cpp
     LuaProbe.cpp
+    MyGUIProbe.cpp
     RecastProbe.cpp
     YamlProbe.cpp
     SQLiteProbe.c)
@@ -318,6 +342,7 @@ target_link_libraries(openmw-ios-deps-smoke PRIVATE
     ICU::i18n
     ICU::uc
     ICU::data
+    OpenMWIOS::MyGUI
     yaml-cpp::yaml-cpp
     SQLite3::SQLite3
     Threads::Threads
@@ -433,6 +458,19 @@ target_link_libraries(openmw-ios-icu-probe PRIVATE
     ICU::data)
 set_target_properties(openmw-ios-icu-probe PROPERTIES
     OUTPUT_NAME "OpenMWICUProbe"
+    XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
+    XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "16.4")
+
+add_executable(openmw-ios-mygui-probe MyGUIProbe.cpp)
+target_compile_features(openmw-ios-mygui-probe PRIVATE cxx_std_20)
+target_link_libraries(openmw-ios-mygui-probe PRIVATE
+    OpenMWIOS::MyGUI
+    PNG::PNG
+    ZLIB::ZLIB)
+set_target_properties(openmw-ios-mygui-probe PROPERTIES
+    OUTPUT_NAME "OpenMWMyGUIProbe"
     XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
     XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
     XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""

@@ -24,6 +24,10 @@ const buildScript = fs.readFileSync(
     path.join(__dirname, "build.sh"),
     "utf8",
 );
+const bootstrapScript = fs.readFileSync(
+    path.join(__dirname, "bootstrap-vcpkg.sh"),
+    "utf8",
+);
 const cmake = process.env.CMAKE_COMMAND || "cmake";
 const bash = process.env.BASH_COMMAND || "bash";
 let closureFixturesSkipped = false;
@@ -208,6 +212,15 @@ try {
         "offline-does-not-bypass-assets",
         !/^\s*vcpkg_args\+=\([^\n]*--no-downloads/m.test(buildScript),
         "--no-downloads would bypass the content-addressed asset cache",
+    );
+    requireBuildScriptContract(
+        "vcpkg-registry-history-is-complete",
+        /git -C "\$vcpkg_root" fetch --no-tags origin "\$revision"/.test(
+            bootstrapScript,
+        ) &&
+            !/\bgit\b[^\n]*\b(?:--depth|--shallow)/.test(bootstrapScript) &&
+            /rev-parse --is-shallow-repository/.test(bootstrapScript),
+        "the builtin registry needs complete Git history and a shallow-check guard",
     );
 
     const reorderedManifest = clone(manifest);

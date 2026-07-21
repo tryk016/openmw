@@ -26,6 +26,9 @@ iphonesimulator/vcpkg_installed/<triplet>/ simulator static prefix
 ```
 
 Device and simulator artifacts must never be combined with `lipo`.
+The pinned vcpkg checkout deliberately retains complete Git history: versioned
+builtin-registry entries can reference historical port trees. A shallow tooling
+cache is rejected and rebuilt before dependency resolution.
 
 ## Build profiles
 

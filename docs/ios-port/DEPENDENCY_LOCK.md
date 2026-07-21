@@ -46,6 +46,10 @@ Dla aktywnych portów z builtin registry dodatkowo:
 
 W ten sposób cache źródeł locka i niezależny asset cache vcpkg odnoszą się do
 identycznego archiwum, mimo że vcpkg zarządza własną kopią downloadu.
+Checkout narzędzia zachowuje pełną historię Git przypiętej rewizji. Wpisy
+wersjonowanego builtin registry wskazują historyczne obiekty drzew portów,
+których płytki checkout nie zawiera; cache z płytkim repozytorium jest
+automatycznie odrzucany i odbudowywany.
 Testy negatywne kontraktu odrzucają brakującą lub dodatkową funkcję portu,
 włączone default features, dodatkowy direct port i duplikaty funkcji.
 

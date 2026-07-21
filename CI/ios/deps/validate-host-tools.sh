@@ -13,7 +13,7 @@ target_prefix="$4"
 installed_json="$5"
 
 case "$profile" in
-    language-foundation|ui-foundation|multimedia-foundation) ;;
+    language-foundation|ui-foundation|multimedia-foundation|render-foundation) ;;
     *) exit 0 ;;
 esac
 

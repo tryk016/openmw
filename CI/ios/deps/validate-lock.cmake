@@ -679,7 +679,8 @@ endforeach()
 foreach(required_profile
         bootstrap base-foundation image-foundation cpp-foundation
         data-foundation physics-foundation navigation-foundation
-        language-foundation ui-foundation multimedia-foundation)
+        language-foundation ui-foundation multimedia-foundation
+        render-foundation)
     if(NOT required_profile IN_LIST profile_names)
         message(FATAL_ERROR
             "Required dependency build profile is missing: "

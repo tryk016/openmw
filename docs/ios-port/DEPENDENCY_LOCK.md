@@ -133,9 +133,14 @@ wersję nagłówka i biblioteki, thread safety, konfigurację bez ładowania
 rozszerzeń i wykonuje zapytanie `json_extract` na bazie in-memory.
 
 Smoke profilu `navigation-foundation` dodatkowo wymusza link wszystkich
-czterech archiwów RecastNavigation. Próba runtime oblicza granice geometrii,
-alokuje i zwalnia heightfield Recast, navmesh Detour oraz tile cache, a także
-wywołuje funkcję koloru z DebugUtils. Symulator musi zalogować marker
+czterech archiwów RecastNavigation. Deterministyczna próba runtime klasyfikuje
+walkable geometrię i rasteruje ją do heightfieldu Recast, tworzy poprawne dane
+dwupoligonowego navmesha przez `dtCreateNavMeshData`, inicjalizuje `dtNavMesh`
+i `dtNavMeshQuery`, a następnie wykonuje `findNearestPoly` oraz dwupoligonowy
+`findPath`. Counting backend `duDebugDraw` potwierdza callbacki wierzchołków
+podczas rysowania navmesha, a osobny lifecycle sprawdza alokację i zwolnienie
+`dtTileCache`. Wszystkie zasoby natywne są chronione przez RAII, a każdy etap
+ma osobny kod błędu. Symulator musi zalogować marker
 `navigation foundation PASS`.
 
 ## Pobieranie i tryb offline

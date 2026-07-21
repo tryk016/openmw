@@ -143,8 +143,11 @@ if [[ -d "${prefix}/share/recastnavigation" ]]; then
             "${prefix}/lib/libDebugUtils.a" \
             "${prefix}/include/recastnavigation/Recast.h" \
             "${prefix}/include/recastnavigation/DetourNavMesh.h" \
+            "${prefix}/include/recastnavigation/DetourNavMeshBuilder.h" \
+            "${prefix}/include/recastnavigation/DetourNavMeshQuery.h" \
             "${prefix}/include/recastnavigation/DetourTileCache.h" \
             "${prefix}/include/recastnavigation/DebugDraw.h" \
+            "${prefix}/include/recastnavigation/DetourDebugDraw.h" \
             "${prefix}/include/recastnavigation/version.h" \
             "${prefix}/share/recastnavigation/recastnavigation-config.cmake" \
             "${prefix}/share/recastnavigation/recastnavigation-config-version.cmake" \
@@ -172,16 +175,27 @@ if [[ -d "${prefix}/share/recastnavigation" ]]; then
         exit 1
     fi
 
-    forbidden_recast_path="$(
-        find "${prefix}/include" "${prefix}/share/recastnavigation" \
-            "${prefix}/tools" "${prefix}/bin" \
+    forbidden_recast_package_path="$(
+        find "${prefix}/include/recastnavigation" \
+            "${prefix}/share/recastnavigation" \
             -type f \
             \( -iname '*crowd*' -o -iname '*demo*' \
             -o -iname '*example*' -o -iname '*test*' \) \
+            -print -quit
+    )"
+    if [[ -n "$forbidden_recast_package_path" ]]; then
+        echo "Crowd/demo/test leaked into RecastNavigation: $forbidden_recast_package_path" >&2
+        exit 1
+    fi
+
+    forbidden_recast_tool="$(
+        find "${prefix}/tools" "${prefix}/bin" -type f \
+            \( -iname '*recast*' -o -iname '*detour*' \
+            -o -iname '*debugutils*' \) \
             -print -quit 2>/dev/null || true
     )"
-    if [[ -n "$forbidden_recast_path" ]]; then
-        echo "Crowd/tool/demo/test leaked into RecastNavigation: $forbidden_recast_path" >&2
+    if [[ -n "$forbidden_recast_tool" ]]; then
+        echo "RecastNavigation tool leaked into target prefix: $forbidden_recast_tool" >&2
         exit 1
     fi
 fi

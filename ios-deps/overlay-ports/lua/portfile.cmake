@@ -18,7 +18,9 @@ vcpkg_extract_source_archive(
         ios-disable-process.patch
 )
 
-file(COPY "${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt"
+file(COPY
+    "${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt"
+    "${CMAKE_CURRENT_LIST_DIR}/lua.hpp"
     DESTINATION "${SOURCE_PATH}")
 
 vcpkg_cmake_configure(

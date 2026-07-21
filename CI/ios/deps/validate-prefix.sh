@@ -252,6 +252,7 @@ if [[ -d "${prefix}/share/unofficial-lua" ]]; then
     for lua_path in \
             "${prefix}/lib/liblua.a" \
             "${prefix}/include/lua.h" \
+            "${prefix}/include/lua.hpp" \
             "${prefix}/include/lauxlib.h" \
             "${prefix}/include/lualib.h" \
             "${prefix}/share/lua/copyright" \

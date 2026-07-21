@@ -1,12 +1,7 @@
 #include <cstdlib>
 #include <cstring>
 
-extern "C"
-{
-#include <lauxlib.h>
-#include <lua.h>
-#include <lualib.h>
-}
+#include <lua.hpp>
 
 #if LUA_VERSION_NUM != 501
 #error "The iOS language foundation requires PUC Lua 5.1"

@@ -55,7 +55,7 @@ install(FILES
     src/luaconf.h
     src/lauxlib.h
     src/lualib.h
-    src/lua.hpp
+    lua.hpp
     DESTINATION include
 )
 install(EXPORT unofficial-lua-targets

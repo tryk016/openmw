@@ -37,11 +37,11 @@ On macOS with Xcode 16.4:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature ui-foundation \
+  --feature multimedia-foundation \
   --clean
 bash CI/ios/deps/build.sh \
   --platform iphonesimulator \
-  --feature ui-foundation \
+  --feature multimedia-foundation \
   --clean
 ```
 
@@ -82,6 +82,13 @@ tools, demos, tests and documentation are not built. The consumer ABI is
 `MYGUI_STATIC`, `MYGUI_USE_FREETYPE` and `MYGUI_DONT_USE_OBSOLETE`. Its exact
 closure is 16 direct target ports, the same 79 transitive target ports and four
 host ports (including `icu[tools]`).
+`multimedia-foundation` adds two iOS-only static overlays. OpenAL Soft
+1.24.3#2 exposes only its CoreAudio backend and carries explicit CoreAudio,
+CoreFoundation and AudioToolbox consumer edges. FFmpeg 7.1.1#7 installs only
+avformat, avcodec, swresample, swscale and avutil with a no-network,
+no-device, no-program, LGPL-only allowlist. The exact closure is 18 direct
+target ports, the same 79 transitive target ports and five host ports; the new
+host helper is `vcpkg-cmake-get-vars`.
 `bootstrap` remains available as the smaller zlib-only pipeline proof. The
 profile-to-source mapping lives in `dependencies.lock.json`; every profile must
 have a matching vcpkg manifest feature. After installation, the build also
@@ -95,7 +102,7 @@ link the smoke app:
 ```bash
 bash CI/ios/deps/validate-prefix.sh iphoneos <device-prefix>
 bash CI/ios/deps/validate-host-tools.sh \
-  ui-foundation \
+  multimedia-foundation \
   build/ios-deps/iphoneos/vcpkg_installed \
   arm64-osx \
   <device-prefix> \
@@ -109,7 +116,7 @@ access:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature ui-foundation \
+  --feature multimedia-foundation \
   --clean \
   --offline
 ```

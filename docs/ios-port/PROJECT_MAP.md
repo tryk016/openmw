@@ -128,7 +128,10 @@ integration zamiast portowania całego gtest runnera w pierwszej fazie.
 - `windowmanager.*`
   - UI MyGUI, tryby GUI i wiadomości.
 - `soundmanager.*`
-  - audio 2D/3D i muzyka.
+  - audio 2D/3D i muzyka;
+  - iOS używa statycznego OpenAL Soft z backendem CoreAudio;
+  - dekodowanie przechodzi przez minimalny statyczny FFmpeg i własny
+    `AVIOContext`; brak MP4 i `.ogv`/Theora jest świadomym ograniczeniem MVP.
 - `scriptmanager.*`, `luamanager.*`
   - legacy MWScript i Lua.
 - `mechanicsmanager.*`, `dialoguemanager.*`, `journal.*`
@@ -320,10 +323,11 @@ dochodzi po ustabilizowaniu mapowania akcji.
 
 - `openaloutput`
   - backend 2D/3D;
-  - kandydat: statyczny OpenAL Soft.
+  - przypięty statyczny OpenAL Soft 1.24.3 z backendem CoreAudio.
 - `ffmpegdecoder`
   - pliki audio i wideo;
-  - minimalny zestaw kodeków.
+  - przypięty statyczny FFmpeg 7.1.1 z allowlistą Bink, MP3/WAV, Ogg audio i
+    WebM VP8/VP9; MP4 oraz `.ogv`/Theora nie należą do iOS MVP.
 - `soundmanagerimp`
   - streaming, muzyka, regiony i efekty.
 - `movieaudiofactory`, `videowidget`

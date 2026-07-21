@@ -91,6 +91,11 @@ włączone default features, dodatkowy direct port i duplikaty funkcji.
   narzędzia, demo, testy i dokumentacja nie są budowane. Closure to 16
   bezpośrednich portów targetu, niezmienione 79 portów tranzytywnych targetu
   i 4 porty hosta z `icu[tools]`.
+- `multimedia-foundation`: profil kumulatywny dodający statyczny OpenAL Soft
+  1.24.3#2 z wyłącznie backendem CoreAudio oraz statyczny FFmpeg 7.1.1#7.
+  Closure to 18 bezpośrednich portów targetu, niezmienione 79 portów
+  tranzytywnych targetu oraz 5 portów hosta; nowym helperem jest
+  `vcpkg-cmake-get-vars`.
 
 ### Kontrakt PUC Lua
 
@@ -148,6 +153,40 @@ target smoke przenosi pełną statyczną krawędź
 bibliotek poza targetem MyGUI. Walidator `nm -u` dodatkowo wymaga, aby samo
 archiwum silnika zawierało nierozwiązane symbole `_FT_Init_FreeType` i
 `_FT_Done_FreeType`.
+
+### Kontrakt OpenAL Soft
+
+Overlay przypina OpenAL Soft 1.24.3 i instaluje wyłącznie `libopenal.a` oraz
+publiczne nagłówki. Backend CoreAudio jest wymagany, a backendy desktopowe,
+narzędzia, przykłady, testy i biblioteki dynamiczne są wyłączone. Profil
+produktu ustawia dokładne `OPENAL_INCLUDE_DIR` i `OPENAL_LIBRARY` w
+zweryfikowanym prefiksie, więc `FindOpenAL` nie może wybrać systemowego
+`OpenAL.framework`. Konsument jawnie linkuje CoreAudio, CoreFoundation i
+AudioToolbox.
+
+Pakiet ma wyrażenie SPDX
+`LGPL-2.0-or-later AND BSD-3-Clause AND MIT`. Notices obejmują `COPYING`,
+`LICENSE-pffft`, `BSD-3Clause` oraz licencję vendored `fmt-11.1.1`.
+
+### Kontrakt FFmpeg
+
+Overlay przypina źródło FFmpeg 7.1.1 o SHA-256
+`733984395e0dbbe5c046abda2dc49a5544e7e0e1e2366bba849222ae9e3a03b1`
+i patch `0020-fix-aarch64-libswscale.patch`. Buduje tylko `avformat`,
+`avcodec`, `swresample`, `swscale` i `avutil`. Protokoły sieciowe, devices,
+programy, muxery, encodery, filtry, GPL, nonfree i version3 są wyłączone.
+Allowlista obejmuje demuxery Bink, Matroska/WebM, MP3, Ogg i WAV; dekodery
+Bink, Bink audio, MP3, PCM s16le/u8, Vorbis, Opus, VP8 i VP9; parsery MPEG
+audio i VP9 oraz `vp9_superframe_split` BSF. OpenMW używa własnego
+`AVIOContext`, dlatego żaden protokół FFmpeg nie jest potrzebny.
+
+MP4/MOV, AAC, H.264 oraz `.ogv`/Theora są świadomie poza zakresem iOS MVP.
+Podstawowe multimedia Morrowind (Bink, MP3, WAV) oraz WebM/Ogg audio pozostają
+obsługiwane. Prefiks zachowuje wynikowe `config.h`, `config_components.h`,
+pełną listę opcji configure, adres i hash źródła oraz zastosowany patch. CI
+publikuje je obok SPDX i notices jako audytowalną ścieżkę corresponding source
+dla statycznej dystrybucji LGPL. Konsument jawnie linkuje CoreFoundation,
+CoreMedia i CoreVideo.
 
 Dodanie biblioteki do profilu przed pogodzeniem jej wersji z przypiętym
 registry albo portem overlay celowo kończy build błędem.
@@ -221,6 +260,13 @@ trzy definicje ABI oraz typy `char16_t`/`char32_t`, wykonuje round-trip UTF-8,
 wykonuje bezrendererowy cykl `FT_Init_FreeType`/`FT_Done_FreeType`, buduje
 dokument XML silnika, serializuje go i ponownie parsuje. Aplikacja symulatora
 musi wykonać probe i zalogować marker `ui foundation PASS`.
+
+Smoke profilu `multimedia-foundation` linkuje rzeczywiste symbole OpenAL Soft
+i wszystkich pięciu archiwów FFmpeg. Runtime symulatora sprawdza wersje API,
+wymagane demuxery, dekodery, parsery i BSF, brak reprezentatywnych formatów
+spoza allowlisty oraz brak protokołów. Wymagany marker to
+`multimedia foundation PASS`. Otwarcie prawdziwego urządzenia audio pozostaje
+późniejszym testem na fizycznym iPhonie.
 
 ## Pobieranie i tryb offline
 

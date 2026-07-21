@@ -50,8 +50,8 @@ jobs:
       - name: Validate shell syntax
         run: bash -n CI/ios/deps/*.sh
 
-  ui-foundation:
-    name: UI foundation ${{ matrix.platform }}
+  multimedia-foundation:
+    name: Multimedia foundation ${{ matrix.platform }}
     needs: lock
     runs-on: macos-15
     timeout-minutes: 180
@@ -93,7 +93,7 @@ jobs:
           prefix="$(
             bash CI/ios/deps/build.sh \
               --platform "${{ matrix.platform }}" \
-              --feature ui-foundation \
+              --feature multimedia-foundation \
               --clean
           )"
           echo "prefix=$prefix" >>"$GITHUB_OUTPUT"
@@ -107,7 +107,7 @@ jobs:
       - name: Validate online ICU host tools
         run: |
           bash CI/ios/deps/validate-host-tools.sh \
-            ui-foundation \
+            multimedia-foundation \
             "build/ios-deps/${{ matrix.platform }}/vcpkg_installed" \
             arm64-osx \
             "${{ steps.online.outputs.prefix }}" \
@@ -125,7 +125,7 @@ jobs:
           prefix="$(
             bash CI/ios/deps/build.sh \
               --platform "${{ matrix.platform }}" \
-              --feature ui-foundation \
+              --feature multimedia-foundation \
               --clean \
               --offline
           )"
@@ -140,7 +140,7 @@ jobs:
       - name: Validate offline ICU host tools
         run: |
           bash CI/ios/deps/validate-host-tools.sh \
-            ui-foundation \
+            multimedia-foundation \
             "build/ios-deps/${{ matrix.platform }}/vcpkg_installed" \
             arm64-osx \
             "${{ steps.offline.outputs.prefix }}" \
@@ -178,7 +178,7 @@ jobs:
         if: matrix.platform == 'iphonesimulator'
         uses: actions/upload-artifact@v6
         with:
-          name: ios-deps-ui-foundation-runtime-input-${{ github.sha }}
+          name: ios-deps-multimedia-foundation-runtime-input-${{ github.sha }}
           path: build/ios-deps/${{ matrix.platform }}/runtime-input/OpenMWDepsSmoke.app.tar.gz
           if-no-files-found: error
           overwrite: true
@@ -191,11 +191,11 @@ jobs:
             "${{ steps.offline.outputs.prefix }}" \
             "build/ios-deps/${{ matrix.platform }}/metadata"
 
-      - name: Upload UI foundation evidence
+      - name: Upload multimedia foundation evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: ios-deps-ui-foundation-${{ matrix.platform }}-${{ github.sha }}
+          name: ios-deps-multimedia-foundation-${{ matrix.platform }}-${{ github.sha }}
           path: |
             build/ios-deps/${{ matrix.platform }}/build-manifest.txt
             build/ios-deps/${{ matrix.platform }}/installed-packages.json
@@ -209,6 +209,8 @@ jobs:
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWLuaProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWICUProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWMyGUIProbe
+            build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWOpenALProbe
+            build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWFFmpegProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWYAMLProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWSQLiteProbe
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/sdl2
@@ -244,6 +246,14 @@ jobs:
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/arm64-osx/tools/icu
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/mygui
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libMyGUIEngineStatic.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/openal-soft
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libopenal.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/share/ffmpeg
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libavcodec.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libavformat.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libavutil.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libswresample.a
+            build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/libswscale.a
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/lib/pkgconfig/MYGUIStatic.pc
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/include/MYGUI
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/include/sqlite3.h
@@ -253,9 +263,9 @@ jobs:
           overwrite: true
           retention-days: 7
 
-  ui-foundation-runtime:
-    name: UI foundation simulator runtime
-    needs: ui-foundation
+  multimedia-foundation-runtime:
+    name: Multimedia foundation simulator runtime
+    needs: multimedia-foundation
     runs-on: macos-15
     timeout-minutes: 30
     env:
@@ -275,7 +285,7 @@ jobs:
       - name: Download the exact simulator evidence artifact
         uses: actions/download-artifact@v6
         with:
-          name: ios-deps-ui-foundation-runtime-input-${{ github.sha }}
+          name: ios-deps-multimedia-foundation-runtime-input-${{ github.sha }}
           path: build/ios-deps/runtime-artifact
 
       - name: Restore exactly one simulator smoke application
@@ -316,19 +326,19 @@ jobs:
           test -x "${app}/${executable_name}"
           echo "app=$app" >>"$GITHUB_OUTPUT"
 
-      - name: Execute UI probes on an iPhone Simulator
+      - name: Execute multimedia probes on an iPhone Simulator
         run: |
           bash CI/ios/smoke-simulator.sh \
             "${{ steps.simulator_app.outputs.app }}" \
             "build/ios-deps/runtime-smoke" \
             "org.openmw.ios.deps-smoke" \
-            "ui foundation PASS"
+            "multimedia foundation PASS"
 
       - name: Upload simulator runtime evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: ios-deps-ui-foundation-runtime-${{ github.sha }}-${{ github.run_attempt }}
+          name: ios-deps-multimedia-foundation-runtime-${{ github.sha }}-${{ github.run_attempt }}
           path: build/ios-deps/runtime-smoke
           if-no-files-found: warn
           retention-days: 7

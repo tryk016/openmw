@@ -932,6 +932,12 @@ try {
             (gl4esDarwinNoAliasPatch.match(
                 /^\+\s+#define AliasExport(?:_A|_D|_D_1|_M|_V)?\(/gm,
             )?.length ?? 0) === 6 &&
+            /^-AliasExport_A\(void,glDisableClientStatei,EXT,\(GLenum array, GLuint index\),glEnableClientStateIndexed\);$/m.test(
+                gl4esDarwinNoAliasPatch,
+            ) &&
+            /^\+AliasExport_A\(void,glDisableClientStatei,EXT,\(GLenum array, GLuint index\),glDisableClientStateIndexed\);$/m.test(
+                gl4esDarwinNoAliasPatch,
+            ) &&
             (gl4esDarwinNoAliasPatch.match(
                 /^\+void APIENTRY_GL4ES gl4es_gl(?:Enable|Disable)ClientStatei/gm,
             )?.length ?? 0) === 2 &&

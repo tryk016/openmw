@@ -606,6 +606,7 @@ if [[ -d "${prefix}/share/gl4es" \
             _glLoadIdentity \
             _glColor3f \
             _glVertex2f \
+            _glDisableClientStateiEXT \
             _glFinish \
             _glReadPixels; do
         if ! grep -Eq "[[:space:]][A-Za-z][[:space:]]${gl4es_symbol}([[:space:]]|$)" \

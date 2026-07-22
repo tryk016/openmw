@@ -61,3 +61,12 @@ index 5cfb255..b0c3946 100644
  
  void APIENTRY_GL4ES gl4es_glEnableVertexArray(GLuint vaobj, GLenum array) {
      DBG(printf("glEnableVertexArray(%d, %s)\n", vaobj, PrintEnum(array));)
+@@ -637,7 +649,7 @@ AliasExport(void,glMatrixMultTransposed,EXT,(GLenum matrixMode, const GLdouble *
+ AliasExport(void,glEnableClientStateIndexed,EXT,(GLenum array, GLuint index));
+ AliasExport(void,glDisableClientStateIndexed,EXT,(GLenum array, GLuint index));
+ AliasExport_A(void,glEnableClientStatei,EXT,(GLenum array, GLuint index),glEnableClientStateIndexed);
+-AliasExport_A(void,glDisableClientStatei,EXT,(GLenum array, GLuint index),glEnableClientStateIndexed);
++AliasExport_A(void,glDisableClientStatei,EXT,(GLenum array, GLuint index),glDisableClientStateIndexed);
+ AliasExport(void,glEnableVertexArray,EXT,(GLuint vaobj, GLenum array));
+ AliasExport(void,glDisableVertexArray,EXT,(GLuint vaobj, GLenum array));
+ AliasExport(void,glEnableVertexArrayAttrib,EXT,(GLuint vaobj, GLuint index));

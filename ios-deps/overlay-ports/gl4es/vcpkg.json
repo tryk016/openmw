@@ -1,6 +1,7 @@
 {
   "name": "gl4es",
   "version": "1.1.6",
+  "port-version": 1,
   "description": "Static OpenGL compatibility layer over OpenGL ES for OpenMW on iOS",
   "homepage": "https://github.com/ptitSeb/gl4es",
   "license": "MIT",

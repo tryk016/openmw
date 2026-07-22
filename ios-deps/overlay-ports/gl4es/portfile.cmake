@@ -26,6 +26,7 @@ vcpkg_extract_source_archive(
     ARCHIVE "${ARCHIVE}"
     PATCHES
         disable-tests.patch
+        darwin-no-alias.patch
 )
 
 set(GL4ES_ARCHIVE_DIR "${CURRENT_BUILDTREES_DIR}/${TARGET_TRIPLET}-rel-output")

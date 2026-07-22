@@ -101,6 +101,19 @@ const gl4esPortfile = fs.readFileSync(
     path.join(repoRoot, "ios-deps/overlay-ports/gl4es/portfile.cmake"),
     "utf8",
 );
+const gl4esDarwinNoAliasPatch = fs.readFileSync(
+    path.join(
+        repoRoot,
+        "ios-deps/overlay-ports/gl4es/darwin-no-alias.patch",
+    ),
+    "utf8",
+);
+const gl4esOverlayManifest = JSON.parse(
+    fs.readFileSync(
+        path.join(repoRoot, "ios-deps/overlay-ports/gl4es/vcpkg.json"),
+        "utf8",
+    ),
+);
 const osgPortfile = fs.readFileSync(
     path.join(repoRoot, "ios-deps/overlay-ports/osg/portfile.cmake"),
     "utf8",
@@ -898,6 +911,28 @@ try {
             /SDL_GL_CONTEXT_MAJOR_VERSION, 2/.test(renderProbe) &&
             /glReadPixels/.test(renderProbe),
         "GL4ES must remain static, GLES2-backed and manually initialized after SDL",
+    );
+    const gl4esLockEntry = lock.dependencies.find(
+        (dependency) => dependency.name === "gl4es",
+    );
+    requireBuildScriptContract(
+        "gl4es-darwin-alias-wrapper-contract",
+        /PATCHES\s+disable-tests\.patch\s+darwin-no-alias\.patch/.test(
+            gl4esPortfile,
+        ) &&
+            (gl4esDarwinNoAliasPatch.match(
+                /^\+void APIENTRY_GL4ES gl4es_gl(?:Enable|Disable)ClientStatei/gm,
+            )?.length ?? 0) === 2 &&
+            (gl4esDarwinNoAliasPatch.match(
+                /^\+\s+gl4es_gl(?:Enable|Disable)ClientStateIndexed\(array, index\);/gm,
+            )?.length ?? 0) === 2 &&
+            (gl4esDarwinNoAliasPatch.match(
+                /^\+#if defined\(__APPLE__\)/gm,
+            )?.length ?? 0) === 2 &&
+            gl4esOverlayManifest["port-version"] === 1 &&
+            gl4esLockEntry?.vcpkg_port_source === "overlay" &&
+            gl4esLockEntry?.vcpkg_port_version === 1,
+        "Darwin must use real forwarding wrappers instead of unsupported ELF aliases in locked GL4ES 1.1.6#1",
     );
     requireBuildScriptContract(
         "osg-minimal-static-plugin-contract",

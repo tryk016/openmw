@@ -1297,7 +1297,7 @@
       "vcpkg_port_source": "overlay",
       "vcpkg_source_marker": "URLS \"https://codeload.github.com/ptitSeb/gl4es/tar.gz/refs/tags/v1.1.6\"",
       "vcpkg_sha512": "6d76d958507d3d64639030b40799630ec0b6b4940cf45c6779d102cf45b41e691b50dedfb06606b3429ebe14de8fbdd6e46706be4483e9334236c41a5e0facfc",
-      "vcpkg_port_version": 0,
+      "vcpkg_port_version": 1,
       "vcpkg_default_features": false,
       "vcpkg_features": [],
       "license": "MIT",

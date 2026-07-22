@@ -17,6 +17,7 @@ vcpkg_extract_source_archive(SOURCE_PATH
     PATCHES
         llvm-char-types.patch
         ios-engine-only.patch
+        numeric-version-print.patch
 )
 
 vcpkg_cmake_configure(

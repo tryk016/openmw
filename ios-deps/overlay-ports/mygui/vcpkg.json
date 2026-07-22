@@ -1,7 +1,7 @@
 {
   "name": "mygui",
   "version": "3.4.3",
-  "port-version": 5,
+  "port-version": 6,
   "description": "iOS-only static MyGUI engine for OpenMW",
   "homepage": "https://github.com/MyGUI/mygui",
   "license": "MIT",

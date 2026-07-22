@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: OpenMW iOS fork <noreply@openmw.org>
+Date: Wed, 22 Jul 2026 00:00:00 +0000
+Subject: [PATCH] print numeric MyGUI version fields as numbers
+
+MyGUI stores major and minor as uint8_t. On Apple Clang uint8_t aliases
+unsigned char, so streaming those fields directly emits control bytes rather
+than their decimal values.
+---
+ MyGUIEngine/include/MyGUI_Version.h | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/MyGUIEngine/include/MyGUI_Version.h b/MyGUIEngine/include/MyGUI_Version.h
+index 322c418a4..a07b3950e 100644
+--- a/MyGUIEngine/include/MyGUI_Version.h
++++ b/MyGUIEngine/include/MyGUI_Version.h
+@@ -84,8 +84,11 @@ namespace MyGUI
+ 		std::string print() const
+ 		{
+ 			if (mPatch == 0)
+-				return utility::toString(mMajor, ".", mMinor);
+-			return utility::toString(mMajor, ".", mMinor, ".", mPatch);
++				return utility::toString(
++					static_cast<unsigned int>(mMajor), ".", static_cast<unsigned int>(mMinor));
++			return utility::toString(
++				static_cast<unsigned int>(mMajor), ".", static_cast<unsigned int>(mMinor), ".",
++				mPatch);
+ 		}
+ 
+ 		static Version parse(std::string_view _value)
+-- 
+2.50.1

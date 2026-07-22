@@ -38,16 +38,10 @@ extern "C" int openmwIosMyGuiProbe()
 
     const MyGUI::Version version = MyGUI::Version::parse("3.4.3");
     if (version.getMajor() != 3 || version.getMinor() != 4
-        || version.getPatch() != 3)
+        || version.getPatch() != 3 || version.print() != "3.4.3")
     {
         return 4;
     }
-    const std::string versionText
-        = std::to_string(static_cast<unsigned int>(version.getMajor())) + "."
-        + std::to_string(static_cast<unsigned int>(version.getMinor())) + "."
-        + std::to_string(static_cast<unsigned int>(version.getPatch()));
-    if (versionText != "3.4.3")
-        return 4;
 
     MyGUI::xml::Document document;
     if (document.createDeclaration() == nullptr)
@@ -59,7 +53,7 @@ extern "C" int openmwIosMyGuiProbe()
     MyGUI::xml::ElementPtr widget = root->createChild("Widget", "ready");
     if (widget == nullptr)
         return 7;
-    widget->addAttribute("engine", versionText);
+    widget->addAttribute("engine", version.print());
 
     std::ostringstream encoded;
     if (!document.save(encoded))

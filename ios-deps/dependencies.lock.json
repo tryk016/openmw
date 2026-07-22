@@ -889,7 +889,7 @@
       "vcpkg_port_source": "overlay",
       "vcpkg_source_marker": "URLS \"https://codeload.github.com/MyGUI/mygui/tar.gz/refs/tags/MyGUI3.4.3\"",
       "vcpkg_sha512": "88c69ca2e706af364b72d425f95013eb285501881d8094f8d67e31a54c45ca11b0eb5b62c382af0d4c43f69aa8197648259ac306b72efa7ef3e25eecb9b039cb",
-      "vcpkg_port_version": 5,
+      "vcpkg_port_version": 6,
       "vcpkg_default_features": false,
       "vcpkg_features": [],
       "license": "MIT",

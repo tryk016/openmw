@@ -70,7 +70,7 @@ Tabela jest aktualizowana razem z checkboxami.
 |---:|---:|---:|---|
 | 0 | 24 | 24 | ukończona |
 | 1 | 13 | 13 | ukończona |
-| 2 | 27 | 45 | w toku |
+| 2 | 28 | 45 | w toku |
 | 3 | 10 | 26 | w toku |
 | 4 | 0 | 32 | oczekuje |
 | 5 | 0 | 39 | oczekuje |
@@ -81,7 +81,7 @@ Tabela jest aktualizowana razem z checkboxami.
 | 10 | 20 | 38 | w toku |
 | 11 | 4 | 42 | w toku |
 | 12 | 0 | 16 | oczekuje |
-| **Razem** | **98** | **382** | **25,7%** |
+| **Razem** | **99** | **382** | **25,9%** |
 
 ---
 
@@ -191,7 +191,7 @@ jeżeli nie jest dostępny w G0.
 - [x] Zbudować Bullet 3.17 z `USE_DOUBLE_PRECISION=ON`.
 - [x] Zweryfikować, że linkujemy tylko BulletCollision i LinearMath.
 - [x] Zbudować Recast/Detour bez demo/testów/examples.
-- [ ] Zbudować MyGUIEngine bez pluginów/narzędzi.
+- [x] Zbudować MyGUIEngine bez pluginów/narzędzi.
 - [x] Zbudować FreeType.
 - [x] Zbudować libpng i libjpeg.
 
@@ -322,6 +322,19 @@ Simulatorze potwierdził własny allocator i semantykę Lua 5.1 oraz `u_init`,
 `MessageFormat`, reguły plural dla języka angielskiego, polskiego i rosyjskiego
 i skeleton liczbowy ICU. Workflow
 [`iOS G0` #29836195206](https://github.com/tryk016/openmw/actions/runs/29836195206)
+potwierdził brak regresji device/simulator.
+
+**Dowód MyGUI:** commit `f08506c796`, workflow
+[`iOS dependencies` #29905241076](https://github.com/tryk016/openmw/actions/runs/29905241076)
+zbudował MyGUI 3.4.3#6 jako statyczny, engine-only port bez pluginów, narzędzi,
+demo i testów dla obu SDK. Closure obejmuje 16 bezpośrednich portów targetu,
+79 portów tranzytywnych targetu i 4 porty hosta. Oba joby wykonały czysty build
+online i bezsieciowy rebuild z ponownym linkiem, zweryfikowały dokładny skład
+archiwum, target `arm64`, platformę, `minos 16.4`, licencje i SPDX. Osobny job
+runtime pobrał artefakt przypięty do SHA i na iPhone Simulatorze potwierdził
+`MyGUI::UString`, inicjalizację FreeType, `Version::parse`, numeryczne
+`Version::print` oraz zapis i odczyt XML. Workflow
+[`iOS G0` #29905241097](https://github.com/tryk016/openmw/actions/runs/29905241097)
 potwierdził brak regresji device/simulator.
 
 ---

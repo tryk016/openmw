@@ -1,3 +1,34 @@
+diff --git a/src/gl/attributes.h b/src/gl/attributes.h
+index f09b8ce..68eaafa 100644
+--- a/src/gl/attributes.h
++++ b/src/gl/attributes.h
+@@ -69,5 +69,25 @@
+ #ifndef AliasExport
+- #if !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
++ #if defined(__APPLE__) && defined(__aarch64__)
++  // Darwin rejects Clang's ELF-style alias attribute.  Every public GL
++  // entry point is therefore a one-instruction ABI-preserving tail call.
++  #define _AliasExport_(RET,ENM,DEF,INM,SUF) \
++      __attribute__((naked)) RET APIENTRY_GL4ES ENM DEF { \
++          __asm__("b _gl4es_" _STR(INM)); \
++      }
++  #define NonAliasExportDecl(RET,NAME,DEF) RET APIENTRY_GL4ES NAME DEF
++  #define AliasExport(RET,NAME,X,DEF) \
++      _AliasExport_(RET,NAME##X,DEF,NAME,_SUFF(DEF))
++  #define AliasExport_A(RET,NAME,X,DEF,INM) \
++      _AliasExport_(RET,NAME##X,DEF,INM,_SUFF(DEF))
++  #define AliasExport_D(RET,NAME,X,DEF) \
++      _AliasExport_(RET,NAME##X,DEF,NAME,_SU2F(DEF))
++  #define AliasExport_D_1(RET,NAME,X,DEF) \
++      _AliasExport_(RET,NAME##X,DEF,NAME,_S2F1(DEF))
++  #define AliasExport_M(RET,NAME,X,DEF,SUF) \
++      _AliasExport_(RET,NAME##X,DEF,NAME,_STR(SUF))
++  #define AliasExport_V(RET,NAME) \
++      _AliasExport_(RET,NAME,(void),NAME,"0")
++ #elif !defined(__EMSCRIPTEN__) && !defined(__APPLE__)
+   #ifdef __GNUC__
+    #define _AliasExport_(RET,ENM,DEF,INM,SUF) EXPORT \
+       RET APIENTRY_GL4ES ENM DEF __attribute__((alias(_MNG(gl4es_##INM,SUF))))
 diff --git a/src/gl/directstate.c b/src/gl/directstate.c
 index 5cfb255..b0c3946 100644
 --- a/src/gl/directstate.c

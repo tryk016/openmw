@@ -596,6 +596,17 @@ if [[ -d "${prefix}/share/gl4es" \
             _set_getprocaddress \
             _set_getmainfbsize \
             _glBegin \
+            _glEnd \
+            _glGetError \
+            _glGetString \
+            _glViewport \
+            _glClearColor \
+            _glClear \
+            _glMatrixMode \
+            _glLoadIdentity \
+            _glColor3f \
+            _glVertex2f \
+            _glFinish \
             _glReadPixels; do
         if ! grep -Eq "[[:space:]][A-Za-z][[:space:]]${gl4es_symbol}([[:space:]]|$)" \
                 <<<"$gl4es_symbols"; then

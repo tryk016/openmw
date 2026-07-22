@@ -920,6 +920,18 @@ try {
         /PATCHES\s+disable-tests\.patch\s+darwin-no-alias\.patch/.test(
             gl4esPortfile,
         ) &&
+            /defined\(__APPLE__\) && defined\(__aarch64__\)/.test(
+                gl4esDarwinNoAliasPatch,
+            ) &&
+            /__attribute__\(\(naked\)\) RET APIENTRY_GL4ES ENM DEF/.test(
+                gl4esDarwinNoAliasPatch,
+            ) &&
+            /__asm__\("b _gl4es_" _STR\(INM\)\)/.test(
+                gl4esDarwinNoAliasPatch,
+            ) &&
+            (gl4esDarwinNoAliasPatch.match(
+                /^\+\s+#define AliasExport(?:_A|_D|_D_1|_M|_V)?\(/gm,
+            )?.length ?? 0) === 6 &&
             (gl4esDarwinNoAliasPatch.match(
                 /^\+void APIENTRY_GL4ES gl4es_gl(?:Enable|Disable)ClientStatei/gm,
             )?.length ?? 0) === 2 &&
@@ -932,7 +944,7 @@ try {
             gl4esOverlayManifest["port-version"] === 1 &&
             gl4esLockEntry?.vcpkg_port_source === "overlay" &&
             gl4esLockEntry?.vcpkg_port_version === 1,
-        "Darwin must use real forwarding wrappers instead of unsupported ELF aliases in locked GL4ES 1.1.6#1",
+        "Darwin must use AArch64 public tail-call wrappers and real internal forwarding wrappers instead of unsupported ELF aliases in locked GL4ES 1.1.6#1",
     );
     requireBuildScriptContract(
         "osg-minimal-static-plugin-contract",

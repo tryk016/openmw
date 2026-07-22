@@ -79,6 +79,10 @@ const openALPortfile = fs.readFileSync(
     path.join(repoRoot, "ios-deps/overlay-ports/openal-soft/portfile.cmake"),
     "utf8",
 );
+const openALProbe = fs.readFileSync(
+    path.join(repoRoot, "ios-deps/smoke/OpenALProbe.c"),
+    "utf8",
+);
 const openALManifest = JSON.parse(
     fs.readFileSync(
         path.join(repoRoot, "ios-deps/overlay-ports/openal-soft/vcpkg.json"),
@@ -566,10 +570,10 @@ try {
         "only overlay ports selected by the active lock profile may reach vcpkg",
     );
     requireBuildScriptContract(
-        "language-and-ui-host-tools-are-validated",
+        "language-ui-and-multimedia-host-tools-are-validated",
         /validate-host-tools\.sh/.test(buildScript) &&
             /profile="\$1"/.test(hostToolsScript) &&
-            /case "\$profile" in\s*language-foundation\|ui-foundation\) ;;\s*\*\) exit 0 ;;\s*esac/.test(
+            /case "\$profile" in\s*language-foundation\|ui-foundation\|multimedia-foundation\) ;;\s*\*\) exit 0 ;;\s*esac/.test(
                 hostToolsScript,
             ) &&
             /icuinfo/.test(hostToolsScript) &&
@@ -578,7 +582,7 @@ try {
             /echo "Validated ICU 70\.1#1 host tools and target\/host separation"/.test(
                 hostToolsScript,
             ),
-        "the language and UI profiles must validate pinned ICU host tools and report success",
+        "the language, UI and multimedia profiles must validate pinned ICU host tools and report success",
     );
     requireBuildScriptContract(
         "stdout-is-reserved-for-prefix",
@@ -725,6 +729,43 @@ try {
             /target_link_options\(openmw-lib INTERFACE/.test(openmwAppCmake),
         "OpenAL Soft must be prefix-pinned, CoreAudio-only and carry all notices/frameworks",
     );
+    const openALProbeReturnCodes = [
+        ...openALProbe.matchAll(/\breturn\s+(\d+)\s*;/g),
+    ].map((match) => Number(match[1]));
+    requireBuildScriptContract(
+        "openal-loopback-probe-is-non-vacuous",
+        /if\s*\(alcIsExtensionPresent\(NULL,\s*"ALC_SOFT_loopback"\)\s*!=\s*ALC_TRUE\)\s*return\s+[1-9]\d*\s*;/.test(
+            openALProbe,
+        ) &&
+            /alcGetProcAddress\(NULL,\s*"alcLoopbackOpenDeviceSOFT"\)/.test(
+                openALProbe,
+            ) &&
+            /if\s*\(loopbackOpenDevice\s*==\s*NULL\)\s*return\s+[1-9]\d*\s*;/.test(
+                openALProbe,
+            ) &&
+            /loopbackDevice\s*=\s*loopbackOpenDevice\(NULL\)/.test(
+                openALProbe,
+            ) &&
+            /if\s*\(loopbackDevice\s*==\s*NULL\)\s*return\s+[1-9]\d*\s*;/.test(
+                openALProbe,
+            ) &&
+            /alcGetError\(loopbackDevice\)\s*!=\s*ALC_NO_ERROR/.test(
+                openALProbe,
+            ) &&
+            /alcCloseDevice\(loopbackDevice\)\s*!=\s*ALC_TRUE/.test(
+                openALProbe,
+            ) &&
+            /physicalDevice\s*!=\s*NULL\s*&&\s*alcCloseDevice\(physicalDevice\)\s*!=\s*ALC_TRUE/.test(
+                openALProbe,
+            ) &&
+            openALProbeReturnCodes.at(-1) === 0 &&
+            new Set(openALProbeReturnCodes.filter((code) => code !== 0)).size >=
+                6 &&
+            !/\(void\)\s*alc(?:IsExtensionPresent|GetProcAddress|GetError|CloseDevice)/.test(
+                openALProbe,
+            ),
+        "the OpenAL probe must validate loopback discovery, open/error/close behavior and every optional-device close before reporting success",
+    );
     requireBuildScriptContract(
         "ffmpeg-minimal-lgpl-contract",
         /--disable-network/.test(ffmpegPortfile) &&
@@ -820,7 +861,11 @@ try {
     reorderedFreetype.features.reverse();
     runValidator("valid-reordering", lock, reorderedManifest, true);
 
-    for (const profile of ["language-foundation", "ui-foundation"]) {
+    for (const profile of [
+        "language-foundation",
+        "ui-foundation",
+        "multimedia-foundation",
+    ]) {
         const missingRequiredProfileLock = clone(lock);
         const missingRequiredProfileManifest = clone(manifest);
         delete missingRequiredProfileLock.build_profiles[profile];

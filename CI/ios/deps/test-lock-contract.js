@@ -121,11 +121,16 @@ const boostUninstallSpdxValidator = path.join(
     __dirname,
     "validate-boost-uninstall-spdx.jq",
 );
+const osgSpdxNormalizer = path.join(
+    __dirname,
+    "normalize-osg-spdx.jq",
+);
 const cmake = process.env.CMAKE_COMMAND || "cmake";
 const bash = process.env.BASH_COMMAND || "bash";
 const jq = process.env.JQ_COMMAND || "jq";
 let closureFixturesSkipped = false;
 let spdxFixturesSkipped = false;
+let osgSpdxFixturesSkipped = false;
 const temporaryRoot = fs.mkdtempSync(
     path.join(os.tmpdir(), "openmw-ios-lock-contract-"),
 );
@@ -340,6 +345,79 @@ function runBoostUninstallSpdxValidator(
     process.stdout.write(
         `${testName}: SPDX ${shouldPass ? "accepted" : "rejected"} as expected\n`,
     );
+}
+
+function runOsgSpdxNormalizer(
+    testName,
+    document,
+    extractedText,
+    shouldPass,
+    verifyResult = undefined,
+) {
+    if (osgSpdxFixturesSkipped)
+        return;
+
+    const licensePath = path.join(
+        temporaryRoot,
+        `${testName}.osg-license.txt`,
+    );
+    fs.writeFileSync(licensePath, extractedText);
+    const result = childProcess.spawnSync(
+        jq,
+        [
+            "-e",
+            "--rawfile",
+            "extractedText",
+            licensePath,
+            "-f",
+            osgSpdxNormalizer,
+        ],
+        {
+            encoding: "utf8",
+            input: `${JSON.stringify(document)}\n`,
+        },
+    );
+    if (result.error?.code === "ENOENT") {
+        process.stdout.write(
+            `OSG SPDX fixtures skipped: '${jq}' is unavailable; Ubuntu CI must execute them\n`,
+        );
+        osgSpdxFixturesSkipped = true;
+        return;
+    }
+    if (result.error)
+        throw result.error;
+    const passed = result.status === 0;
+    if (passed !== shouldPass) {
+        process.stderr.write(result.stdout);
+        process.stderr.write(result.stderr);
+        throw new Error(
+            `${testName}: expected OSG SPDX normalizer to ${shouldPass ? "accept" : "reject"}`,
+        );
+    }
+    if (passed && verifyResult)
+        verifyResult(JSON.parse(result.stdout));
+    process.stdout.write(
+        `${testName}: OSG SPDX ${shouldPass ? "normalized" : "rejected"} as expected\n`,
+    );
+}
+
+function requireCanonicalOsgLicensingInfo(document, extractedText) {
+    const expected = {
+        licenseId: "LicenseRef-OSGPL-1.0",
+        name: "OpenSceneGraph Public License, Version 1.0",
+        extractedText,
+    };
+    const matchingInfos = document.hasExtractedLicensingInfos?.filter(
+        (info) => info.licenseId === expected.licenseId,
+    );
+    if (
+        matchingInfos?.length !== 1 ||
+        JSON.stringify(matchingInfos[0]) !== JSON.stringify(expected)
+    ) {
+        throw new Error(
+            "OSG SPDX output must contain exactly one canonical extracted licensing information entry",
+        );
+    }
 }
 
 try {
@@ -845,6 +923,18 @@ try {
         "OSG must expose only the allowlisted statically registered plugins and serializers",
     );
     requireBuildScriptContract(
+        "osg-custom-license-is-normalized",
+        /osg_spdx_normalizer=.*normalize-osg-spdx\.jq/.test(
+            packageMetadataScript,
+        ) &&
+            /published_spdx="\$\{output_dir\}\/sbom\/\$\{package\}\.spdx\.json"[\s\S]*case "\$package" in[\s\S]*osg\)[\s\S]*jq -e --rawfile extractedText "\$copyright_file"[\s\S]*-f "\$osg_spdx_normalizer" "\$spdx_file"[\s\S]*>"\$published_spdx"[\s\S]*\*\)[\s\S]*cp "\$spdx_file" "\$published_spdx"/.test(
+                packageMetadataScript,
+            ) &&
+            (packageMetadataScript.match(/\$osg_spdx_normalizer/g) ?? [])
+                .length === 1,
+        "only OSG may be normalized with the installed copyright text; all other SPDX files must be copied unchanged",
+    );
+    requireBuildScriptContract(
         "boost-uninstall-notice-is-narrow",
         /IOS_DEPS_BUILD_ROOT/.test(packageMetadataScript) &&
             /IOS_DEPS_VCPKG_ROOT/.test(packageMetadataScript) &&
@@ -857,6 +947,111 @@ try {
             /git -C "\$vcpkg_root" show/.test(packageMetadataScript) &&
             /cmp - "\$vcpkg_license"/.test(packageMetadataScript),
         "only the identified MIT boost-uninstall helper may use the pinned vcpkg notice",
+    );
+
+    const osgLicenseText =
+        "OpenSceneGraph Public License fixture\nPinned LICENSE.txt text.\n";
+    const canonicalOsgLicensingInfo = {
+        licenseId: "LicenseRef-OSGPL-1.0",
+        name: "OpenSceneGraph Public License, Version 1.0",
+        extractedText: osgLicenseText,
+    };
+    const validOsgSpdx = {
+        packages: [
+            {
+                name: "osg",
+                description:
+                    "Minimal static OpenMW OpenSceneGraph fork for iOS",
+                licenseConcluded: "LicenseRef-OSGPL-1.0",
+            },
+            {
+                name: "osg:arm64-ios-openmw",
+                licenseConcluded: "LicenseRef-OSGPL-1.0",
+            },
+        ],
+    };
+    runOsgSpdxNormalizer(
+        "valid-osg-spdx-adds-extracted-license",
+        validOsgSpdx,
+        osgLicenseText,
+        true,
+        (document) =>
+            requireCanonicalOsgLicensingInfo(document, osgLicenseText),
+    );
+
+    const osgSpdxWithCanonicalInfo = clone(validOsgSpdx);
+    osgSpdxWithCanonicalInfo.hasExtractedLicensingInfos = [
+        canonicalOsgLicensingInfo,
+    ];
+    runOsgSpdxNormalizer(
+        "valid-osg-spdx-keeps-single-extracted-license",
+        osgSpdxWithCanonicalInfo,
+        osgLicenseText,
+        true,
+        (document) =>
+            requireCanonicalOsgLicensingInfo(document, osgLicenseText),
+    );
+
+    const wrongOsgLicense = clone(validOsgSpdx);
+    wrongOsgLicense.packages[0].licenseConcluded = "MIT";
+    runOsgSpdxNormalizer(
+        "wrong-osg-license",
+        wrongOsgLicense,
+        osgLicenseText,
+        false,
+    );
+
+    const missingOsgCustomReference = clone(validOsgSpdx);
+    delete missingOsgCustomReference.packages[1].licenseConcluded;
+    runOsgSpdxNormalizer(
+        "missing-osg-custom-license-reference",
+        missingOsgCustomReference,
+        osgLicenseText,
+        false,
+    );
+
+    const missingOsgIdentity = clone(validOsgSpdx);
+    missingOsgIdentity.packages[0].name = "not-osg";
+    runOsgSpdxNormalizer(
+        "missing-osg-source-identity",
+        missingOsgIdentity,
+        osgLicenseText,
+        false,
+    );
+
+    const incorrectOsgIdentity = clone(validOsgSpdx);
+    incorrectOsgIdentity.packages[0].description = "Unexpected OSG package";
+    runOsgSpdxNormalizer(
+        "incorrect-osg-source-identity",
+        incorrectOsgIdentity,
+        osgLicenseText,
+        false,
+    );
+
+    const duplicateOsgLicensingInfo = clone(validOsgSpdx);
+    duplicateOsgLicensingInfo.hasExtractedLicensingInfos = [
+        canonicalOsgLicensingInfo,
+        clone(canonicalOsgLicensingInfo),
+    ];
+    runOsgSpdxNormalizer(
+        "duplicate-osg-extracted-license",
+        duplicateOsgLicensingInfo,
+        osgLicenseText,
+        false,
+    );
+
+    const conflictingOsgLicensingInfo = clone(validOsgSpdx);
+    conflictingOsgLicensingInfo.hasExtractedLicensingInfos = [
+        {
+            ...canonicalOsgLicensingInfo,
+            extractedText: "Not the installed license text\n",
+        },
+    ];
+    runOsgSpdxNormalizer(
+        "conflicting-osg-extracted-license",
+        conflictingOsgLicensingInfo,
+        osgLicenseText,
+        false,
     );
 
     const validBoostUninstallSpdx = {

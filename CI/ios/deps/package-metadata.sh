@@ -26,6 +26,7 @@ vcpkg_root="${IOS_DEPS_VCPKG_ROOT:-${build_root}/tooling/vcpkg}"
 vcpkg_license="${vcpkg_root}/LICENSE.txt"
 vcpkg_stamp="${vcpkg_root}/.openmw-ios-revision"
 boost_uninstall_spdx_validator="${script_dir}/validate-boost-uninstall-spdx.jq"
+osg_spdx_normalizer="${script_dir}/normalize-osg-spdx.jq"
 expected_vcpkg_revision="$(
     jq -er '.dependencies[] | select(.name == "vcpkg") | .revision' \
         "$lock_file"
@@ -118,7 +119,20 @@ for package_dir in "${packages[@]}"; do
         else
             cp "$copyright_file" "${output_dir}/licenses/${package}.txt"
         fi
-        cp "$spdx_file" "${output_dir}/sbom/${package}.spdx.json"
+        published_spdx="${output_dir}/sbom/${package}.spdx.json"
+        case "$package" in
+            osg)
+                if ! jq -e --rawfile extractedText "$copyright_file" \
+                        -f "$osg_spdx_normalizer" "$spdx_file" \
+                        >"$published_spdx"; then
+                    echo "osg: unexpected SPDX identity, license or extracted licensing information" >&2
+                    exit 1
+                fi
+                ;;
+            *)
+                cp "$spdx_file" "$published_spdx"
+                ;;
+        esac
         ((metadata_count += 1))
     fi
 done

@@ -70,7 +70,7 @@ Tabela jest aktualizowana razem z checkboxami.
 |---:|---:|---:|---|
 | 0 | 24 | 24 | ukończona |
 | 1 | 13 | 13 | ukończona |
-| 2 | 28 | 45 | w toku |
+| 2 | 33 | 45 | w toku |
 | 3 | 10 | 26 | w toku |
 | 4 | 0 | 32 | oczekuje |
 | 5 | 0 | 39 | oczekuje |
@@ -81,7 +81,7 @@ Tabela jest aktualizowana razem z checkboxami.
 | 10 | 20 | 38 | w toku |
 | 11 | 4 | 42 | w toku |
 | 12 | 0 | 16 | oczekuje |
-| **Razem** | **99** | **382** | **25,9%** |
+| **Razem** | **104** | **382** | **27,2%** |
 
 ---
 
@@ -207,13 +207,13 @@ jeżeli nie jest dostępny w G0.
 
 ### Multimedia
 
-- [ ] Zbudować statyczny OpenAL Soft lub udokumentować zatwierdzony wariant
+- [x] Zbudować statyczny OpenAL Soft lub udokumentować zatwierdzony wariant
   systemowy dla PoC.
-- [ ] Zbudować minimalny FFmpeg: avcodec, avformat, avutil, swscale,
+- [x] Zbudować minimalny FFmpeg: avcodec, avformat, avutil, swscale,
   swresample.
-- [ ] Wyłączyć programy, devices, network i niepotrzebne kodeki FFmpeg.
-- [ ] Zapisać pełne transitive libraries/frameworks FFmpeg.
-- [ ] Zamknąć audyt konfiguracji LGPL/GPL FFmpeg.
+- [x] Wyłączyć programy, devices, network i niepotrzebne kodeki FFmpeg.
+- [x] Zapisać pełne transitive libraries/frameworks FFmpeg.
+- [x] Zamknąć audyt konfiguracji LGPL/GPL FFmpeg.
 
 ### Closure renderera
 
@@ -335,6 +335,21 @@ runtime pobrał artefakt przypięty do SHA i na iPhone Simulatorze potwierdził
 `MyGUI::UString`, inicjalizację FreeType, `Version::parse`, numeryczne
 `Version::print` oraz zapis i odczyt XML. Workflow
 [`iOS G0` #29905241097](https://github.com/tryk016/openmw/actions/runs/29905241097)
+potwierdził brak regresji device/simulator.
+
+**Dowód multimedia:** commit `41b1357118`, workflow
+[`iOS dependencies` #29914479215](https://github.com/tryk016/openmw/actions/runs/29914479215)
+zbudował statyczny OpenAL Soft 1.24.3#2 z backendem CoreAudio oraz minimalny
+FFmpeg 7.1.1#7 zawierający dokładnie `avcodec`, `avformat`, `avutil`, `swscale`
+i `swresample` dla obu SDK. Closure obejmuje 18 bezpośrednich portów targetu,
+79 portów tranzytywnych targetu i 5 portów hosta. Konfiguracja FFmpeg wyłącza
+programy, devices, network, GPL/nonfree i niepotrzebne kodeki; joby sprawdziły
+pełne zależności statyczne i frameworki Apple, każdy człon archiwów, `arm64`,
+platformę, `minos 16.4`, notices, licencje i SPDX. Oba warianty wykonały czysty
+build online i bezsieciowy rebuild z ponownym linkiem. Osobny job runtime pobrał
+artefakt przypięty do SHA i na iPhone Simulatorze potwierdził OpenAL loopback
+oraz runtime allowlist bibliotek FFmpeg. Workflow
+[`iOS G0` #29914479218](https://github.com/tryk016/openmw/actions/runs/29914479218)
 potwierdził brak regresji device/simulator.
 
 ---

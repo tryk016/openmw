@@ -310,6 +310,15 @@ try {
         "ui-foundation-runtime",
     );
     requireBuildScriptContract(
+        "dependency-workflow-watches-runtime-runner",
+        (
+            dependenciesWorkflow.match(
+                /^      - "CI\/ios\/smoke-simulator\.sh"$/gm,
+            ) ?? []
+        ).length === 2,
+        "pull-request and ios/main push filters must both run dependency CI when the shared simulator runner changes",
+    );
+    requireBuildScriptContract(
         "ui-build-matrix-only-produces-evidence",
         uiFoundationBuildJob.includes("matrix:") &&
             uiFoundationBuildJob.includes(

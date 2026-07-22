@@ -367,14 +367,60 @@ if [[ -d "${prefix}/share/mygui" \
         exit 1
     fi
 
-    forbidden_mygui_artifact="$(
-        find "${prefix}/bin" "${prefix}/tools" \
-                "${prefix}/lib/MYGUI" "${prefix}/share/MYGUI" \
-            -type f -print -quit 2>/dev/null || true
-    )"
+    forbidden_mygui_artifact=""
+    for mygui_forbidden_root in \
+            "${prefix}/bin" \
+            "${prefix}/tools" \
+            "${prefix}/lib/MYGUI"; do
+        [[ -e "$mygui_forbidden_root" || -L "$mygui_forbidden_root" ]] || continue
+        if [[ ! -d "$mygui_forbidden_root" || -L "$mygui_forbidden_root" ]]; then
+            forbidden_mygui_artifact="$mygui_forbidden_root"
+        else
+            forbidden_mygui_artifact="$(
+                find "$mygui_forbidden_root" -mindepth 1 -print -quit
+            )"
+        fi
+        [[ -z "$forbidden_mygui_artifact" ]] || break
+    done
     if [[ -n "$forbidden_mygui_artifact" ]]; then
         echo "MyGUI platform/plugin/tool/demo artifact leaked into the prefix: $forbidden_mygui_artifact" >&2
         exit 1
+    fi
+
+    mygui_metadata_allowlist=(
+        copyright
+        vcpkg.spdx.json
+        vcpkg_abi_info.txt
+    )
+    mygui_metadata_root="${prefix}/share/MYGUI"
+    if [[ -e "$mygui_metadata_root" || -L "$mygui_metadata_root" ]]; then
+        if [[ ! -d "$mygui_metadata_root" || -L "$mygui_metadata_root" ]]; then
+            forbidden_mygui_artifact="$mygui_metadata_root"
+        else
+            while IFS= read -r -d '' mygui_metadata_path; do
+                mygui_metadata_name="${mygui_metadata_path#"${mygui_metadata_root}/"}"
+                mygui_metadata_allowed=false
+                if [[ "$mygui_metadata_name" != */* \
+                        && -f "$mygui_metadata_path" \
+                        && ! -L "$mygui_metadata_path" ]]; then
+                    for allowed_mygui_metadata in \
+                            "${mygui_metadata_allowlist[@]}"; do
+                        if [[ "$mygui_metadata_name" == "$allowed_mygui_metadata" ]]; then
+                            mygui_metadata_allowed=true
+                            break
+                        fi
+                    done
+                fi
+                if [[ "$mygui_metadata_allowed" != true ]]; then
+                    forbidden_mygui_artifact="$mygui_metadata_path"
+                    break
+                fi
+            done < <(find "$mygui_metadata_root" -mindepth 1 -print0)
+        fi
+        if [[ -n "$forbidden_mygui_artifact" ]]; then
+            echo "Unexpected MyGUI runtime/plugin/tool entry in metadata directory: $forbidden_mygui_artifact" >&2
+            exit 1
+        fi
     fi
 fi
 

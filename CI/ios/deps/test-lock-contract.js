@@ -332,6 +332,29 @@ try {
             /_FT_Done_FreeType/.test(prefixValidator),
         "the MyGUI archive must retain explicit unresolved FreeType symbols",
     );
+    const myGuiMetadataAllowlist = prefixValidator.match(
+        /mygui_metadata_allowlist=\(\s*([^)]*?)\s*\)/,
+    )?.[1].trim().split(/\s+/);
+    requireBuildScriptContract(
+        "mygui-prefix-metadata-allowlist-is-exact",
+        JSON.stringify(myGuiMetadataAllowlist) ===
+            JSON.stringify([
+                "copyright",
+                "vcpkg.spdx.json",
+                "vcpkg_abi_info.txt",
+            ]) &&
+            /find "\$mygui_metadata_root" -mindepth 1 -print0/.test(
+                prefixValidator,
+            ) &&
+            /"\$mygui_metadata_name" != \*\/\*/.test(prefixValidator) &&
+            /-f "\$mygui_metadata_path"/.test(prefixValidator) &&
+            /! -L "\$mygui_metadata_path"/.test(prefixValidator) &&
+            /"\$\{mygui_metadata_allowlist\[@\]\}"/.test(prefixValidator) &&
+            /if \[\[ "\$mygui_metadata_allowed" != true \]\]; then\s+forbidden_mygui_artifact="\$mygui_metadata_path"/.test(
+                prefixValidator,
+            ),
+        "share/MYGUI must contain only regular, non-symlink vcpkg metadata files from the exact allowlist",
+    );
     requireBuildScriptContract(
         "mygui-probe-executes-freetype-lifecycle",
         /FT_Init_FreeType\(&freeType\)/.test(myGuiProbe) &&

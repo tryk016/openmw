@@ -29,7 +29,12 @@ def require($condition; $message):
     "osg: unexpected SPDX source package identity"
 )
 | require(
-    ($binary_packages | length) == 1;
+    ($binary_packages | length) == 1
+        and (
+            $binary_packages[0].name == "osg:arm64-ios-openmw"
+                or $binary_packages[0].name
+                    == "osg:arm64-ios-simulator-openmw"
+        );
     "osg: unexpected SPDX binary package identity"
 )
 | require(

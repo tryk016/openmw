@@ -979,6 +979,18 @@ try {
             requireCanonicalOsgLicensingInfo(document, osgLicenseText),
     );
 
+    const validSimulatorOsgSpdx = clone(validOsgSpdx);
+    validSimulatorOsgSpdx.packages[1].name =
+        "osg:arm64-ios-simulator-openmw";
+    runOsgSpdxNormalizer(
+        "valid-simulator-osg-spdx-adds-extracted-license",
+        validSimulatorOsgSpdx,
+        osgLicenseText,
+        true,
+        (document) =>
+            requireCanonicalOsgLicensingInfo(document, osgLicenseText),
+    );
+
     const osgSpdxWithCanonicalInfo = clone(validOsgSpdx);
     osgSpdxWithCanonicalInfo.hasExtractedLicensingInfos = [
         canonicalOsgLicensingInfo,
@@ -1024,6 +1036,15 @@ try {
     runOsgSpdxNormalizer(
         "incorrect-osg-source-identity",
         incorrectOsgIdentity,
+        osgLicenseText,
+        false,
+    );
+
+    const tamperedOsgBinaryIdentity = clone(validOsgSpdx);
+    tamperedOsgBinaryIdentity.packages[1].name = "osg:tampered-triplet";
+    runOsgSpdxNormalizer(
+        "tampered-osg-binary-identity",
+        tamperedOsgBinaryIdentity,
         osgLicenseText,
         false,
     );

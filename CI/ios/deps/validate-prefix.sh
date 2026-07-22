@@ -26,7 +26,7 @@ if [[ ! -d "$prefix" ]]; then
     exit 1
 fi
 
-for command in ar file find lipo xcrun; do
+for command in ar file find lipo nm xcrun; do
     if ! command -v "$command" >/dev/null 2>&1; then
         echo "Required command is unavailable: $command" >&2
         exit 1
@@ -305,6 +305,122 @@ if [[ -d "${prefix}/share/icu" ]]; then
             -print -quit | grep -q .; then
         echo "An ICU host tool leaked into the target prefix" >&2
         exit 1
+    fi
+fi
+
+if [[ -d "${prefix}/share/mygui" \
+        || -f "${prefix}/lib/libMyGUIEngineStatic.a" ]]; then
+    for mygui_path in \
+            "${prefix}/lib/libMyGUIEngineStatic.a" \
+            "${prefix}/lib/pkgconfig/MYGUIStatic.pc" \
+            "${prefix}/include/MYGUI/MyGUI.h" \
+            "${prefix}/include/MYGUI/MyGUI_Prerequest.h" \
+            "${prefix}/include/MYGUI/MyGUI_UString.h" \
+            "${prefix}/include/MYGUI/MyGUI_XmlDocument.h" \
+            "${prefix}/share/mygui/copyright"; do
+        if [[ ! -f "$mygui_path" ]]; then
+            echo "The static MyGUI engine package is missing: $mygui_path" >&2
+            exit 1
+        fi
+    done
+
+    unexpected_mygui_archive="$(
+        find "${prefix}/lib" -maxdepth 1 -type f -iname '*mygui*.a' \
+            ! -name libMyGUIEngineStatic.a -print -quit
+    )"
+    if [[ -n "$unexpected_mygui_archive" ]]; then
+        echo "Unexpected MyGUI archive: $unexpected_mygui_archive" >&2
+        exit 1
+    fi
+
+    mygui_undefined_symbols="$(
+        nm -u "${prefix}/lib/libMyGUIEngineStatic.a"
+    )"
+    for freetype_symbol in _FT_Init_FreeType _FT_Done_FreeType; do
+        if ! grep -Eq "(^|[[:space:]])${freetype_symbol}([[:space:]]|$)" \
+                <<<"$mygui_undefined_symbols"; then
+            echo "MyGUI engine does not expose the expected FreeType dependency: ${freetype_symbol}" >&2
+            exit 1
+        fi
+    done
+
+    if ! grep -Eq '^[[:space:]]*#define[[:space:]]+MYGUI_VERSION_MAJOR[[:space:]]+3[[:space:]]*$' \
+            "${prefix}/include/MYGUI/MyGUI_Prerequest.h" ||
+            ! grep -Eq '^[[:space:]]*#define[[:space:]]+MYGUI_VERSION_MINOR[[:space:]]+4[[:space:]]*$' \
+            "${prefix}/include/MYGUI/MyGUI_Prerequest.h" ||
+            ! grep -Eq '^[[:space:]]*#define[[:space:]]+MYGUI_VERSION_PATCH[[:space:]]+3[[:space:]]*$' \
+            "${prefix}/include/MYGUI/MyGUI_Prerequest.h"; then
+        echo "The target prefix does not contain MyGUI 3.4.3 headers" >&2
+        exit 1
+    fi
+    if ! grep -Eq 'using[[:space:]]+unicode_char[[:space:]]*=[[:space:]]*char32_t;' \
+            "${prefix}/include/MYGUI/MyGUI_UString.h" ||
+            ! grep -Eq 'using[[:space:]]+code_point[[:space:]]*=[[:space:]]*char16_t;' \
+            "${prefix}/include/MYGUI/MyGUI_UString.h"; then
+        echo "The MyGUI LLVM char16_t/char32_t ABI patch is missing" >&2
+        exit 1
+    fi
+    if ! grep -Eq \
+            'Cflags:.*-DMYGUI_STATIC.*-DMYGUI_USE_FREETYPE.*-DMYGUI_DONT_USE_OBSOLETE' \
+            "${prefix}/lib/pkgconfig/MYGUIStatic.pc"; then
+        echo "MyGUI consumer ABI definitions are incomplete" >&2
+        exit 1
+    fi
+
+    forbidden_mygui_artifact=""
+    for mygui_forbidden_root in \
+            "${prefix}/bin" \
+            "${prefix}/tools" \
+            "${prefix}/lib/MYGUI"; do
+        [[ -e "$mygui_forbidden_root" || -L "$mygui_forbidden_root" ]] || continue
+        if [[ ! -d "$mygui_forbidden_root" || -L "$mygui_forbidden_root" ]]; then
+            forbidden_mygui_artifact="$mygui_forbidden_root"
+        else
+            forbidden_mygui_artifact="$(
+                find "$mygui_forbidden_root" -mindepth 1 -print -quit
+            )"
+        fi
+        [[ -z "$forbidden_mygui_artifact" ]] || break
+    done
+    if [[ -n "$forbidden_mygui_artifact" ]]; then
+        echo "MyGUI platform/plugin/tool/demo artifact leaked into the prefix: $forbidden_mygui_artifact" >&2
+        exit 1
+    fi
+
+    mygui_metadata_allowlist=(
+        copyright
+        vcpkg.spdx.json
+        vcpkg_abi_info.txt
+    )
+    mygui_metadata_root="${prefix}/share/MYGUI"
+    if [[ -e "$mygui_metadata_root" || -L "$mygui_metadata_root" ]]; then
+        if [[ ! -d "$mygui_metadata_root" || -L "$mygui_metadata_root" ]]; then
+            forbidden_mygui_artifact="$mygui_metadata_root"
+        else
+            while IFS= read -r -d '' mygui_metadata_path; do
+                mygui_metadata_name="${mygui_metadata_path#"${mygui_metadata_root}/"}"
+                mygui_metadata_allowed=false
+                if [[ "$mygui_metadata_name" != */* \
+                        && -f "$mygui_metadata_path" \
+                        && ! -L "$mygui_metadata_path" ]]; then
+                    for allowed_mygui_metadata in \
+                            "${mygui_metadata_allowlist[@]}"; do
+                        if [[ "$mygui_metadata_name" == "$allowed_mygui_metadata" ]]; then
+                            mygui_metadata_allowed=true
+                            break
+                        fi
+                    done
+                fi
+                if [[ "$mygui_metadata_allowed" != true ]]; then
+                    forbidden_mygui_artifact="$mygui_metadata_path"
+                    break
+                fi
+            done < <(find "$mygui_metadata_root" -mindepth 1 -print0)
+        fi
+        if [[ -n "$forbidden_mygui_artifact" ]]; then
+            echo "Unexpected MyGUI runtime/plugin/tool entry in metadata directory: $forbidden_mygui_artifact" >&2
+            exit 1
+        fi
     fi
 fi
 

@@ -37,11 +37,11 @@ On macOS with Xcode 16.4:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature language-foundation \
+  --feature ui-foundation \
   --clean
 bash CI/ios/deps/build.sh \
   --platform iphonesimulator \
-  --feature language-foundation \
+  --feature ui-foundation \
   --clean
 ```
 
@@ -75,6 +75,13 @@ tools, `icuio`, extras, samples, tests and layoutex are rejected. ICU data is
 filtered by the canonical-LF `extern/icufilters.json` whose SHA-256 and SHA-512
 are part of the lock. The profile pins 15 direct target ports, 79 transitive
 target ports and four host ports.
+`ui-foundation` is cumulative and adds the local iOS-only MyGUI 3.4.3#5
+overlay. It installs exactly the static `MyGUIEngine` plus public headers and
+pkg-config metadata; platform adapters, render systems, plugins, wrappers,
+tools, demos, tests and documentation are not built. The consumer ABI is
+`MYGUI_STATIC`, `MYGUI_USE_FREETYPE` and `MYGUI_DONT_USE_OBSOLETE`. Its exact
+closure is 16 direct target ports, the same 79 transitive target ports and four
+host ports (including `icu[tools]`).
 `bootstrap` remains available as the smaller zlib-only pipeline proof. The
 profile-to-source mapping lives in `dependencies.lock.json`; every profile must
 have a matching vcpkg manifest feature. After installation, the build also
@@ -88,7 +95,7 @@ link the smoke app:
 ```bash
 bash CI/ios/deps/validate-prefix.sh iphoneos <device-prefix>
 bash CI/ios/deps/validate-host-tools.sh \
-  language-foundation \
+  ui-foundation \
   build/ios-deps/iphoneos/vcpkg_installed \
   arm64-osx \
   <device-prefix> \
@@ -102,7 +109,7 @@ access:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature language-foundation \
+  --feature ui-foundation \
   --clean \
   --offline
 ```

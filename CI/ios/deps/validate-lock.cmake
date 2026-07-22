@@ -373,7 +373,7 @@ if(NOT closure_error)
             endif()
 
             set(closure_direct_ports)
-            set(language_icu_host_tools_found FALSE)
+            set(icu_host_tools_found FALSE)
             string(JSON closure_direct_count LENGTH
                 "${lock}" build_profiles "${closure_profile}")
             math(EXPR last_closure_direct "${closure_direct_count} - 1")
@@ -485,23 +485,23 @@ if(NOT closure_error)
                                 endforeach()
                             endif()
                         endif()
-                        if(closure_profile STREQUAL "language-foundation" AND
+                        if("icu" IN_LIST closure_direct_ports AND
                                 closure_scope STREQUAL "host" AND
                                 closure_port STREQUAL "icu")
                             if(NOT closure_features STREQUAL "tools")
                                 message(FATAL_ERROR
-                                    "language-foundation: host icu must enable "
+                                    "${closure_profile}: host icu must enable "
                                     "exactly the tools feature")
                             endif()
-                            set(language_icu_host_tools_found TRUE)
+                            set(icu_host_tools_found TRUE)
                         endif()
                     endforeach()
                 endif()
             endforeach()
-            if(closure_profile STREQUAL "language-foundation" AND
-                    NOT language_icu_host_tools_found)
+            if("icu" IN_LIST closure_direct_ports AND
+                    NOT icu_host_tools_found)
                 message(FATAL_ERROR
-                    "language-foundation: host icu[tools] closure is required")
+                    "${closure_profile}: host icu[tools] closure is required")
             endif()
         endforeach()
     endif()
@@ -678,7 +678,8 @@ endforeach()
 
 foreach(required_profile
         bootstrap base-foundation image-foundation cpp-foundation
-        data-foundation physics-foundation navigation-foundation)
+        data-foundation physics-foundation navigation-foundation
+        language-foundation ui-foundation)
     if(NOT required_profile IN_LIST profile_names)
         message(FATAL_ERROR
             "Required dependency build profile is missing: "

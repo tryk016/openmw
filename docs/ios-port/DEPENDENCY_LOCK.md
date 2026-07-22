@@ -85,6 +85,12 @@ włączone default features, dodatkowy direct port i duplikaty funkcji.
   PUC Lua 5.1.5#1 oraz ICU 70.1#1. Closure to 15 bezpośrednich portów targetu,
   niezmienione 79 portów tranzytywnych targetu i 4 porty hosta. Czwartym
   portem hosta jest dokładnie `icu[tools]`; target ICU nie ma funkcji `tools`.
+- `ui-foundation`: profil kumulatywny, który dodaje iOS-only overlay
+  MyGUI 3.4.3#5. Instaluje wyłącznie statyczny `MyGUIEngine`, publiczne
+  nagłówki i metadane pkg-config; platformy, renderery, pluginy, wrappery,
+  narzędzia, demo, testy i dokumentacja nie są budowane. Closure to 16
+  bezpośrednich portów targetu, niezmienione 79 portów tranzytywnych targetu
+  i 4 porty hosta z `icu[tools]`.
 
 ### Kontrakt PUC Lua
 
@@ -122,6 +128,26 @@ Walidator host-tools sprawdza dokładny zbiór binariów Mach-O arm64, wersję
 70.1, metadane cross-builda i brak narzędzi w targetowym prefiksie. Probe ICU
 wykonuje `u_init`, round-trip UTF-8, `MessageFormat`, reguły plural dla
 `en=1`, `pl=2`, `ru=5` oraz skeleton liczbowy `.00 group-off`.
+
+### Kontrakt MyGUI
+
+Overlay przypina tag `MyGUI3.4.3` do commita
+`dae9ac4be5a09e672bec509b1a8552b107c40214` i stosuje backport poprawki LLVM
+dla `char16_t`/`char32_t`. W prefiksie może istnieć dokładnie jedno archiwum
+MyGUI: `libMyGUIEngineStatic.a`. Adaptery platform, render systemy, pluginy,
+wrappery, narzędzia, demo, testy i dokumentacja są wyłączone podczas
+konfiguracji i odrzucane przez walidator prefiksu.
+
+Konsumenci muszą kompilować nagłówki z trzema definicjami ABI:
+`MYGUI_STATIC`, `MYGUI_USE_FREETYPE` i `MYGUI_DONT_USE_OBSOLETE`. Overlay
+zapisuje je w `MYGUIStatic.pc`, natomiast profil produktu OpenMW dodaje dwie
+ostatnie jawnie, ponieważ `FindMyGUI.cmake` nie przenosi `Cflags` pkg-config;
+`MYGUI_STATIC` wynika z istniejącej opcji statycznego linkowania. Importowany
+target smoke przenosi pełną statyczną krawędź
+`Freetype::Freetype;PNG::PNG;ZLIB::ZLIB`, więc probe nie może dopisywać tych
+bibliotek poza targetem MyGUI. Walidator `nm -u` dodatkowo wymaga, aby samo
+archiwum silnika zawierało nierozwiązane symbole `_FT_Init_FreeType` i
+`_FT_Done_FreeType`.
 
 Dodanie biblioteki do profilu przed pogodzeniem jej wersji z przypiętym
 registry albo portem overlay celowo kończy build błędem.
@@ -188,6 +214,13 @@ Smoke profilu `language-foundation` dodatkowo linkuje Lua oraz wszystkie trzy
 archiwa ICU. Dedykowane binaria wymuszają statyczne rozwiązywanie symboli, a
 aplikacja symulatora musi wykonać oba probe i zalogować marker
 `language foundation PASS`.
+
+Smoke profilu `ui-foundation` dodatkowo linkuje `libMyGUIEngineStatic.a` bez
+adaptera platformy i bez renderera. Dedykowany probe sprawdza wersję 3.4.3,
+trzy definicje ABI oraz typy `char16_t`/`char32_t`, wykonuje round-trip UTF-8,
+wykonuje bezrendererowy cykl `FT_Init_FreeType`/`FT_Done_FreeType`, buduje
+dokument XML silnika, serializuje go i ponownie parsuje. Aplikacja symulatora
+musi wykonać probe i zalogować marker `ui foundation PASS`.
 
 ## Pobieranie i tryb offline
 

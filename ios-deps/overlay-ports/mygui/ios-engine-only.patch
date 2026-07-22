@@ -1,0 +1,120 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 89e0e36..918dcf0 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -118,6 +118,7 @@ endif ()
+ # Customise what to build
+ option(MYGUI_STATIC "Static build" FALSE)
+ option(MYGUI_DISABLE_PLUGINS "Disable plugins support" FALSE)
++option(MYGUI_BUILD_PLATFORM "Build platform render adapters" TRUE)
+ option(MYGUI_USE_FREETYPE "Use freetype for font texture rendering" TRUE)
+ option(MYGUI_MSDF_FONTS "Enable msdf fonts generation support" FALSE)
+ option(MYGUI_DONT_USE_OBSOLETE "Remove obsolete functions from build" FALSE)
+@@ -299,7 +300,9 @@ include(InstallResources)
+ add_subdirectory(MyGUIEngine)
+ 
+ # Setup Platforms
+-add_subdirectory(Platforms)
++if (MYGUI_BUILD_PLATFORM)
++	add_subdirectory(Platforms)
++endif ()
+ 
+ if (MYGUI_BUILD_DEMOS OR MYGUI_BUILD_TOOLS OR MYGUI_BUILD_UNITTESTS OR MYGUI_BUILD_TEST_APP)
+ 	add_subdirectory(Common)
+@@ -340,7 +343,9 @@ if (MYGUI_INSTALL_DEMOS OR MYGUI_INSTALL_TOOLS)
+ endif ()
+ 
+ # Install CMake modules
+-add_subdirectory(CMake)
++if (MYGUI_BUILD_PLATFORM)
++	add_subdirectory(CMake)
++endif ()
+ 
+ # Provide CPack packaging target
+ include(Packaging)
+diff --git a/CMake/Dependencies.cmake b/CMake/Dependencies.cmake
+index 97b4381..33b8b32 100644
+--- a/CMake/Dependencies.cmake
++++ b/CMake/Dependencies.cmake
+@@ -36,15 +36,15 @@ endif ()
+ 
+ if (MYGUI_USE_FREETYPE)
+ 	# Find FreeType
+-	find_package(Freetype)
++	find_package(Freetype REQUIRED)
+ 	macro_log_feature(FREETYPE_FOUND "freetype" "Portable font engine" "http://www.freetype.org" TRUE "" "")
+-	find_package(ZLIB)
+ endif()
+ 
+ #######################################################################
+ # RenderSystem dependencies
+ #######################################################################
+ 
++if (MYGUI_BUILD_PLATFORM)
+ find_package(SDL2)
+ if(MYGUI_RENDERSYSTEM EQUAL 3)
+ 	# Find OGRE
+@@ -81,13 +81,16 @@ elseif(MYGUI_RENDERSYSTEM EQUAL 6)
+ 		macro_log_feature(DirectX_FOUND "DirectX11" "Support for the DirectX11 render system" "http://msdn.microsoft.com/en-us/directx/" TRUE "" "")
+ 	endif()
+ #elseif for RENDERSYSTEM 7 is covered with RENDERSYSTEM 4
+ endif()
++endif()
+ 
+ #######################################################################
+ # Demos and tools optional dependencies
+ #######################################################################
+ 
+-find_package(Doxygen)
+-macro_log_feature(DOXYGEN_FOUND "Doxygen" "Tool for building API documentation" "http://doxygen.org" FALSE "" "")
++if (NOT DEFINED MYGUI_BUILD_DOCS OR MYGUI_BUILD_DOCS)
++	find_package(Doxygen)
++	macro_log_feature(DOXYGEN_FOUND "Doxygen" "Tool for building API documentation" "http://doxygen.org" FALSE "" "")
++endif()
+ 
+ 
+ # Display results, terminate if anything required is missing
+diff --git a/CMake/ConfigureBuild.cmake b/CMake/ConfigureBuild.cmake
+index fa9efcd..f0ba3aa 100644
+--- a/CMake/ConfigureBuild.cmake
++++ b/CMake/ConfigureBuild.cmake
+@@ -42,6 +42,16 @@ if (UNIX)
+ 
+   set(MYGUI_ADDITIONAL_LIBS "")
+   set(MYGUI_CFLAGS "")
++  if (MYGUI_STATIC)
++    string(APPEND MYGUI_CFLAGS " -DMYGUI_STATIC")
++  endif ()
++  if (MYGUI_USE_FREETYPE)
++    string(APPEND MYGUI_CFLAGS " -DMYGUI_USE_FREETYPE")
++  endif ()
++  if (MYGUI_DONT_USE_OBSOLETE)
++    string(APPEND MYGUI_CFLAGS " -DMYGUI_DONT_USE_OBSOLETE")
++  endif ()
++  string(STRIP "${MYGUI_CFLAGS}" MYGUI_CFLAGS)
+   set(MYGUI_PREFIX_PATH ${CMAKE_INSTALL_PREFIX})
+   set(MYGUI_ADDITIONAL_LIBS "${MYGUI_ADDITIONAL_LIBS}")
+   if (MYGUI_STATIC)
+diff --git a/MyGUIEngine/CMakeLists.txt b/MyGUIEngine/CMakeLists.txt
+index 9658c8a..d47d940 100644
+--- a/MyGUIEngine/CMakeLists.txt
++++ b/MyGUIEngine/CMakeLists.txt
+@@ -27,7 +27,7 @@ if (NOT ANDROID)
+ 	set_target_properties(${PROJECTNAME} PROPERTIES VERSION ${MYGUI_VERSION} SOVERSION "${MYGUI_VERSION_MAJOR}.${MYGUI_VERSION_MINOR}.${MYGUI_VERSION_PATCH}")
+ endif()
+ 
+-if (UNIX)
++if (UNIX AND NOT APPLE)
+ 	# some platforms require explicit linking to libdl, see if it's available
+ 	find_library(DL_LIBRARY NAMES dl dlsym)
+ 	mark_as_advanced(DL_LIBRARY)
+@@ -43,9 +43,6 @@ if (MYGUI_USE_FREETYPE)
+ 	endif ()
+ 
+ 	target_link_libraries(${PROJECTNAME} ${FREETYPE_LIBRARIES})
+-	if (ZLIB_FOUND) # hacky way to check if freetype was built with zlib
+-		target_link_libraries(${PROJECTNAME} ${ZLIB_LIBRARIES})
+-	endif()
+ endif()
+ 
+ if (${CMAKE_VERSION} VERSION_EQUAL "3.16" OR ${CMAKE_VERSION} VERSION_GREATER "3.16")

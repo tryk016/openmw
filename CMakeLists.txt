@@ -576,6 +576,9 @@ include_directories(".")
 if(MYGUI_STATIC)
     add_compile_definitions(MYGUI_STATIC)
 endif (MYGUI_STATIC)
+if(OPENMW_IOS)
+    add_compile_definitions(${OPENMW_IOS_MYGUI_COMPILE_DEFINITIONS})
+endif()
 
 if (APPLE AND NOT OPENMW_IOS)
     configure_file(${OpenMW_SOURCE_DIR}/files/mac/openmw-Info.plist.in

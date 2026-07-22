@@ -12,9 +12,10 @@ host_triplet="$3"
 target_prefix="$4"
 installed_json="$5"
 
-if [[ "$profile" != language-foundation ]]; then
-    exit 0
-fi
+case "$profile" in
+    language-foundation|ui-foundation) ;;
+    *) exit 0 ;;
+esac
 
 for command in file find jq sort; do
     if ! command -v "$command" >/dev/null 2>&1; then

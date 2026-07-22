@@ -89,6 +89,13 @@ endforeach()
 unset(_openmw_ios_enabled_option)
 set(USE_LUAJIT OFF CACHE BOOL "iOS uses the PUC Lua interpreter" FORCE)
 
+# FindMyGUI.cmake consumes only include/library paths and intentionally ignores
+# the overlay's pkg-config Cflags. Export the missing consumer ABI definitions
+# for the top-level product to apply after dependency discovery.
+set(OPENMW_IOS_MYGUI_COMPILE_DEFINITIONS
+    MYGUI_USE_FREETYPE=ON
+    MYGUI_DONT_USE_OBSOLETE=ON)
+
 message(STATUS
     "OpenMW iOS product profile: sdk=${CMAKE_OSX_SYSROOT}, "
     "arch=${CMAKE_OSX_ARCHITECTURES}, minimum=${CMAKE_OSX_DEPLOYMENT_TARGET}")

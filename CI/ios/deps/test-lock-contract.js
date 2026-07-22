@@ -302,13 +302,19 @@ try {
         "only overlay ports selected by the active lock profile may reach vcpkg",
     );
     requireBuildScriptContract(
-        "language-host-tools-are-validated",
+        "language-and-ui-host-tools-are-validated",
         /validate-host-tools\.sh/.test(buildScript) &&
             /profile="\$1"/.test(hostToolsScript) &&
+            /case "\$profile" in\s*language-foundation\|ui-foundation\) ;;\s*\*\) exit 0 ;;\s*esac/.test(
+                hostToolsScript,
+            ) &&
             /icuinfo/.test(hostToolsScript) &&
             /icucross\.mk/.test(hostToolsScript) &&
-            /port_version == 1/.test(hostToolsScript),
-        "the language profile must validate pinned ICU host tools and cross metadata",
+            /port_version == 1/.test(hostToolsScript) &&
+            /echo "Validated ICU 70\.1#1 host tools and target\/host separation"/.test(
+                hostToolsScript,
+            ),
+        "the language and UI profiles must validate pinned ICU host tools and report success",
     );
     requireBuildScriptContract(
         "stdout-is-reserved-for-prefix",
@@ -417,6 +423,22 @@ try {
     ].dependencies.find((dependency) => dependency.name === "freetype");
     reorderedFreetype.features.reverse();
     runValidator("valid-reordering", lock, reorderedManifest, true);
+
+    for (const profile of ["language-foundation", "ui-foundation"]) {
+        const missingRequiredProfileLock = clone(lock);
+        const missingRequiredProfileManifest = clone(manifest);
+        delete missingRequiredProfileLock.build_profiles[profile];
+        delete missingRequiredProfileLock.expected_vcpkg_transitive_ports[
+            profile
+        ];
+        delete missingRequiredProfileManifest.features[profile];
+        runValidator(
+            `missing-required-${profile}`,
+            missingRequiredProfileLock,
+            missingRequiredProfileManifest,
+            false,
+        );
+    }
 
     const missingPng = clone(manifest);
     missingPng.features["image-foundation"].dependencies.find(

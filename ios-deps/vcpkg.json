@@ -322,6 +322,95 @@
         }
       ]
     },
+    "multimedia-foundation": {
+      "description": "Cumulative UI profile with static OpenAL Soft and minimal FFmpeg",
+      "dependencies": [
+        {
+          "name": "boost-geometry",
+          "default-features": false
+        },
+        {
+          "name": "boost-iostreams",
+          "default-features": false
+        },
+        {
+          "name": "boost-program-options",
+          "default-features": false
+        },
+        {
+          "name": "bullet3",
+          "default-features": false,
+          "features": [
+            "double-precision",
+            "multithreading"
+          ]
+        },
+        {
+          "name": "ffmpeg",
+          "default-features": false
+        },
+        {
+          "name": "freetype",
+          "default-features": false,
+          "features": [
+            "png",
+            "zlib"
+          ]
+        },
+        {
+          "name": "icu",
+          "default-features": false
+        },
+        {
+          "name": "libjpeg-turbo",
+          "default-features": false
+        },
+        {
+          "name": "libpng",
+          "default-features": false
+        },
+        {
+          "name": "lua",
+          "default-features": false
+        },
+        {
+          "name": "lz4",
+          "default-features": false
+        },
+        {
+          "name": "mygui",
+          "default-features": false
+        },
+        {
+          "name": "openal-soft",
+          "default-features": false
+        },
+        {
+          "name": "recastnavigation",
+          "default-features": false
+        },
+        {
+          "name": "sdl2",
+          "default-features": false
+        },
+        {
+          "name": "sqlite3",
+          "default-features": false,
+          "features": [
+            "json1",
+            "omit-load-extension"
+          ]
+        },
+        {
+          "name": "yaml-cpp",
+          "default-features": false
+        },
+        {
+          "name": "zlib",
+          "default-features": false
+        }
+      ]
+    },
     "navigation-foundation": {
       "description": "Cumulative physics profile with minimal Recast/Detour navigation",
       "dependencies": [

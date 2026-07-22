@@ -385,6 +385,39 @@ SET(FFVER_OK FALSE)
 
 find_package(FFmpeg REQUIRED COMPONENTS AVCODEC AVFORMAT AVUTIL SWSCALE SWRESAMPLE)
 
+if(OPENMW_IOS)
+    foreach(_openmw_ios_ffmpeg_component IN ITEMS
+            AVCODEC AVFORMAT AVUTIL SWSCALE SWRESAMPLE)
+        string(TOLOWER "${_openmw_ios_ffmpeg_component}"
+            _openmw_ios_ffmpeg_library_name)
+        set(_openmw_ios_expected_ffmpeg_library
+            "${OPENMW_IOS_DEPS_ROOT}/lib/lib${_openmw_ios_ffmpeg_library_name}.a")
+        if(NOT EXISTS "${_openmw_ios_expected_ffmpeg_library}")
+            message(FATAL_ERROR
+                "Locked FFmpeg archive is missing: "
+                "${_openmw_ios_expected_ffmpeg_library}")
+        endif()
+        if(NOT "${FFmpeg_${_openmw_ios_ffmpeg_component}_LIBRARY}" STREQUAL
+                "${_openmw_ios_expected_ffmpeg_library}")
+            message(FATAL_ERROR
+                "FFmpeg ${_openmw_ios_ffmpeg_component} escaped the locked "
+                "iOS prefix: ${FFmpeg_${_openmw_ios_ffmpeg_component}_LIBRARY}")
+        endif()
+    endforeach()
+    unset(_openmw_ios_ffmpeg_component)
+    unset(_openmw_ios_ffmpeg_library_name)
+    unset(_openmw_ios_expected_ffmpeg_library)
+
+    # The order is deliberate for static archives: format depends on codec,
+    # and both scaling/resampling libraries depend on avutil.
+    set(FFmpeg_LIBRARIES
+        "${OPENMW_IOS_DEPS_ROOT}/lib/libavformat.a"
+        "${OPENMW_IOS_DEPS_ROOT}/lib/libavcodec.a"
+        "${OPENMW_IOS_DEPS_ROOT}/lib/libswresample.a"
+        "${OPENMW_IOS_DEPS_ROOT}/lib/libswscale.a"
+        "${OPENMW_IOS_DEPS_ROOT}/lib/libavutil.a")
+endif()
+
 if(FFmpeg_FOUND)
     SET(FFVER_OK TRUE)
 
@@ -541,6 +574,20 @@ if(OPENMW_USE_SYSTEM_MYGUI)
 endif()
 find_package(SDL2 2.0.20 REQUIRED)
 find_package(OpenAL REQUIRED)
+if(OPENMW_IOS)
+    if(NOT EXISTS "${OPENMW_IOS_DEPS_ROOT}/include/AL/al.h"
+            OR NOT EXISTS "${OPENMW_IOS_DEPS_ROOT}/include/AL/alc.h"
+            OR NOT EXISTS "${OPENMW_IOS_DEPS_ROOT}/lib/libopenal.a")
+        message(FATAL_ERROR
+            "The locked iOS OpenAL Soft package is incomplete")
+    endif()
+    if(NOT OPENAL_INCLUDE_DIR STREQUAL "${OPENMW_IOS_DEPS_ROOT}/include/AL"
+            OR NOT OPENAL_LIBRARY STREQUAL
+                "${OPENMW_IOS_DEPS_ROOT}/lib/libopenal.a")
+        message(FATAL_ERROR
+            "OpenAL must resolve to the locked iOS OpenAL Soft prefix")
+    endif()
+endif()
 find_package(ZLIB REQUIRED)
 
 option(USE_LUAJIT "Switch Lua/LuaJit (TRUE is highly recommended)" TRUE)

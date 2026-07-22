@@ -75,6 +75,36 @@ const simulatorSmokeScript = fs.readFileSync(
     path.join(repoRoot, "CI/ios/smoke-simulator.sh"),
     "utf8",
 );
+const openALPortfile = fs.readFileSync(
+    path.join(repoRoot, "ios-deps/overlay-ports/openal-soft/portfile.cmake"),
+    "utf8",
+);
+const openALProbe = fs.readFileSync(
+    path.join(repoRoot, "ios-deps/smoke/OpenALProbe.c"),
+    "utf8",
+);
+const openALManifest = JSON.parse(
+    fs.readFileSync(
+        path.join(repoRoot, "ios-deps/overlay-ports/openal-soft/vcpkg.json"),
+        "utf8",
+    ),
+);
+const ffmpegPortfile = fs.readFileSync(
+    path.join(repoRoot, "ios-deps/overlay-ports/ffmpeg/portfile.cmake"),
+    "utf8",
+);
+const ffmpegProbe = fs.readFileSync(
+    path.join(repoRoot, "ios-deps/smoke/FFmpegProbe.cpp"),
+    "utf8",
+);
+const iosProductProfile = fs.readFileSync(
+    path.join(repoRoot, "cmake/OpenMWIOSProfile.cmake"),
+    "utf8",
+);
+const openmwAppCmake = fs.readFileSync(
+    path.join(repoRoot, "apps/openmw/CMakeLists.txt"),
+    "utf8",
+);
 const boostUninstallSpdxValidator = path.join(
     __dirname,
     "validate-boost-uninstall-spdx.jq",
@@ -301,13 +331,13 @@ function runBoostUninstallSpdxValidator(
 }
 
 try {
-    const uiFoundationBuildJob = workflowJob(
+    const multimediaFoundationBuildJob = workflowJob(
         dependenciesWorkflow,
-        "ui-foundation",
+        "multimedia-foundation",
     );
-    const uiFoundationRuntimeJob = workflowJob(
+    const multimediaFoundationRuntimeJob = workflowJob(
         dependenciesWorkflow,
-        "ui-foundation-runtime",
+        "multimedia-foundation-runtime",
     );
     requireBuildScriptContract(
         "dependency-workflow-watches-runtime-runner",
@@ -319,80 +349,80 @@ try {
         "pull-request and ios/main push filters must both run dependency CI when the shared simulator runner changes",
     );
     requireBuildScriptContract(
-        "ui-build-matrix-only-produces-evidence",
-        uiFoundationBuildJob.includes("matrix:") &&
-            uiFoundationBuildJob.includes(
-                "name: ios-deps-ui-foundation-${{ matrix.platform }}-${{ github.sha }}",
+        "multimedia-build-matrix-only-produces-evidence",
+        multimediaFoundationBuildJob.includes("matrix:") &&
+            multimediaFoundationBuildJob.includes(
+                "name: ios-deps-multimedia-foundation-${{ matrix.platform }}-${{ github.sha }}",
             ) &&
-            uiFoundationBuildJob.includes(
+            multimediaFoundationBuildJob.includes(
                 "build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWDepsSmoke.app",
             ) &&
             /name: Archive simulator runtime input[\s\S]*?if: matrix\.platform == 'iphonesimulator'[\s\S]*?tar -C[\s\S]*?OpenMWDepsSmoke\.app\.tar\.gz/.test(
-                uiFoundationBuildJob,
+                multimediaFoundationBuildJob,
             ) &&
-            /name: Upload simulator runtime input[\s\S]*?if: matrix\.platform == 'iphonesimulator'[\s\S]*?name: ios-deps-ui-foundation-runtime-input-\$\{\{ github\.sha \}\}[\s\S]*?path: build\/ios-deps\/\$\{\{ matrix\.platform \}\}\/runtime-input\/OpenMWDepsSmoke\.app\.tar\.gz[\s\S]*?overwrite: true/.test(
-                uiFoundationBuildJob,
+            /name: Upload simulator runtime input[\s\S]*?if: matrix\.platform == 'iphonesimulator'[\s\S]*?name: ios-deps-multimedia-foundation-runtime-input-\$\{\{ github\.sha \}\}[\s\S]*?path: build\/ios-deps\/\$\{\{ matrix\.platform \}\}\/runtime-input\/OpenMWDepsSmoke\.app\.tar\.gz[\s\S]*?overwrite: true/.test(
+                multimediaFoundationBuildJob,
             ) &&
-            !uiFoundationBuildJob.includes("smoke-simulator.sh") &&
-            !uiFoundationBuildJob.includes("simctl") &&
-            !uiFoundationBuildJob.includes("runtime-smoke"),
-        "the expensive UI matrix must build and upload each platform artifact without starting a simulator",
+            !multimediaFoundationBuildJob.includes("smoke-simulator.sh") &&
+            !multimediaFoundationBuildJob.includes("simctl") &&
+            !multimediaFoundationBuildJob.includes("runtime-smoke"),
+        "the expensive multimedia matrix must build and upload each platform artifact without starting a simulator",
     );
     requireBuildScriptContract(
-        "ui-runtime-job-consumes-exact-simulator-artifact",
-        uiFoundationRuntimeJob.includes("needs: ui-foundation") &&
-            uiFoundationRuntimeJob.includes("runs-on: macos-15") &&
-            uiFoundationRuntimeJob.includes(
+        "multimedia-runtime-job-consumes-exact-simulator-artifact",
+        multimediaFoundationRuntimeJob.includes("needs: multimedia-foundation") &&
+            multimediaFoundationRuntimeJob.includes("runs-on: macos-15") &&
+            multimediaFoundationRuntimeJob.includes(
                 "DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer",
             ) &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes(
                 'test "$(xcodebuild -version | sed -n \'1p\')" = "Xcode 16.4"',
             ) &&
             /uses: actions\/download-artifact@v\d+/.test(
-                uiFoundationRuntimeJob,
+                multimediaFoundationRuntimeJob,
             ) &&
-            uiFoundationRuntimeJob.includes(
-                "name: ios-deps-ui-foundation-runtime-input-${{ github.sha }}",
+            multimediaFoundationRuntimeJob.includes(
+                "name: ios-deps-multimedia-foundation-runtime-input-${{ github.sha }}",
             ) &&
-            !uiFoundationRuntimeJob.includes(
-                "ios-deps-ui-foundation-iphonesimulator",
+            !multimediaFoundationRuntimeJob.includes(
+                "ios-deps-multimedia-foundation-iphonesimulator",
             ) &&
-            !uiFoundationRuntimeJob.includes("pattern:") &&
-            !uiFoundationRuntimeJob.includes("merge-multiple:") &&
-            uiFoundationRuntimeJob.includes(
+            !multimediaFoundationRuntimeJob.includes("pattern:") &&
+            !multimediaFoundationRuntimeJob.includes("merge-multiple:") &&
+            multimediaFoundationRuntimeJob.includes(
                 '-type f -name OpenMWDepsSmoke.app.tar.gz -print >"$archives_file"',
             ) &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes(
                 'if [[ "$archive_count" -ne 1 ]]; then',
             ) &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes(
                 'tar -xzf "$archive" -C "$extracted_root"',
             ) &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes(
                 '-type d -name OpenMWDepsSmoke.app -print >"$apps_file"',
             ) &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes(
                 'if [[ "$app_count" -ne 1 ]]; then',
             ) &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes(
                 'test "$bundle_id" = "org.openmw.ios.deps-smoke"',
             ) &&
-            uiFoundationRuntimeJob.includes('test -n "$executable_name"') &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes('test -n "$executable_name"') &&
+            multimediaFoundationRuntimeJob.includes(
                 'test -x "${app}/${executable_name}"',
             ) &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes(
                 "bash CI/ios/smoke-simulator.sh",
             ) &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes(
                 '"org.openmw.ios.deps-smoke"',
             ) &&
-            uiFoundationRuntimeJob.includes('"ui foundation PASS"') &&
-            uiFoundationRuntimeJob.includes(
-                "name: ios-deps-ui-foundation-runtime-${{ github.sha }}-${{ github.run_attempt }}",
+            multimediaFoundationRuntimeJob.includes('"multimedia foundation PASS"') &&
+            multimediaFoundationRuntimeJob.includes(
+                "name: ios-deps-multimedia-foundation-runtime-${{ github.sha }}-${{ github.run_attempt }}",
             ) &&
-            !uiFoundationRuntimeJob.includes("CI/ios/deps/build.sh"),
-        "the short runtime job must wait for the full matrix, download only the SHA-pinned tar input, restore and validate one executable app under Xcode 16.4, and execute the UI probe",
+            !multimediaFoundationRuntimeJob.includes("CI/ios/deps/build.sh"),
+        "the short runtime job must wait for the full matrix, download only the SHA-pinned tar input, restore and validate one executable app under Xcode 16.4, and execute the multimedia probes",
     );
 
     const runtimeResultNames = [
@@ -403,6 +433,8 @@ try {
         "luaResult",
         "icuResult",
         "myGuiResult",
+        "openALResult",
+        "ffmpegResult",
     ];
     const runtimeLogFields = [
         "sdlInitResult",
@@ -429,10 +461,14 @@ try {
         "icuPassed",
         "myGuiResult",
         "myGuiPassed",
+        "openALResult",
+        "openALPassed",
+        "ffmpegResult",
+        "ffmpegPassed",
         "smokePassed",
     ];
     requireBuildScriptContract(
-        "ui-runtime-log-is-complete",
+        "multimedia-runtime-log-is-complete",
         runtimeResultNames.every((resultName) =>
             new RegExp(`const int ${resultName}\\s*=`).test(smokeMain),
         ) &&
@@ -448,7 +484,7 @@ try {
             runtimeLogFields.every((field) =>
                 smokeMain.includes(`${field}=%{public}d`),
             ),
-        "the unified log must expose every probe result and pass/fail boolean, including the raw MyGUI result",
+        "the unified log must expose every dependency probe result and pass/fail boolean, including raw MyGUI, OpenAL and FFmpeg results",
     );
 
     const unifiedLogCapture = simulatorSmokeScript.indexOf(
@@ -492,6 +528,12 @@ try {
     );
 
     requireBuildScriptContract(
+        "dependency-names-are-unique",
+        new Set(lock.dependencies.map((dependency) => dependency.name)).size ===
+            lock.dependencies.length,
+        "every dependency must have exactly one source/port policy record",
+    );
+    requireBuildScriptContract(
         "offline-downloads-are-fresh",
         /downloads="\$\{platform_root\}\/offline-downloads"/.test(buildScript) &&
             /rm -rf "\$downloads"/.test(buildScript),
@@ -534,10 +576,10 @@ try {
         "only overlay ports selected by the active lock profile may reach vcpkg",
     );
     requireBuildScriptContract(
-        "language-and-ui-host-tools-are-validated",
+        "language-ui-and-multimedia-host-tools-are-validated",
         /validate-host-tools\.sh/.test(buildScript) &&
             /profile="\$1"/.test(hostToolsScript) &&
-            /case "\$profile" in\s*language-foundation\|ui-foundation\) ;;\s*\*\) exit 0 ;;\s*esac/.test(
+            /case "\$profile" in\s*language-foundation\|ui-foundation\|multimedia-foundation\) ;;\s*\*\) exit 0 ;;\s*esac/.test(
                 hostToolsScript,
             ) &&
             /icuinfo/.test(hostToolsScript) &&
@@ -546,7 +588,7 @@ try {
             /echo "Validated ICU 70\.1#1 host tools and target\/host separation"/.test(
                 hostToolsScript,
             ),
-        "the language and UI profiles must validate pinned ICU host tools and report success",
+        "the language, UI and multimedia profiles must validate pinned ICU host tools and report success",
     );
     requireBuildScriptContract(
         "stdout-is-reserved-for-prefix",
@@ -640,6 +682,116 @@ try {
         "the MyGUI target must carry its full static closure for consumers",
     );
     requireBuildScriptContract(
+        "openal-static-coreaudio-contract",
+        lock.dependencies
+            .find((dependency) => dependency.name === "openal-soft")
+            .license_files.includes("core/bs2b.cpp") &&
+            lock.dependencies
+                .find((dependency) => dependency.name === "openal-soft")
+                .license_files.includes("common/filesystem.cpp") &&
+            lock.dependencies
+                .find((dependency) => dependency.name === "openal-soft")
+                .license_files.includes("common/ghc_filesystem.h") &&
+            /deterministically extracts complete MIT notices/.test(
+                lock.dependencies.find(
+                    (dependency) => dependency.name === "openal-soft",
+                ).license_notice,
+            ) &&
+            openALManifest.license ===
+            "LGPL-2.0-or-later AND BSD-3-Clause AND MIT" &&
+            /ALSOFT_BACKEND_COREAUDIO=ON/.test(openALPortfile) &&
+            /ALSOFT_REQUIRE_COREAUDIO=ON/.test(openALPortfile) &&
+            ["PIPEWIRE", "PULSEAUDIO", "ALSA", "JACK", "SDL2", "WAVE"].every(
+                (backend) =>
+                    new RegExp(`ALSOFT_BACKEND_${backend}=OFF`).test(
+                        openALPortfile,
+                    ),
+            ) &&
+            /BSD-3Clause/.test(openALPortfile) &&
+            /fmt-11\.1\.1\/LICENSE/.test(openALPortfile) &&
+            /core\/bs2b\.cpp/.test(openALPortfile) &&
+            /common\/filesystem\.cpp/.test(openALPortfile) &&
+            /common\/ghc_filesystem\.h/.test(openALPortfile) &&
+            /bs2b-MIT\.txt/.test(openALPortfile) &&
+            /filesystem-MIT\.txt/.test(openALPortfile) &&
+            /ghc-filesystem-MIT\.txt/.test(openALPortfile) &&
+            /NOT notice MATCHES "included in all"/.test(openALPortfile) &&
+            /NOT notice MATCHES "copies or substantial portions"/.test(
+                openALPortfile,
+            ) &&
+            /THE SOFTWARE IS PROVIDED \.AS IS\./.test(openALPortfile) &&
+            /validate_openal_mit_notice/.test(prefixValidator) &&
+            /Copyright \(c\) 2005 Boris Mikhaylov/.test(prefixValidator) &&
+            /Copyright \(c\) 2018, Steffen/.test(prefixValidator) &&
+            /OPENAL_INCLUDE_DIR "\$\{OPENMW_IOS_DEPS_ROOT\}\/include\/AL"/.test(
+                iosProductProfile,
+            ) &&
+            /OPENAL_LIBRARY "\$\{OPENMW_IOS_DEPS_ROOT\}\/lib\/libopenal\.a"/.test(
+                iosProductProfile,
+            ) &&
+            /framework CoreAudio/.test(openmwAppCmake) &&
+            /framework CoreFoundation/.test(openmwAppCmake) &&
+            /framework AudioToolbox/.test(openmwAppCmake) &&
+            /target_link_options\(openmw-lib INTERFACE/.test(openmwAppCmake),
+        "OpenAL Soft must be prefix-pinned, CoreAudio-only and carry all notices/frameworks",
+    );
+    const openALProbeReturnCodes = [
+        ...openALProbe.matchAll(/\breturn\s+(\d+)\s*;/g),
+    ].map((match) => Number(match[1]));
+    requireBuildScriptContract(
+        "openal-loopback-probe-is-non-vacuous",
+        /if\s*\(alcIsExtensionPresent\(NULL,\s*"ALC_SOFT_loopback"\)\s*!=\s*ALC_TRUE\)\s*return\s+[1-9]\d*\s*;/.test(
+            openALProbe,
+        ) &&
+            /alcGetProcAddress\(NULL,\s*"alcLoopbackOpenDeviceSOFT"\)/.test(
+                openALProbe,
+            ) &&
+            /if\s*\(loopbackOpenDevice\s*==\s*NULL\)\s*return\s+[1-9]\d*\s*;/.test(
+                openALProbe,
+            ) &&
+            /loopbackDevice\s*=\s*loopbackOpenDevice\(NULL\)/.test(
+                openALProbe,
+            ) &&
+            /if\s*\(loopbackDevice\s*==\s*NULL\)\s*return\s+[1-9]\d*\s*;/.test(
+                openALProbe,
+            ) &&
+            /alcGetError\(loopbackDevice\)\s*!=\s*ALC_NO_ERROR/.test(
+                openALProbe,
+            ) &&
+            /alcCloseDevice\(loopbackDevice\)\s*!=\s*ALC_TRUE/.test(
+                openALProbe,
+            ) &&
+            /physicalDevice\s*!=\s*NULL\s*&&\s*alcCloseDevice\(physicalDevice\)\s*!=\s*ALC_TRUE/.test(
+                openALProbe,
+            ) &&
+            openALProbeReturnCodes.at(-1) === 0 &&
+            new Set(openALProbeReturnCodes.filter((code) => code !== 0)).size >=
+                6 &&
+            !/\(void\)\s*alc(?:IsExtensionPresent|GetProcAddress|GetError|CloseDevice)/.test(
+                openALProbe,
+            ),
+        "the OpenAL probe must validate loopback discovery, open/error/close behavior and every optional-device close before reporting success",
+    );
+    requireBuildScriptContract(
+        "ffmpeg-minimal-lgpl-contract",
+        /--disable-network/.test(ffmpegPortfile) &&
+            /--disable-protocols/.test(ffmpegPortfile) &&
+            /--disable-devices/.test(ffmpegPortfile) &&
+            /--disable-programs/.test(ffmpegPortfile) &&
+            /--disable-gpl/.test(ffmpegPortfile) &&
+            /--disable-nonfree/.test(ffmpegPortfile) &&
+            /--disable-version3/.test(ffmpegPortfile) &&
+            /--enable-demuxer=bink,matroska,mp3,ogg,wav/.test(ffmpegPortfile) &&
+            /--enable-decoder=bink,binkaudio_dct,binkaudio_rdft,mp3,pcm_s16le,pcm_u8,vorbis,opus,vp8,vp9/.test(
+                ffmpegPortfile,
+            ) &&
+            /openmw-corresponding-source\.txt/.test(ffmpegPortfile) &&
+            /avio_enum_protocols/.test(ffmpegProbe) &&
+            /AV_CODEC_ID_H264/.test(ffmpegProbe) &&
+            /AV_CODEC_ID_AAC/.test(ffmpegProbe),
+        "FFmpeg must retain its exact no-network LGPL allowlist and compliance evidence",
+    );
+    requireBuildScriptContract(
         "boost-uninstall-notice-is-narrow",
         /IOS_DEPS_BUILD_ROOT/.test(packageMetadataScript) &&
             /IOS_DEPS_VCPKG_ROOT/.test(packageMetadataScript) &&
@@ -715,7 +867,11 @@ try {
     reorderedFreetype.features.reverse();
     runValidator("valid-reordering", lock, reorderedManifest, true);
 
-    for (const profile of ["language-foundation", "ui-foundation"]) {
+    for (const profile of [
+        "language-foundation",
+        "ui-foundation",
+        "multimedia-foundation",
+    ]) {
         const missingRequiredProfileLock = clone(lock);
         const missingRequiredProfileManifest = clone(manifest);
         delete missingRequiredProfileLock.build_profiles[profile];
@@ -1061,6 +1217,82 @@ try {
         uiClosureWithoutIcuTools,
         false,
         "ui-foundation",
+    );
+
+    const missingMultimediaOpenAL = clone(manifest);
+    missingMultimediaOpenAL.features[
+        "multimedia-foundation"
+    ].dependencies = missingMultimediaOpenAL.features[
+        "multimedia-foundation"
+    ].dependencies.filter((dependency) => dependency.name !== "openal-soft");
+    runValidator(
+        "missing-multimedia-openal",
+        lock,
+        missingMultimediaOpenAL,
+        false,
+    );
+
+    const missingMultimediaFFmpeg = clone(manifest);
+    missingMultimediaFFmpeg.features[
+        "multimedia-foundation"
+    ].dependencies = missingMultimediaFFmpeg.features[
+        "multimedia-foundation"
+    ].dependencies.filter((dependency) => dependency.name !== "ffmpeg");
+    runValidator(
+        "missing-multimedia-ffmpeg",
+        lock,
+        missingMultimediaFFmpeg,
+        false,
+    );
+
+    const multimediaDefaultsEnabled = clone(manifest);
+    multimediaDefaultsEnabled.features[
+        "multimedia-foundation"
+    ].dependencies.find(
+        (dependency) => dependency.name === "openal-soft",
+    )["default-features"] = true;
+    runValidator(
+        "multimedia-openal-default-features-enabled",
+        lock,
+        multimediaDefaultsEnabled,
+        false,
+    );
+
+    const multimediaTriplet = "arm64-ios-openmw";
+    const multimediaHostTriplet = "arm64-osx";
+    const multimediaClosureRecords = [
+        ...directPortEntries(lock, "multimedia-foundation", multimediaTriplet),
+        ...lock.expected_vcpkg_transitive_ports[
+            "multimedia-foundation"
+        ].target.map((entry) =>
+            installedRecord(entry.port, multimediaTriplet, entry.features ?? []),
+        ),
+        ...lock.expected_vcpkg_transitive_ports[
+            "multimedia-foundation"
+        ].host.map((entry) =>
+            installedRecord(
+                entry.port,
+                multimediaHostTriplet,
+                entry.features ?? [],
+            ),
+        ),
+    ];
+    runClosureValidator(
+        "valid-multimedia-installed-closure",
+        lock,
+        multimediaClosureRecords,
+        true,
+        "multimedia-foundation",
+    );
+
+    runClosureValidator(
+        "missing-multimedia-cmake-get-vars",
+        lock,
+        multimediaClosureRecords.filter(
+            (record) => record.package_name !== "vcpkg-cmake-get-vars",
+        ),
+        false,
+        "multimedia-foundation",
     );
 
     const missingPortSource = clone(lock);

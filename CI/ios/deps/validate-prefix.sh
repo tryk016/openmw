@@ -424,6 +424,150 @@ if [[ -d "${prefix}/share/mygui" \
     fi
 fi
 
+if [[ -d "${prefix}/share/openal-soft" \
+        || -f "${prefix}/lib/libopenal.a" ]]; then
+    for openal_path in \
+            "${prefix}/lib/libopenal.a" \
+            "${prefix}/include/AL/al.h" \
+            "${prefix}/include/AL/alc.h" \
+            "${prefix}/include/AL/alext.h" \
+            "${prefix}/share/openal-soft/notices/bs2b-MIT.txt" \
+            "${prefix}/share/openal-soft/notices/filesystem-MIT.txt" \
+            "${prefix}/share/openal-soft/notices/ghc-filesystem-MIT.txt" \
+            "${prefix}/share/openal-soft/copyright"; do
+        if [[ ! -f "$openal_path" ]]; then
+            echo "The static OpenAL Soft package is missing: $openal_path" >&2
+            exit 1
+        fi
+    done
+    unexpected_openal_artifact="$(
+        find "${prefix}/bin" "${prefix}/tools" -type f \
+            \( -iname '*openal*' -o -iname 'alsoft*' \) \
+            -print -quit 2>/dev/null || true
+    )"
+    if [[ -n "$unexpected_openal_artifact" ]]; then
+        echo "An OpenAL utility leaked into the target prefix: $unexpected_openal_artifact" >&2
+        exit 1
+    fi
+
+    validate_openal_mit_notice() {
+        local notice_file="$1"
+        local attribution="$2"
+        for required_text in \
+                "$attribution" \
+                "Permission is hereby granted" \
+                "included in all" \
+                "copies or substantial portions" \
+                'THE SOFTWARE IS PROVIDED "AS IS"' \
+                "LIABILITY"; do
+            if ! grep -Fq "$required_text" "$notice_file"; then
+                echo "OpenAL MIT notice is incomplete: ${notice_file}" >&2
+                exit 1
+            fi
+        done
+    }
+    validate_openal_mit_notice \
+        "${prefix}/share/openal-soft/notices/bs2b-MIT.txt" \
+        "Copyright (c) 2005 Boris Mikhaylov"
+    validate_openal_mit_notice \
+        "${prefix}/share/openal-soft/notices/filesystem-MIT.txt" \
+        "Copyright (c) 2018, Steffen"
+    validate_openal_mit_notice \
+        "${prefix}/share/openal-soft/notices/ghc-filesystem-MIT.txt" \
+        "Copyright (c) 2018, Steffen"
+    for merged_attribution in \
+            "Copyright (c) 2005 Boris Mikhaylov" \
+            "Copyright (c) 2018, Steffen"; do
+        if ! grep -Fq "$merged_attribution" \
+                "${prefix}/share/openal-soft/copyright"; then
+            echo "OpenAL copyright omitted a generated MIT notice" >&2
+            exit 1
+        fi
+    done
+fi
+
+if [[ -d "${prefix}/share/ffmpeg" \
+        || -f "${prefix}/lib/libavcodec.a" ]]; then
+    for ffmpeg_path in \
+            "${prefix}/lib/libavcodec.a" \
+            "${prefix}/lib/libavformat.a" \
+            "${prefix}/lib/libavutil.a" \
+            "${prefix}/lib/libswresample.a" \
+            "${prefix}/lib/libswscale.a" \
+            "${prefix}/include/libavcodec/avcodec.h" \
+            "${prefix}/include/libavformat/avformat.h" \
+            "${prefix}/include/libavutil/avutil.h" \
+            "${prefix}/include/libswresample/swresample.h" \
+            "${prefix}/include/libswscale/swscale.h" \
+            "${prefix}/share/ffmpeg/copyright" \
+            "${prefix}/share/ffmpeg/config.h" \
+            "${prefix}/share/ffmpeg/config_components.h" \
+            "${prefix}/share/ffmpeg/openmw-configure-options.txt" \
+            "${prefix}/share/ffmpeg/openmw-corresponding-source.txt" \
+            "${prefix}/share/ffmpeg/0020-fix-aarch64-libswscale.patch" \
+            "${prefix}/share/ffmpeg/vcpkg-cmake-wrapper.cmake"; do
+        if [[ ! -f "$ffmpeg_path" ]]; then
+            echo "The minimal FFmpeg package is missing: $ffmpeg_path" >&2
+            exit 1
+        fi
+    done
+
+    forbidden_ffmpeg_artifact="$(
+        find "${prefix}/lib" "${prefix}/include" "${prefix}/bin" \
+                "${prefix}/tools" -type f \
+            \( -name 'libavdevice.a' -o -name 'libavfilter.a' \
+            -o -name 'libpostproc.a' -o -path '*/libavdevice/*' \
+            -o -path '*/libavfilter/*' -o -path '*/libpostproc/*' \
+            -o -name ffmpeg -o -name ffprobe -o -name ffplay \) \
+            -print -quit 2>/dev/null || true
+    )"
+    if [[ -n "$forbidden_ffmpeg_artifact" ]]; then
+        echo "A forbidden FFmpeg component or program leaked into the prefix: $forbidden_ffmpeg_artifact" >&2
+        exit 1
+    fi
+
+    ffmpeg_config="${prefix}/share/ffmpeg/config.h"
+    ffmpeg_components="${prefix}/share/ffmpeg/config_components.h"
+    for security_flag in CONFIG_GPL CONFIG_NONFREE CONFIG_VERSION3; do
+        if ! grep -Eq "^#define ${security_flag} 0$" "$ffmpeg_config"; then
+            echo "FFmpeg security/license policy changed: ${security_flag}" >&2
+            exit 1
+        fi
+    done
+
+    assert_ffmpeg_allowlist() {
+        local suffix="$1"
+        shift
+        local expected_file="${ffmpeg_policy_root}/expected-${suffix}"
+        local actual_file="${ffmpeg_policy_root}/actual-${suffix}"
+        : >"$expected_file"
+        if (($# > 0)); then
+            printf '%s\n' "$@" | sort >"$expected_file"
+        fi
+        sed -nE "s/^#define CONFIG_([A-Z0-9_]+)_${suffix} 1$/\\1/p" \
+            "$ffmpeg_components" | sort >"$actual_file"
+        if ! diff -u "$expected_file" "$actual_file"; then
+            echo "FFmpeg ${suffix} allowlist changed" >&2
+            exit 1
+        fi
+    }
+
+    ffmpeg_policy_root="$(mktemp -d)"
+    assert_ffmpeg_allowlist DEMUXER BINK MATROSKA MP3 OGG WAV
+    assert_ffmpeg_allowlist DECODER \
+        BINK BINKAUDIO_DCT BINKAUDIO_RDFT MP3 PCM_S16LE PCM_U8 \
+        OPUS VORBIS VP8 VP9
+    assert_ffmpeg_allowlist PARSER MPEGAUDIO VP9
+    assert_ffmpeg_allowlist BSF VP9_SUPERFRAME_SPLIT
+    assert_ffmpeg_allowlist PROTOCOL
+    assert_ffmpeg_allowlist ENCODER
+    assert_ffmpeg_allowlist MUXER
+    assert_ffmpeg_allowlist INDEV
+    assert_ffmpeg_allowlist OUTDEV
+    assert_ffmpeg_allowlist FILTER
+    rm -rf "$ffmpeg_policy_root"
+fi
+
 temporary_root="$(mktemp -d)"
 trap 'rm -rf "$temporary_root"' EXIT
 object_count=0

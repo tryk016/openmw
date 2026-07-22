@@ -124,16 +124,22 @@ zależności ma manifest:
 - licencja.
 
 Workflow `iOS dependencies` buduje obecnie kumulatywny profil
-`ui-foundation` osobno dla device i simulatora. Profil zawiera pełny
-`language-foundation` i dodaje statyczny silnik MyGUI 3.4.3 bez adapterów
-platformy, rendererów, pluginów, wrapperów, narzędzi, demo, testów i
-dokumentacji. Każdy slice wykonuje
+`multimedia-foundation` osobno dla device i simulatora. Profil zawiera pełny
+`ui-foundation` i dodaje statyczny OpenAL Soft 1.24.3 oraz minimalny statyczny
+FFmpeg 7.1.1. Każdy slice wykonuje
 czysty build online, walidację targetowego prefiksu, osobną walidację
 `icu[tools]` hosta, link probe, czysty rebuild offline oraz ponowną walidację i
-link. Simulator musi dodatkowo wykonać probe MyGUI XML/UString i zalogować
-`ui foundation PASS`. Artefakt zawiera znormalizowaną closure vcpkg, hostowe
-metadane ICU, statyczny silnik MyGUI z nagłówkami i metadanymi pkg-config,
-SPDX, notices i dedykowane binaria probe; timeout joba wynosi 180 minut.
+link. Simulator wykonuje probe MyGUI, OpenAL i dokładnej allowlisty FFmpeg
+oraz loguje `multimedia foundation PASS`. Artefakt zawiera znormalizowaną
+closure vcpkg, hostowe metadane ICU, statyczne archiwa, wynikową konfigurację
+FFmpeg, odpowiadające źródło/patch, SPDX, notices i dedykowane binaria probe;
+timeout joba wynosi 180 minut.
+
+Długi matrix wyłącznie buduje i archiwizuje aplikację symulatora. Osobny,
+krótki job runtime czeka na oba slice, pobiera dokładnie jeden artefakt tar
+przypięty do SHA, waliduje bundle i dopiero wtedy uruchamia probe w
+symulatorze. Instalacja, start, unified log, screenshot, żywotność procesu i
+oczekiwany marker są zbierane razem, a każdy błąd kończy job wynikiem non-zero.
 
 ## Artefakt SideStore
 

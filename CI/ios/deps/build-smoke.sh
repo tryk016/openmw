@@ -55,6 +55,8 @@ cmake --build "$build_dir" \
         openmw-ios-lua-probe \
         openmw-ios-icu-probe \
         openmw-ios-mygui-probe \
+        openmw-ios-openal-probe \
+        openmw-ios-ffmpeg-probe \
         openmw-ios-yaml-probe \
         openmw-ios-sqlite-probe \
     --parallel 3
@@ -100,6 +102,14 @@ mygui_probe="$(
     find "$build_dir" -type f -name OpenMWMyGUIProbe \
         ! -path '*.dSYM/*' -print -quit
 )"
+openal_probe="$(
+    find "$build_dir" -type f -name OpenMWOpenALProbe \
+        ! -path '*.dSYM/*' -print -quit
+)"
+ffmpeg_probe="$(
+    find "$build_dir" -type f -name OpenMWFFmpegProbe \
+        ! -path '*.dSYM/*' -print -quit
+)"
 yaml_probe="$(
     find "$build_dir" -type f -name OpenMWYAMLProbe \
         ! -path '*.dSYM/*' -print -quit
@@ -118,6 +128,8 @@ for binary in \
         "$lua_probe" \
         "$icu_probe" \
         "$mygui_probe" \
+        "$openal_probe" \
+        "$ffmpeg_probe" \
         "$yaml_probe" \
         "$sqlite_probe"; do
     if [[ -z "$binary" || ! -f "$binary" ]]; then
@@ -136,7 +148,7 @@ for binary in \
         exit 1
     fi
     if otool -L "$binary" | tail -n +2 |
-            grep -E '/usr/lib/libsqlite3[^/]*\.dylib|libyaml-cpp[^/]*\.dylib|lib(Recast|Detour|DebugUtils)[^/]*\.dylib|libicu(data|i18n|uc)[^/]*\.dylib|liblua[^/]*\.dylib|libMyGUI[^/]*\.dylib'; then
+            grep -E '/usr/lib/libsqlite3[^/]*\.dylib|libyaml-cpp[^/]*\.dylib|lib(Recast|Detour|DebugUtils)[^/]*\.dylib|libicu(data|i18n|uc)[^/]*\.dylib|liblua[^/]*\.dylib|libMyGUI[^/]*\.dylib|lib(openal|avcodec|avformat|avutil|swresample|swscale)[^/]*\.dylib'; then
         echo "${binary}: bypassed a locked static dependency archive" >&2
         exit 1
     fi

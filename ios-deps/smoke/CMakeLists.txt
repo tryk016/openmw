@@ -295,6 +295,49 @@ if(NOT mygui_target_link_interface STREQUAL expected_mygui_link_interface)
         "MyGUI does not propagate its complete static link interface")
 endif()
 
+set(openal_archive "${IOS_DEPS_PREFIX}/lib/libopenal.a")
+if(NOT EXISTS "${openal_archive}")
+    message(FATAL_ERROR
+        "The locked static OpenAL Soft archive is missing: ${openal_archive}")
+endif()
+find_library(COREAUDIO_FRAMEWORK CoreAudio REQUIRED)
+find_library(COREFOUNDATION_FRAMEWORK CoreFoundation REQUIRED)
+find_library(AUDIOTOOLBOX_FRAMEWORK AudioToolbox REQUIRED)
+add_library(OpenMWIOS::OpenAL STATIC IMPORTED GLOBAL)
+set_target_properties(OpenMWIOS::OpenAL PROPERTIES
+    IMPORTED_CONFIGURATIONS RELEASE
+    IMPORTED_LOCATION_RELEASE "${openal_archive}"
+    INTERFACE_INCLUDE_DIRECTORIES "${IOS_DEPS_PREFIX}/include"
+    INTERFACE_LINK_LIBRARIES
+        "${COREAUDIO_FRAMEWORK};${COREFOUNDATION_FRAMEWORK};${AUDIOTOOLBOX_FRAMEWORK}")
+
+set(ffmpeg_archives
+    "${IOS_DEPS_PREFIX}/lib/libavformat.a"
+    "${IOS_DEPS_PREFIX}/lib/libavcodec.a"
+    "${IOS_DEPS_PREFIX}/lib/libswresample.a"
+    "${IOS_DEPS_PREFIX}/lib/libswscale.a"
+    "${IOS_DEPS_PREFIX}/lib/libavutil.a")
+foreach(ffmpeg_archive IN LISTS ffmpeg_archives)
+    if(NOT EXISTS "${ffmpeg_archive}")
+        message(FATAL_ERROR
+            "A locked minimal FFmpeg archive is missing: ${ffmpeg_archive}")
+    endif()
+endforeach()
+foreach(forbidden_ffmpeg_archive IN ITEMS
+        libavdevice.a libavfilter.a libpostproc.a)
+    if(EXISTS "${IOS_DEPS_PREFIX}/lib/${forbidden_ffmpeg_archive}")
+        message(FATAL_ERROR
+            "A forbidden FFmpeg component leaked into the prefix: ${forbidden_ffmpeg_archive}")
+    endif()
+endforeach()
+find_library(COREMEDIA_FRAMEWORK CoreMedia REQUIRED)
+find_library(COREVIDEO_FRAMEWORK CoreVideo REQUIRED)
+add_library(OpenMWIOS::FFmpeg INTERFACE IMPORTED GLOBAL)
+set_target_properties(OpenMWIOS::FFmpeg PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${IOS_DEPS_PREFIX}/include"
+    INTERFACE_LINK_LIBRARIES
+        "${ffmpeg_archives};${COREFOUNDATION_FRAMEWORK};${COREMEDIA_FRAMEWORK};${COREVIDEO_FRAMEWORK}")
+
 set(PNG_PNG_INCLUDE_DIR "${IOS_DEPS_PREFIX}/include")
 set(PNG_LIBRARY "${png_archive}")
 set(PNG_LIBRARY_RELEASE "${png_archive}")
@@ -324,9 +367,11 @@ find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
 add_executable(openmw-ios-deps-smoke MACOSX_BUNDLE
     Main.mm
     BulletProbe.cpp
+    FFmpegProbe.cpp
     IcuProbe.cpp
     LuaProbe.cpp
     MyGUIProbe.cpp
+    OpenALProbe.c
     RecastProbe.cpp
     YamlProbe.cpp
     SQLiteProbe.c)
@@ -354,6 +399,8 @@ target_link_libraries(openmw-ios-deps-smoke PRIVATE
     ICU::uc
     ICU::data
     OpenMWIOS::MyGUI
+    OpenMWIOS::OpenAL
+    OpenMWIOS::FFmpeg
     yaml-cpp::yaml-cpp
     SQLite3::SQLite3
     Threads::Threads
@@ -369,6 +416,27 @@ set_target_properties(openmw-ios-deps-smoke PROPERTIES
     XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "16.4"
     XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "org.openmw.ios.deps-smoke"
     XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")
+
+add_executable(openmw-ios-openal-probe OpenALProbe.c)
+target_compile_features(openmw-ios-openal-probe PRIVATE c_std_11)
+target_link_libraries(openmw-ios-openal-probe PRIVATE OpenMWIOS::OpenAL)
+set_target_properties(openmw-ios-openal-probe PROPERTIES
+    OUTPUT_NAME "OpenMWOpenALProbe"
+    LINKER_LANGUAGE CXX
+    XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
+    XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "16.4")
+
+add_executable(openmw-ios-ffmpeg-probe FFmpegProbe.cpp)
+target_compile_features(openmw-ios-ffmpeg-probe PRIVATE cxx_std_20)
+target_link_libraries(openmw-ios-ffmpeg-probe PRIVATE OpenMWIOS::FFmpeg)
+set_target_properties(openmw-ios-ffmpeg-probe PROPERTIES
+    OUTPUT_NAME "OpenMWFFmpegProbe"
+    XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
+    XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "16.4")
 
 add_executable(openmw-ios-jpeg-probe JpegProbe.c)
 target_link_libraries(openmw-ios-jpeg-probe PRIVATE JPEG::JPEG)

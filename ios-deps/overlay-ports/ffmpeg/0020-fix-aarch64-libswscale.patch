@@ -1,0 +1,24 @@
+diff --git a/libswscale/aarch64/yuv2rgb_neon.S b/libswscale/aarch64/yuv2rgb_neon.S
+index 89d69e7f6c..4bc1607a7a 100644
+--- a/libswscale/aarch64/yuv2rgb_neon.S
++++ b/libswscale/aarch64/yuv2rgb_neon.S
+@@ -207,3 +207,3 @@ function ff_\ifmt\()_to_\ofmt\()_neon, export=1
+-.ifc \ofmt,argb // 1 2 3 0
++.ifc \ofmt,argb
+         compute_rgba    v5.8b,v6.8b,v7.8b,v4.8b, v17.8b,v18.8b,v19.8b,v16.8b
+ .endif
+@@ -211,3 +211,3 @@ function ff_\ifmt\()_to_\ofmt\()_neon, export=1
+-.ifc \ofmt,rgba // 0 1 2 3
++.ifc \ofmt,rgba
+         compute_rgba    v4.8b,v5.8b,v6.8b,v7.8b, v16.8b,v17.8b,v18.8b,v19.8b
+ .endif
+@@ -215,3 +215,3 @@ function ff_\ifmt\()_to_\ofmt\()_neon, export=1
+-.ifc \ofmt,abgr // 3 2 1 0
++.ifc \ofmt,abgr
+         compute_rgba    v7.8b,v6.8b,v5.8b,v4.8b, v19.8b,v18.8b,v17.8b,v16.8b
+ .endif
+@@ -219,3 +219,3 @@ function ff_\ifmt\()_to_\ofmt\()_neon, export=1
+-.ifc \ofmt,bgra // 2 1 0 3
++.ifc \ofmt,bgra
+         compute_rgba    v6.8b,v5.8b,v4.8b,v7.8b, v18.8b,v17.8b,v16.8b,v19.8b
+ .endif

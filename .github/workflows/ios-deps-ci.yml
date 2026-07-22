@@ -6,8 +6,12 @@ on:
       - ios/main
     paths:
       - ".github/workflows/ios-deps-ci.yml"
+      - "CMakeLists.txt"
       - "CI/ios/deps/**"
       - "CI/ios/smoke-simulator.sh"
+      - "CI/ios/validate-product-profile.cmake"
+      - "apps/openmw/CMakeLists.txt"
+      - "cmake/OpenMWIOSProfile.cmake"
       - "extern/icufilters.json"
       - "ios-deps/**"
       - "docs/ios-port/DEPENDENCY_LOCK.md"
@@ -17,8 +21,12 @@ on:
       - ios/main
     paths:
       - ".github/workflows/ios-deps-ci.yml"
+      - "CMakeLists.txt"
       - "CI/ios/deps/**"
       - "CI/ios/smoke-simulator.sh"
+      - "CI/ios/validate-product-profile.cmake"
+      - "apps/openmw/CMakeLists.txt"
+      - "cmake/OpenMWIOSProfile.cmake"
       - "extern/icufilters.json"
       - "ios-deps/**"
       - "docs/ios-port/DEPENDENCY_LOCK.md"

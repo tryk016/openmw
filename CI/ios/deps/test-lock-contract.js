@@ -48,6 +48,33 @@ const myGuiProbe = fs.readFileSync(
     path.join(repoRoot, "ios-deps/smoke/MyGUIProbe.cpp"),
     "utf8",
 );
+const myGuiOverlayRoot = path.join(
+    repoRoot,
+    "ios-deps/overlay-ports/mygui",
+);
+const myGuiPortfile = fs.readFileSync(
+    path.join(myGuiOverlayRoot, "portfile.cmake"),
+    "utf8",
+);
+const myGuiVersionPrintPatch = fs.readFileSync(
+    path.join(myGuiOverlayRoot, "numeric-version-print.patch"),
+    "utf8",
+);
+const myGuiOverlayManifest = JSON.parse(
+    fs.readFileSync(path.join(myGuiOverlayRoot, "vcpkg.json"), "utf8"),
+);
+const dependenciesWorkflow = fs.readFileSync(
+    path.join(repoRoot, ".github/workflows/ios-deps-ci.yml"),
+    "utf8",
+);
+const smokeMain = fs.readFileSync(
+    path.join(repoRoot, "ios-deps/smoke/Main.mm"),
+    "utf8",
+);
+const simulatorSmokeScript = fs.readFileSync(
+    path.join(repoRoot, "CI/ios/smoke-simulator.sh"),
+    "utf8",
+);
 const boostUninstallSpdxValidator = path.join(
     __dirname,
     "validate-boost-uninstall-spdx.jq",
@@ -220,6 +247,21 @@ function requireBuildScriptContract(testName, predicate, message) {
     process.stdout.write(`${testName}: build script contract accepted\n`);
 }
 
+function workflowJob(workflow, jobName) {
+    const lines = workflow.split(/\r?\n/);
+    const firstLine = lines.findIndex((line) => line === `  ${jobName}:`);
+    if (firstLine === -1)
+        return "";
+
+    const nextJob = lines.findIndex(
+        (line, index) =>
+            index > firstLine && /^  [A-Za-z0-9_-]+:$/.test(line),
+    );
+    return lines
+        .slice(firstLine + 1, nextJob === -1 ? lines.length : nextJob)
+        .join("\n");
+}
+
 function runBoostUninstallSpdxValidator(
     testName,
     document,
@@ -259,6 +301,187 @@ function runBoostUninstallSpdxValidator(
 }
 
 try {
+    const uiFoundationBuildJob = workflowJob(
+        dependenciesWorkflow,
+        "ui-foundation",
+    );
+    const uiFoundationRuntimeJob = workflowJob(
+        dependenciesWorkflow,
+        "ui-foundation-runtime",
+    );
+    requireBuildScriptContract(
+        "ui-build-matrix-only-produces-evidence",
+        uiFoundationBuildJob.includes("matrix:") &&
+            uiFoundationBuildJob.includes(
+                "name: ios-deps-ui-foundation-${{ matrix.platform }}-${{ github.sha }}",
+            ) &&
+            uiFoundationBuildJob.includes(
+                "build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWDepsSmoke.app",
+            ) &&
+            /name: Archive simulator runtime input[\s\S]*?if: matrix\.platform == 'iphonesimulator'[\s\S]*?tar -C[\s\S]*?OpenMWDepsSmoke\.app\.tar\.gz/.test(
+                uiFoundationBuildJob,
+            ) &&
+            /name: Upload simulator runtime input[\s\S]*?if: matrix\.platform == 'iphonesimulator'[\s\S]*?name: ios-deps-ui-foundation-runtime-input-\$\{\{ github\.sha \}\}[\s\S]*?path: build\/ios-deps\/\$\{\{ matrix\.platform \}\}\/runtime-input\/OpenMWDepsSmoke\.app\.tar\.gz[\s\S]*?overwrite: true/.test(
+                uiFoundationBuildJob,
+            ) &&
+            !uiFoundationBuildJob.includes("smoke-simulator.sh") &&
+            !uiFoundationBuildJob.includes("simctl") &&
+            !uiFoundationBuildJob.includes("runtime-smoke"),
+        "the expensive UI matrix must build and upload each platform artifact without starting a simulator",
+    );
+    requireBuildScriptContract(
+        "ui-runtime-job-consumes-exact-simulator-artifact",
+        uiFoundationRuntimeJob.includes("needs: ui-foundation") &&
+            uiFoundationRuntimeJob.includes("runs-on: macos-15") &&
+            uiFoundationRuntimeJob.includes(
+                "DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer",
+            ) &&
+            uiFoundationRuntimeJob.includes(
+                'test "$(xcodebuild -version | sed -n \'1p\')" = "Xcode 16.4"',
+            ) &&
+            /uses: actions\/download-artifact@v\d+/.test(
+                uiFoundationRuntimeJob,
+            ) &&
+            uiFoundationRuntimeJob.includes(
+                "name: ios-deps-ui-foundation-runtime-input-${{ github.sha }}",
+            ) &&
+            !uiFoundationRuntimeJob.includes(
+                "ios-deps-ui-foundation-iphonesimulator",
+            ) &&
+            !uiFoundationRuntimeJob.includes("pattern:") &&
+            !uiFoundationRuntimeJob.includes("merge-multiple:") &&
+            uiFoundationRuntimeJob.includes(
+                '-type f -name OpenMWDepsSmoke.app.tar.gz -print >"$archives_file"',
+            ) &&
+            uiFoundationRuntimeJob.includes(
+                'if [[ "$archive_count" -ne 1 ]]; then',
+            ) &&
+            uiFoundationRuntimeJob.includes(
+                'tar -xzf "$archive" -C "$extracted_root"',
+            ) &&
+            uiFoundationRuntimeJob.includes(
+                '-type d -name OpenMWDepsSmoke.app -print >"$apps_file"',
+            ) &&
+            uiFoundationRuntimeJob.includes(
+                'if [[ "$app_count" -ne 1 ]]; then',
+            ) &&
+            uiFoundationRuntimeJob.includes(
+                'test "$bundle_id" = "org.openmw.ios.deps-smoke"',
+            ) &&
+            uiFoundationRuntimeJob.includes('test -n "$executable_name"') &&
+            uiFoundationRuntimeJob.includes(
+                'test -x "${app}/${executable_name}"',
+            ) &&
+            uiFoundationRuntimeJob.includes(
+                "bash CI/ios/smoke-simulator.sh",
+            ) &&
+            uiFoundationRuntimeJob.includes(
+                '"org.openmw.ios.deps-smoke"',
+            ) &&
+            uiFoundationRuntimeJob.includes('"ui foundation PASS"') &&
+            uiFoundationRuntimeJob.includes(
+                "name: ios-deps-ui-foundation-runtime-${{ github.sha }}-${{ github.run_attempt }}",
+            ) &&
+            !uiFoundationRuntimeJob.includes("CI/ios/deps/build.sh"),
+        "the short runtime job must wait for the full matrix, download only the SHA-pinned tar input, restore and validate one executable app under Xcode 16.4, and execute the UI probe",
+    );
+
+    const runtimeResultNames = [
+        "yamlResult",
+        "sqliteResult",
+        "bulletResult",
+        "recastResult",
+        "luaResult",
+        "icuResult",
+        "myGuiResult",
+    ];
+    const runtimeLogFields = [
+        "sdlInitResult",
+        "videoDriverCount",
+        "lz4CompressedSize",
+        "lz4RestoredSize",
+        "lz4RoundTripPassed",
+        "freeTypeInitResult",
+        "pngPassed",
+        "jpegPassed",
+        "turboJpegPassed",
+        "imageFoundationPassed",
+        "yamlResult",
+        "yamlPassed",
+        "sqliteResult",
+        "sqlitePassed",
+        "bulletResult",
+        "bulletPassed",
+        "recastResult",
+        "recastPassed",
+        "luaResult",
+        "luaPassed",
+        "icuResult",
+        "icuPassed",
+        "myGuiResult",
+        "myGuiPassed",
+        "smokePassed",
+    ];
+    requireBuildScriptContract(
+        "ui-runtime-log-is-complete",
+        runtimeResultNames.every((resultName) =>
+            new RegExp(`const int ${resultName}\\s*=`).test(smokeMain),
+        ) &&
+            /const bool jpegPassed\s*=\s*jpegDecoder\.mem != nullptr/.test(
+                smokeMain,
+            ) &&
+            /imageFoundationPassed\s*=\s*freeTypeInitResult == 0 && pngPassed\s*&& jpegPassed && turboJpegPassed/.test(
+                smokeMain,
+            ) &&
+            /const int myGuiResult\s*=\s*openmwIosMyGuiProbe\(\)/.test(
+                smokeMain,
+            ) &&
+            runtimeLogFields.every((field) =>
+                smokeMain.includes(`${field}=%{public}d`),
+            ),
+        "the unified log must expose every probe result and pass/fail boolean, including the raw MyGUI result",
+    );
+
+    const unifiedLogCapture = simulatorSmokeScript.indexOf(
+        'xcrun simctl spawn "$udid" log show',
+    );
+    const screenshotCapture = simulatorSmokeScript.indexOf(
+        'xcrun simctl io "$udid" screenshot',
+    );
+    const markerEvaluation = simulatorSmokeScript.indexOf(
+        'grep -Fq "$expected_marker"',
+    );
+    const installBlock = simulatorSmokeScript.match(
+        /if ! xcrun simctl install[\s\S]*?\nfi/,
+    )?.[0];
+    const launchBlock = simulatorSmokeScript.match(
+        /if ! xcrun simctl launch[\s\S]*?\nfi/,
+    )?.[0];
+    requireBuildScriptContract(
+        "simulator-diagnostics-are-fail-closed",
+        unifiedLogCapture !== -1 &&
+            screenshotCapture !== -1 &&
+            markerEvaluation !== -1 &&
+            unifiedLogCapture < markerEvaluation &&
+            screenshotCapture < markerEvaluation &&
+            installBlock !== undefined &&
+            launchBlock !== undefined &&
+            !installBlock.includes("exit 1") &&
+            !launchBlock.includes("exit 1") &&
+            installBlock.includes('runtime_failures+=("install")') &&
+            launchBlock.includes('runtime_failures+=("launch")') &&
+            simulatorSmokeScript.includes(
+                'runtime_failures+=("unified-log")',
+            ) &&
+            simulatorSmokeScript.includes(
+                'runtime_failures+=("screenshot")',
+            ) &&
+            /if \[\[ "\$\{#runtime_failures\[@\]\}" -ne 0 \]\]; then[\s\S]*exit 1\s*\nfi/.test(
+                simulatorSmokeScript,
+            ),
+        "install and launch failures must survive through unconditional log/screenshot collection, marker evaluation, and a final non-zero exit",
+    );
+
     requireBuildScriptContract(
         "offline-downloads-are-fresh",
         /downloads="\$\{platform_root\}\/offline-downloads"/.test(buildScript) &&
@@ -360,6 +583,42 @@ try {
         /FT_Init_FreeType\(&freeType\)/.test(myGuiProbe) &&
             /FT_Done_FreeType\(freeType\)/.test(myGuiProbe),
         "the renderer-free MyGUI probe must initialize and release FreeType",
+    );
+    const myGuiLockEntry = lock.dependencies.find(
+        (dependency) => dependency.name === "mygui",
+    );
+    requireBuildScriptContract(
+        "mygui-version-print-fix-is-explicit-and-locked",
+        /PATCHES\s+llvm-char-types\.patch\s+ios-engine-only\.patch\s+numeric-version-print\.patch/.test(
+            myGuiPortfile,
+        ) &&
+            (myGuiVersionPrintPatch.match(
+                /^\+.*static_cast<unsigned int>\(mMajor\)/gm,
+            )?.length ?? 0) === 2 &&
+            (myGuiVersionPrintPatch.match(
+                /^\+.*static_cast<unsigned int>\(mMinor\)/gm,
+            )?.length ?? 0) === 2 &&
+            !/^\+.*utility::toString\(mMajor/gm.test(
+                myGuiVersionPrintPatch,
+            ) &&
+            myGuiOverlayManifest["port-version"] === 6 &&
+            myGuiLockEntry?.vcpkg_port_source === "overlay" &&
+            myGuiLockEntry?.vcpkg_port_version === 6,
+        "the overlay must apply the numeric uint8_t stream fix after the existing patches and lock MyGUI 3.4.3#6",
+    );
+    requireBuildScriptContract(
+        "mygui-probe-detects-version-print-regressions",
+        /version\.print\(\) != "3\.4\.3"/.test(myGuiProbe) &&
+            /widget->addAttribute\("engine", version\.print\(\)\)/.test(
+                myGuiProbe,
+            ) &&
+            /document\.save\(encoded\)/.test(myGuiProbe) &&
+            /decoded\.open\(input\)/.test(myGuiProbe) &&
+            /children->findAttribute\("engine"\) != "3\.4\.3"/.test(
+                myGuiProbe,
+            ) &&
+            !/versionText|std::to_string/.test(myGuiProbe),
+        "the MyGUI probe must exercise Version::print through the XML round-trip without a silent local formatting workaround",
     );
     requireBuildScriptContract(
         "mygui-static-interface-is-transitive",

@@ -102,6 +102,7 @@ extern "C" int openmwIosRecastProbe();
     jpeg_error_mgr jpegError = {};
     jpegDecoder.err = jpeg_std_error(&jpegError);
     jpeg_create_decompress(&jpegDecoder);
+    const bool jpegPassed = jpegDecoder.mem != nullptr;
     jpeg_destroy_decompress(&jpegDecoder);
 
     tjhandle turboJpegDecoder = tj3Init(TJINIT_DECOMPRESS);
@@ -110,16 +111,21 @@ extern "C" int openmwIosRecastProbe();
         tj3Destroy(turboJpegDecoder);
 
     const bool imageFoundationPassed = freeTypeInitResult == 0 && pngPassed
-        && turboJpegPassed;
-    const bool yamlPassed = openmwIosYamlProbe() == 0;
-    const bool sqlitePassed = openmwIosSQLiteProbe() == 0;
-    const bool bulletPassed = openmwIosBulletProbe() == 0;
-    const bool recastPassed = openmwIosRecastProbe() == 0;
+        && jpegPassed && turboJpegPassed;
+    const int yamlResult = openmwIosYamlProbe();
+    const int sqliteResult = openmwIosSQLiteProbe();
+    const int bulletResult = openmwIosBulletProbe();
+    const int recastResult = openmwIosRecastProbe();
     const int luaResult = openmwIosLuaProbe();
     const int icuResult = openmwIosIcuProbe();
+    const int myGuiResult = openmwIosMyGuiProbe();
+    const bool yamlPassed = yamlResult == 0;
+    const bool sqlitePassed = sqliteResult == 0;
+    const bool bulletPassed = bulletResult == 0;
+    const bool recastPassed = recastResult == 0;
     const bool luaPassed = luaResult == 0;
     const bool icuPassed = icuResult == 0;
-    const bool myGuiPassed = openmwIosMyGuiProbe() == 0;
+    const bool myGuiPassed = myGuiResult == 0;
     const bool smokePassed
         = sdlInitResult == 0 && lz4RoundTripPassed && imageFoundationPassed
         && yamlPassed && sqlitePassed && bulletPassed && recastPassed
@@ -162,8 +168,28 @@ extern "C" int openmwIosRecastProbe();
     os_log_t runtimeLog =
         os_log_create("org.openmw.ios.deps-smoke", "runtime");
     os_log_info(runtimeLog,
-        "ui foundation %{public}s lua=%{public}d icu=%{public}d",
-        smokePassed ? "PASS" : "FAIL", luaResult, icuResult);
+        "ui foundation %{public}s "
+        "sdlInitResult=%{public}d videoDriverCount=%{public}d "
+        "lz4CompressedSize=%{public}d lz4RestoredSize=%{public}d "
+        "lz4RoundTripPassed=%{public}d "
+        "freeTypeInitResult=%{public}d pngPassed=%{public}d "
+        "jpegPassed=%{public}d turboJpegPassed=%{public}d "
+        "imageFoundationPassed=%{public}d "
+        "yamlResult=%{public}d yamlPassed=%{public}d "
+        "sqliteResult=%{public}d sqlitePassed=%{public}d "
+        "bulletResult=%{public}d bulletPassed=%{public}d "
+        "recastResult=%{public}d recastPassed=%{public}d "
+        "luaResult=%{public}d luaPassed=%{public}d "
+        "icuResult=%{public}d icuPassed=%{public}d "
+        "myGuiResult=%{public}d myGuiPassed=%{public}d "
+        "smokePassed=%{public}d",
+        smokePassed ? "PASS" : "FAIL", sdlInitResult, videoDriverCount,
+        compressedSize, restoredSize, lz4RoundTripPassed,
+        freeTypeInitResult, pngPassed, jpegPassed, turboJpegPassed,
+        imageFoundationPassed, yamlResult, yamlPassed, sqliteResult,
+        sqlitePassed, bulletResult, bulletPassed, recastResult, recastPassed,
+        luaResult, luaPassed, icuResult, icuPassed, myGuiResult, myGuiPassed,
+        smokePassed);
     return YES;
 }
 

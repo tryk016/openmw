@@ -88,38 +88,60 @@ fi
 bootstatus_pid=0
 cat "$bootstatus_log"
 
-xcrun simctl install "$udid" "$app"
-xcrun simctl get_app_container "$udid" "$bundle_id" app \
-    | tee "${log_dir}/installed-app-container.log"
+runtime_failures=()
+
+if ! xcrun simctl install "$udid" "$app"; then
+    echo "simctl failed to install ${bundle_id}" >&2
+    runtime_failures+=("install")
+fi
+
+if ! xcrun simctl get_app_container "$udid" "$bundle_id" app \
+    | tee "${log_dir}/installed-app-container.log"; then
+    echo "simctl could not resolve the installed container for ${bundle_id}" >&2
+    runtime_failures+=("app-container")
+fi
 
 launch_output="${log_dir}/simctl-launch.log"
 if ! xcrun simctl launch --terminate-running-process "$udid" "$bundle_id" \
     2>&1 | tee "$launch_output"; then
     echo "simctl failed to launch ${bundle_id}" >&2
-    exit 1
+    runtime_failures+=("launch")
 fi
 
 sleep 10
 
-xcrun simctl spawn "$udid" log show \
+unified_log="${log_dir}/openmw-unified.log"
+if ! xcrun simctl spawn "$udid" log show \
     --last 2m \
     --info \
     --style compact \
     --predicate "subsystem == \"${log_subsystem}\"" \
-    >"${log_dir}/openmw-unified.log" 2>&1
-
-if ! grep -Fq "$expected_marker" "${log_dir}/openmw-unified.log"; then
-    echo "Expected OpenMW unified-log marker was not captured" >&2
-    cat "${log_dir}/openmw-unified.log" >&2
-    exit 1
+    >"$unified_log" 2>&1; then
+    echo "Could not collect the OpenMW unified log" >&2
+    runtime_failures+=("unified-log")
 fi
 
-xcrun simctl io "$udid" screenshot "${log_dir}/openmw-simulator.png"
+simulator_screenshot="${log_dir}/openmw-simulator.png"
+if ! xcrun simctl io "$udid" screenshot "$simulator_screenshot"; then
+    echo "Could not capture the simulator screenshot" >&2
+    runtime_failures+=("screenshot")
+fi
 
 if ! xcrun simctl spawn "$udid" launchctl list \
     | grep -F "$bundle_id" \
     >"${log_dir}/launchctl-openmw.log"; then
     echo "OpenMW did not remain running for the 10-second smoke window" >&2
+    runtime_failures+=("process-liveness")
+fi
+
+if ! grep -Fq "$expected_marker" "$unified_log"; then
+    echo "Expected OpenMW unified-log marker was not captured" >&2
+    cat "$unified_log" >&2
+    runtime_failures+=("expected-marker")
+fi
+
+if [[ "${#runtime_failures[@]}" -ne 0 ]]; then
+    printf 'Simulator smoke failed at: %s\n' "${runtime_failures[*]}" >&2
     exit 1
 fi
 

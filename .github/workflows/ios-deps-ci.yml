@@ -145,26 +145,42 @@ jobs:
             "build/ios-deps/${{ matrix.platform }}/installed-packages.json"
 
       - name: Relink application from offline prefix
-        id: offline_smoke
         run: |
           bash CI/ios/deps/build-smoke.sh \
             "${{ matrix.platform }}" \
             "${{ steps.offline.outputs.prefix }}"
           app="$(
             find "build/ios-deps/${{ matrix.platform }}/smoke" \
-              -type d -name OpenMWDepsSmoke.app -print -quit
+              -type d -name OpenMWDepsSmoke.app -print
           )"
           test -n "$app"
-          echo "app=$app" >>"$GITHUB_OUTPUT"
+          test "$(printf '%s\n' "$app" | wc -l | tr -d ' ')" -eq 1
 
-      - name: Execute UI probes on an iPhone Simulator
+      - name: Archive simulator runtime input
         if: matrix.platform == 'iphonesimulator'
         run: |
-          bash CI/ios/smoke-simulator.sh \
-            "${{ steps.offline_smoke.outputs.app }}" \
-            "build/ios-deps/${{ matrix.platform }}/runtime-smoke" \
-            "org.openmw.ios.deps-smoke" \
-            "ui foundation PASS"
+          app="$(
+            find "build/ios-deps/${{ matrix.platform }}/smoke" \
+              -type d -name OpenMWDepsSmoke.app -print
+          )"
+          test -n "$app"
+          test "$(printf '%s\n' "$app" | wc -l | tr -d ' ')" -eq 1
+          runtime_input="build/ios-deps/${{ matrix.platform }}/runtime-input"
+          mkdir -p "$runtime_input"
+          tar -C "$(dirname "$app")" -czf \
+            "${runtime_input}/OpenMWDepsSmoke.app.tar.gz" \
+            "$(basename "$app")"
+          test -s "${runtime_input}/OpenMWDepsSmoke.app.tar.gz"
+
+      - name: Upload simulator runtime input
+        if: matrix.platform == 'iphonesimulator'
+        uses: actions/upload-artifact@v6
+        with:
+          name: ios-deps-ui-foundation-runtime-input-${{ github.sha }}
+          path: build/ios-deps/${{ matrix.platform }}/runtime-input/OpenMWDepsSmoke.app.tar.gz
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
 
       - name: Collect SPDX and license evidence
         run: |
@@ -182,7 +198,6 @@ jobs:
             build/ios-deps/${{ matrix.platform }}/build-manifest.txt
             build/ios-deps/${{ matrix.platform }}/installed-packages.json
             build/ios-deps/${{ matrix.platform }}/metadata
-            build/ios-deps/${{ matrix.platform }}/runtime-smoke
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWDepsSmoke.app
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWJPEGProbe
             build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWTurboJPEGProbe
@@ -232,5 +247,86 @@ jobs:
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/include/sqlite3.h
             build/ios-deps/${{ matrix.platform }}/vcpkg_installed/**/include/sqlite3-vcpkg-config.h
             ios-deps/dependencies.lock.json
+          if-no-files-found: warn
+          overwrite: true
+          retention-days: 7
+
+  ui-foundation-runtime:
+    name: UI foundation simulator runtime
+    needs: ui-foundation
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Select pinned Xcode 16.4
+        run: |
+          test -d "$DEVELOPER_DIR"
+          test "$(xcodebuild -version | sed -n '1p')" = "Xcode 16.4"
+
+      - name: Download the exact simulator evidence artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: ios-deps-ui-foundation-runtime-input-${{ github.sha }}
+          path: build/ios-deps/runtime-artifact
+
+      - name: Restore exactly one simulator smoke application
+        id: simulator_app
+        run: |
+          artifact_root="build/ios-deps/runtime-artifact"
+          archives_file="build/ios-deps/runtime-artifact-archives.txt"
+          find "$artifact_root" \
+            -type f -name OpenMWDepsSmoke.app.tar.gz -print >"$archives_file"
+          archive_count="$(wc -l <"$archives_file" | tr -d ' ')"
+          if [[ "$archive_count" -ne 1 ]]; then
+            printf 'Expected exactly one OpenMWDepsSmoke.app.tar.gz, found %d\n' \
+              "$archive_count" >&2
+            find "$artifact_root" -maxdepth 8 -print >&2
+            exit 1
+          fi
+          archive="$(sed -n '1p' "$archives_file")"
+          extracted_root="build/ios-deps/runtime-extracted"
+          mkdir -p "$extracted_root"
+          tar -xzf "$archive" -C "$extracted_root"
+
+          apps_file="build/ios-deps/runtime-artifact-apps.txt"
+          find "$extracted_root" \
+            -type d -name OpenMWDepsSmoke.app -print >"$apps_file"
+          app_count="$(wc -l <"$apps_file" | tr -d ' ')"
+          if [[ "$app_count" -ne 1 ]]; then
+            printf 'Expected exactly one OpenMWDepsSmoke.app, found %d\n' \
+              "$app_count" >&2
+            find "$extracted_root" -maxdepth 8 -print >&2
+            exit 1
+          fi
+          app="$(sed -n '1p' "$apps_file")"
+          plist="${app}/Info.plist"
+          bundle_id=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$plist")
+          executable_name=$(/usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$plist")
+          test "$bundle_id" = "org.openmw.ios.deps-smoke"
+          test -n "$executable_name"
+          test -x "${app}/${executable_name}"
+          echo "app=$app" >>"$GITHUB_OUTPUT"
+
+      - name: Execute UI probes on an iPhone Simulator
+        run: |
+          bash CI/ios/smoke-simulator.sh \
+            "${{ steps.simulator_app.outputs.app }}" \
+            "build/ios-deps/runtime-smoke" \
+            "org.openmw.ios.deps-smoke" \
+            "ui foundation PASS"
+
+      - name: Upload simulator runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ios-deps-ui-foundation-runtime-${{ github.sha }}-${{ github.run_attempt }}
+          path: build/ios-deps/runtime-smoke
           if-no-files-found: warn
           retention-days: 7

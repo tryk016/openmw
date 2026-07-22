@@ -331,13 +331,13 @@ function runBoostUninstallSpdxValidator(
 }
 
 try {
-    const uiFoundationBuildJob = workflowJob(
+    const multimediaFoundationBuildJob = workflowJob(
         dependenciesWorkflow,
-        "ui-foundation",
+        "multimedia-foundation",
     );
-    const uiFoundationRuntimeJob = workflowJob(
+    const multimediaFoundationRuntimeJob = workflowJob(
         dependenciesWorkflow,
-        "ui-foundation-runtime",
+        "multimedia-foundation-runtime",
     );
     requireBuildScriptContract(
         "dependency-workflow-watches-runtime-runner",
@@ -349,80 +349,80 @@ try {
         "pull-request and ios/main push filters must both run dependency CI when the shared simulator runner changes",
     );
     requireBuildScriptContract(
-        "ui-build-matrix-only-produces-evidence",
-        uiFoundationBuildJob.includes("matrix:") &&
-            uiFoundationBuildJob.includes(
-                "name: ios-deps-ui-foundation-${{ matrix.platform }}-${{ github.sha }}",
+        "multimedia-build-matrix-only-produces-evidence",
+        multimediaFoundationBuildJob.includes("matrix:") &&
+            multimediaFoundationBuildJob.includes(
+                "name: ios-deps-multimedia-foundation-${{ matrix.platform }}-${{ github.sha }}",
             ) &&
-            uiFoundationBuildJob.includes(
+            multimediaFoundationBuildJob.includes(
                 "build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWDepsSmoke.app",
             ) &&
             /name: Archive simulator runtime input[\s\S]*?if: matrix\.platform == 'iphonesimulator'[\s\S]*?tar -C[\s\S]*?OpenMWDepsSmoke\.app\.tar\.gz/.test(
-                uiFoundationBuildJob,
+                multimediaFoundationBuildJob,
             ) &&
-            /name: Upload simulator runtime input[\s\S]*?if: matrix\.platform == 'iphonesimulator'[\s\S]*?name: ios-deps-ui-foundation-runtime-input-\$\{\{ github\.sha \}\}[\s\S]*?path: build\/ios-deps\/\$\{\{ matrix\.platform \}\}\/runtime-input\/OpenMWDepsSmoke\.app\.tar\.gz[\s\S]*?overwrite: true/.test(
-                uiFoundationBuildJob,
+            /name: Upload simulator runtime input[\s\S]*?if: matrix\.platform == 'iphonesimulator'[\s\S]*?name: ios-deps-multimedia-foundation-runtime-input-\$\{\{ github\.sha \}\}[\s\S]*?path: build\/ios-deps\/\$\{\{ matrix\.platform \}\}\/runtime-input\/OpenMWDepsSmoke\.app\.tar\.gz[\s\S]*?overwrite: true/.test(
+                multimediaFoundationBuildJob,
             ) &&
-            !uiFoundationBuildJob.includes("smoke-simulator.sh") &&
-            !uiFoundationBuildJob.includes("simctl") &&
-            !uiFoundationBuildJob.includes("runtime-smoke"),
-        "the expensive UI matrix must build and upload each platform artifact without starting a simulator",
+            !multimediaFoundationBuildJob.includes("smoke-simulator.sh") &&
+            !multimediaFoundationBuildJob.includes("simctl") &&
+            !multimediaFoundationBuildJob.includes("runtime-smoke"),
+        "the expensive multimedia matrix must build and upload each platform artifact without starting a simulator",
     );
     requireBuildScriptContract(
-        "ui-runtime-job-consumes-exact-simulator-artifact",
-        uiFoundationRuntimeJob.includes("needs: ui-foundation") &&
-            uiFoundationRuntimeJob.includes("runs-on: macos-15") &&
-            uiFoundationRuntimeJob.includes(
+        "multimedia-runtime-job-consumes-exact-simulator-artifact",
+        multimediaFoundationRuntimeJob.includes("needs: multimedia-foundation") &&
+            multimediaFoundationRuntimeJob.includes("runs-on: macos-15") &&
+            multimediaFoundationRuntimeJob.includes(
                 "DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer",
             ) &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes(
                 'test "$(xcodebuild -version | sed -n \'1p\')" = "Xcode 16.4"',
             ) &&
             /uses: actions\/download-artifact@v\d+/.test(
-                uiFoundationRuntimeJob,
+                multimediaFoundationRuntimeJob,
             ) &&
-            uiFoundationRuntimeJob.includes(
-                "name: ios-deps-ui-foundation-runtime-input-${{ github.sha }}",
+            multimediaFoundationRuntimeJob.includes(
+                "name: ios-deps-multimedia-foundation-runtime-input-${{ github.sha }}",
             ) &&
-            !uiFoundationRuntimeJob.includes(
-                "ios-deps-ui-foundation-iphonesimulator",
+            !multimediaFoundationRuntimeJob.includes(
+                "ios-deps-multimedia-foundation-iphonesimulator",
             ) &&
-            !uiFoundationRuntimeJob.includes("pattern:") &&
-            !uiFoundationRuntimeJob.includes("merge-multiple:") &&
-            uiFoundationRuntimeJob.includes(
+            !multimediaFoundationRuntimeJob.includes("pattern:") &&
+            !multimediaFoundationRuntimeJob.includes("merge-multiple:") &&
+            multimediaFoundationRuntimeJob.includes(
                 '-type f -name OpenMWDepsSmoke.app.tar.gz -print >"$archives_file"',
             ) &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes(
                 'if [[ "$archive_count" -ne 1 ]]; then',
             ) &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes(
                 'tar -xzf "$archive" -C "$extracted_root"',
             ) &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes(
                 '-type d -name OpenMWDepsSmoke.app -print >"$apps_file"',
             ) &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes(
                 'if [[ "$app_count" -ne 1 ]]; then',
             ) &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes(
                 'test "$bundle_id" = "org.openmw.ios.deps-smoke"',
             ) &&
-            uiFoundationRuntimeJob.includes('test -n "$executable_name"') &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes('test -n "$executable_name"') &&
+            multimediaFoundationRuntimeJob.includes(
                 'test -x "${app}/${executable_name}"',
             ) &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes(
                 "bash CI/ios/smoke-simulator.sh",
             ) &&
-            uiFoundationRuntimeJob.includes(
+            multimediaFoundationRuntimeJob.includes(
                 '"org.openmw.ios.deps-smoke"',
             ) &&
-            uiFoundationRuntimeJob.includes('"ui foundation PASS"') &&
-            uiFoundationRuntimeJob.includes(
-                "name: ios-deps-ui-foundation-runtime-${{ github.sha }}-${{ github.run_attempt }}",
+            multimediaFoundationRuntimeJob.includes('"multimedia foundation PASS"') &&
+            multimediaFoundationRuntimeJob.includes(
+                "name: ios-deps-multimedia-foundation-runtime-${{ github.sha }}-${{ github.run_attempt }}",
             ) &&
-            !uiFoundationRuntimeJob.includes("CI/ios/deps/build.sh"),
-        "the short runtime job must wait for the full matrix, download only the SHA-pinned tar input, restore and validate one executable app under Xcode 16.4, and execute the UI probe",
+            !multimediaFoundationRuntimeJob.includes("CI/ios/deps/build.sh"),
+        "the short runtime job must wait for the full matrix, download only the SHA-pinned tar input, restore and validate one executable app under Xcode 16.4, and execute the multimedia probes",
     );
 
     const runtimeResultNames = [
@@ -433,6 +433,8 @@ try {
         "luaResult",
         "icuResult",
         "myGuiResult",
+        "openALResult",
+        "ffmpegResult",
     ];
     const runtimeLogFields = [
         "sdlInitResult",
@@ -459,10 +461,14 @@ try {
         "icuPassed",
         "myGuiResult",
         "myGuiPassed",
+        "openALResult",
+        "openALPassed",
+        "ffmpegResult",
+        "ffmpegPassed",
         "smokePassed",
     ];
     requireBuildScriptContract(
-        "ui-runtime-log-is-complete",
+        "multimedia-runtime-log-is-complete",
         runtimeResultNames.every((resultName) =>
             new RegExp(`const int ${resultName}\\s*=`).test(smokeMain),
         ) &&
@@ -478,7 +484,7 @@ try {
             runtimeLogFields.every((field) =>
                 smokeMain.includes(`${field}=%{public}d`),
             ),
-        "the unified log must expose every probe result and pass/fail boolean, including the raw MyGUI result",
+        "the unified log must expose every dependency probe result and pass/fail boolean, including raw MyGUI, OpenAL and FFmpeg results",
     );
 
     const unifiedLogCapture = simulatorSmokeScript.indexOf(

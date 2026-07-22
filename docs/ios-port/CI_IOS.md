@@ -135,6 +135,12 @@ closure vcpkg, hostowe metadane ICU, statyczne archiwa, wynikową konfigurację
 FFmpeg, odpowiadające źródło/patch, SPDX, notices i dedykowane binaria probe;
 timeout joba wynosi 180 minut.
 
+Długi matrix wyłącznie buduje i archiwizuje aplikację symulatora. Osobny,
+krótki job runtime czeka na oba slice, pobiera dokładnie jeden artefakt tar
+przypięty do SHA, waliduje bundle i dopiero wtedy uruchamia probe w
+symulatorze. Instalacja, start, unified log, screenshot, żywotność procesu i
+oczekiwany marker są zbierane razem, a każdy błąd kończy job wynikiem non-zero.
+
 ## Artefakt SideStore
 
 CI buduje aplikację z wyłączonym podpisywaniem:

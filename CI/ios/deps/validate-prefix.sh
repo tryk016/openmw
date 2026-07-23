@@ -675,27 +675,34 @@ if [[ -d "${prefix}/share/unofficial-osg" \
     fi
 
     for osg_plugin in bmp dds freetype jpeg osg png tga; do
-        if ! nm -g \
-                "${prefix}/lib/osgPlugins-3.6.5/libosgdb_${osg_plugin}.a" |
-                grep -Eq "[[:space:]][A-Za-z][[:space:]]_osgdb_${osg_plugin}([[:space:]]|$)"; then
+        osg_plugin_symbols="$(
+            nm -g "${prefix}/lib/osgPlugins-3.6.5/libosgdb_${osg_plugin}.a"
+        )"
+        if ! grep -Eq "[[:space:]][A-Za-z][[:space:]]_osgdb_${osg_plugin}([[:space:]]|$)" \
+                <<<"$osg_plugin_symbols"; then
             echo "OSG plugin registration symbol is missing: ${osg_plugin}" >&2
             exit 1
         fi
     done
-    if ! nm -g \
-            "${prefix}/lib/osgPlugins-3.6.5/libosgdb_deprecated_osg.a" |
-            grep -Eq '[[:space:]][A-Za-z][[:space:]]_dotosgwrapper_library_osg([[:space:]]|$)'; then
+    osg_legacy_wrapper_symbols="$(
+        nm -g "${prefix}/lib/osgPlugins-3.6.5/libosgdb_deprecated_osg.a"
+    )"
+    if ! grep -Eq '[[:space:]][A-Za-z][[:space:]]_dotosgwrapper_library_osg([[:space:]]|$)' \
+            <<<"$osg_legacy_wrapper_symbols"; then
         echo "OSG legacy .osg wrapper registration is missing" >&2
         exit 1
     fi
-    if ! nm -g \
-            "${prefix}/lib/osgPlugins-3.6.5/libosgdb_serializers_osg.a" |
-            grep -Eq '[[:space:]][A-Za-z][[:space:]]_wrapper_serializer_library_osg([[:space:]]|$)'; then
+    osg_serializer_wrapper_symbols="$(
+        nm -g "${prefix}/lib/osgPlugins-3.6.5/libosgdb_serializers_osg.a"
+    )"
+    if ! grep -Eq '[[:space:]][A-Za-z][[:space:]]_wrapper_serializer_library_osg([[:space:]]|$)' \
+            <<<"$osg_serializer_wrapper_symbols"; then
         echo "OSG native serializer wrapper registration is missing" >&2
         exit 1
     fi
-    if ! nm -u "${prefix}/lib/libosg.a" |
-            grep -Eq '(^|[[:space:]])_gl4es_GetProcAddress([[:space:]]|$)'; then
+    osg_undefined_symbols="$(nm -u "${prefix}/lib/libosg.a")"
+    if ! grep -Eq '(^|[[:space:]])_gl4es_GetProcAddress([[:space:]]|$)' \
+            <<<"$osg_undefined_symbols"; then
         echo "OSG does not retain its GL4ES procedure lookup edge" >&2
         exit 1
     fi

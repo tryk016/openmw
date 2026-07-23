@@ -975,8 +975,12 @@ try {
             /USE_DOTOSGWRAPPER_LIBRARY\(osg\)/.test(renderProbe) &&
             /USE_SERIALIZER_WRAPPER_LIBRARY\(osg\)/.test(renderProbe) &&
             /getReaderWriterForExtension\("osgt"\)/.test(renderProbe) &&
-            /getReaderWriterForExtension\("osg"\)/.test(renderProbe),
-        "OSG must expose only the allowlisted statically registered plugins and serializers",
+            /getReaderWriterForExtension\("osg"\)/.test(renderProbe) &&
+            (prefixValidator.match(
+                /<<<"\$osg_(?:plugin|legacy_wrapper|serializer_wrapper|undefined)_symbols"/g,
+            )?.length ?? 0) === 4 &&
+            !/nm -[gu][\s\S]{0,120}\|\s*grep -Eq/.test(prefixValidator),
+        "OSG must expose only the allowlisted statically registered plugins and serializers, and symbol audits must drain nm before grep under pipefail",
     );
     requireBuildScriptContract(
         "osg-custom-license-is-normalized",

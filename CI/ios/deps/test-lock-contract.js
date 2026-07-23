@@ -979,7 +979,12 @@ try {
             (prefixValidator.match(
                 /<<<"\$osg_(?:plugin|legacy_wrapper|serializer_wrapper|undefined)_symbols"/g,
             )?.length ?? 0) === 4 &&
-            !/nm -[gu][\s\S]{0,120}\|\s*grep -Eq/.test(prefixValidator),
+            (prefixValidator.match(
+                /osg_(?:plugin|legacy_wrapper|serializer_wrapper|undefined)_symbols="\$\(\s*nm -[gu]\b/g,
+            )?.length ?? 0) === 4 &&
+            !/nm -[gu](?:[^\r\n]*\\\r?\n)*[^\r\n]*\|\s*grep\b/.test(
+                prefixValidator,
+            ),
         "OSG must expose only the allowlisted statically registered plugins and serializers, and symbol audits must drain nm before grep under pipefail",
     );
     requireBuildScriptContract(

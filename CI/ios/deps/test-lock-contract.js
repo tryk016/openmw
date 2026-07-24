@@ -596,6 +596,12 @@ try {
     const unifiedLogCapture = simulatorSmokeScript.indexOf(
         'xcrun simctl spawn "$udid" log show',
     );
+    const processLogCapture = simulatorSmokeScript.indexOf(
+        '--predicate "processIdentifier == ${app_pid}"',
+    );
+    const diagnosticReportCapture = simulatorSmokeScript.indexOf(
+        'Library/Logs/DiagnosticReports',
+    );
     const screenshotCapture = simulatorSmokeScript.indexOf(
         'xcrun simctl io "$udid" screenshot',
     );
@@ -611,9 +617,13 @@ try {
     requireBuildScriptContract(
         "simulator-diagnostics-are-fail-closed",
         unifiedLogCapture !== -1 &&
+            processLogCapture !== -1 &&
+            diagnosticReportCapture !== -1 &&
             screenshotCapture !== -1 &&
             markerEvaluation !== -1 &&
             unifiedLogCapture < markerEvaluation &&
+            processLogCapture < markerEvaluation &&
+            diagnosticReportCapture < markerEvaluation &&
             screenshotCapture < markerEvaluation &&
             installBlock !== undefined &&
             launchBlock !== undefined &&
@@ -625,12 +635,18 @@ try {
                 'runtime_failures+=("unified-log")',
             ) &&
             simulatorSmokeScript.includes(
+                'runtime_failures+=("process-log")',
+            ) &&
+            simulatorSmokeScript.includes(
+                'runtime_failures+=("launch-pid")',
+            ) &&
+            simulatorSmokeScript.includes(
                 'runtime_failures+=("screenshot")',
             ) &&
             /if \[\[ "\$\{#runtime_failures\[@\]\}" -ne 0 \]\]; then[\s\S]*exit 1\s*\nfi/.test(
                 simulatorSmokeScript,
             ),
-        "install and launch failures must survive through unconditional log/screenshot collection, marker evaluation, and a final non-zero exit",
+        "install and launch failures must survive through unconditional subsystem/process/crash-report/screenshot collection, marker evaluation, and a final non-zero exit",
     );
 
     requireBuildScriptContract(
@@ -905,12 +921,14 @@ try {
             /-DSTATICLIB=ON/.test(gl4esPortfile) &&
             /-DNO_LOADER=ON/.test(gl4esPortfile) &&
             /-DNO_INIT_CONSTRUCTOR=ON/.test(gl4esPortfile) &&
-            /set_getprocaddress\(SDL_GL_GetProcAddress\)/.test(renderProbe) &&
+            !/set_getprocaddress\(/.test(renderProbe) &&
+            /RTLD_DEFAULT/.test(renderProbe) &&
+            /RTLD_NEXT/.test(renderProbe) &&
             /SDL_GL_GetDrawableSize/.test(renderProbe) &&
             /initialize_gl4es\(\)/.test(renderProbe) &&
             /SDL_GL_CONTEXT_MAJOR_VERSION, 2/.test(renderProbe) &&
             /glReadPixels/.test(renderProbe),
-        "GL4ES must remain static, GLES2-backed and manually initialized after SDL",
+        "GL4ES must remain static, GLES2-backed and manually initialized after SDL without feeding its wrappers back through UIKit RTLD_DEFAULT lookup",
     );
     const gl4esLockEntry = lock.dependencies.find(
         (dependency) => dependency.name === "gl4es",

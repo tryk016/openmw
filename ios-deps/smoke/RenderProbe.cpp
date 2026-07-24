@@ -22,6 +22,8 @@ extern "C"
 #include <osgDB/ReaderWriter>
 #include <osgDB/Registry>
 
+#include <os/log.h>
+
 // iOS ships no dynamic OSG plugins. These proxies are the production plugin
 // registration set and deliberately include both generations of native OSG
 // serialization, while omitting DAE and every unused format.
@@ -39,6 +41,13 @@ namespace
 {
     SDL_Window* gProbeWindow = nullptr;
 
+    os_log_t probeLog()
+    {
+        static os_log_t log
+            = os_log_create("org.openmw.ios.deps-smoke", "render-probe");
+        return log;
+    }
+
     void getDrawableSize(int* width, int* height)
     {
         SDL_GL_GetDrawableSize(gProbeWindow, width, height);
@@ -53,6 +62,7 @@ namespace
 
     int probeOsg()
     {
+        os_log_info(probeLog(), "OSG probe begin");
         if (std::string_view(osgGetVersion()) != "3.6.5")
             return 20;
 
@@ -111,11 +121,13 @@ namespace
         {
             return 24;
         }
+        os_log_info(probeLog(), "OSG probe PASS");
         return 0;
     }
 
     int probeGl4es()
     {
+        os_log_info(probeLog(), "GL4ES probe begin");
         if (SDL_InitSubSystem(SDL_INIT_VIDEO) != 0)
             return 30;
 
@@ -143,9 +155,14 @@ namespace
             return 32;
         }
 
-        set_getprocaddress(SDL_GL_GetProcAddress);
+        // UIKit's SDL_GL_GetProcAddress uses dlsym(RTLD_DEFAULT), which can
+        // resolve a statically linked GL4ES wrapper back to itself. Leave the
+        // callback unset on Apple so pinned GL4ES uses its RTLD_NEXT backend
+        // lookup and reaches the real OpenGLES implementation.
         set_getmainfbsize(getDrawableSize);
+        os_log_info(probeLog(), "GL4ES initialize begin");
         initialize_gl4es();
+        os_log_info(probeLog(), "GL4ES initialize end");
         for (int pendingError = 0;
              pendingError < 16 && glGetError() != GL_NO_ERROR;
              ++pendingError)
@@ -191,6 +208,7 @@ namespace
         SDL_DestroyWindow(gProbeWindow);
         gProbeWindow = nullptr;
         SDL_QuitSubSystem(SDL_INIT_VIDEO);
+        os_log_info(probeLog(), "GL4ES probe end result=%{public}d", result);
         return result;
     }
 }
@@ -198,7 +216,9 @@ namespace
 extern "C" int openmwIosRenderProbe()
 {
     const int osgResult = probeOsg();
-    return osgResult == 0 ? probeGl4es() : osgResult;
+    const int result = osgResult == 0 ? probeGl4es() : osgResult;
+    os_log_info(probeLog(), "render probe end result=%{public}d", result);
+    return result;
 }
 
 #ifndef OPENMW_IOS_PROBE_NO_MAIN

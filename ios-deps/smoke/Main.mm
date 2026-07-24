@@ -47,6 +47,10 @@ extern "C" int openmwIosRenderProbe();
     (void)application;
     (void)launchOptions;
 
+    os_log_t runtimeLog =
+        os_log_create("org.openmw.ios.deps-smoke", "runtime");
+    os_log_info(runtimeLog, "render foundation probe begin");
+
     self.window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
     UIViewController* controller = [[UIViewController alloc] init];
     controller.view.backgroundColor = [UIColor colorWithRed:0.025
@@ -133,7 +137,10 @@ extern "C" int openmwIosRenderProbe();
     const int ffmpegResult = openmwIosFFmpegProbe();
     const bool openALPassed = openALResult == 0;
     const bool ffmpegPassed = ffmpegResult == 0;
+    os_log_info(runtimeLog, "render probe dispatch");
     const int renderResult = openmwIosRenderProbe();
+    os_log_info(
+        runtimeLog, "render probe returned result=%{public}d", renderResult);
     const bool renderPassed = renderResult == 0;
     const bool smokePassed
         = sdlInitResult == 0 && lz4RoundTripPassed && imageFoundationPassed
@@ -181,8 +188,6 @@ extern "C" int openmwIosRenderProbe();
 
     self.window.rootViewController = controller;
     [self.window makeKeyAndVisible];
-    os_log_t runtimeLog =
-        os_log_create("org.openmw.ios.deps-smoke", "runtime");
     os_log_info(runtimeLog,
         "render foundation %{public}s "
         "sdlInitResult=%{public}d videoDriverCount=%{public}d "

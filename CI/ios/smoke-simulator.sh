@@ -107,6 +107,7 @@ if ! xcrun simctl launch --terminate-running-process "$udid" "$bundle_id" \
     echo "simctl failed to launch ${bundle_id}" >&2
     runtime_failures+=("launch")
 fi
+app_pid="$(sed -n 's/^.*: \([0-9][0-9]*\)$/\1/p' "$launch_output" | tail -n 1)"
 
 sleep 10
 
@@ -119,6 +120,37 @@ if ! xcrun simctl spawn "$udid" log show \
     >"$unified_log" 2>&1; then
     echo "Could not collect the OpenMW unified log" >&2
     runtime_failures+=("unified-log")
+fi
+
+process_log="${log_dir}/openmw-process.log"
+if [[ -n "$app_pid" ]]; then
+    if ! xcrun simctl spawn "$udid" log show \
+        --last 5m \
+        --debug \
+        --info \
+        --style compact \
+        --predicate "processIdentifier == ${app_pid}" \
+        >"$process_log" 2>&1; then
+        echo "Could not collect the OpenMW process log" >&2
+        runtime_failures+=("process-log")
+    fi
+else
+    echo "simctl launch returned no application PID" >"$process_log"
+    runtime_failures+=("launch-pid")
+fi
+
+diagnostic_reports="${log_dir}/diagnostic-reports"
+mkdir -p "$diagnostic_reports"
+host_diagnostics="${HOME}/Library/Logs/DiagnosticReports"
+if [[ -d "$host_diagnostics" ]]; then
+    while IFS= read -r -d '' report; do
+        cp "$report" "$diagnostic_reports/"
+    done < <(
+        find "$host_diagnostics" -maxdepth 1 -type f \
+            \( -name "${executable_name}*.ips" \
+                -o -name "${executable_name}*.crash" \) \
+            -newer "$launch_output" -print0
+    )
 fi
 
 simulator_screenshot="${log_dir}/openmw-simulator.png"

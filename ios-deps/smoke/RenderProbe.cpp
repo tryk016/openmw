@@ -94,7 +94,7 @@ namespace
             return 22;
         }
         std::istringstream input(encoded.str());
-        const osgDB::ReaderWriter::ReadResult decoded
+        osgDB::ReaderWriter::ReadResult decoded
             = modern->readNode(input, asciiOptions.get());
         if (!decoded.validNode()
             || decoded.getNode()->getName() != "openmw-ios-render-foundation")

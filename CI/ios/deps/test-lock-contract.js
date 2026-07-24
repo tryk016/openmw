@@ -97,6 +97,31 @@ const ffmpegProbe = fs.readFileSync(
     path.join(repoRoot, "ios-deps/smoke/FFmpegProbe.cpp"),
     "utf8",
 );
+const gl4esPortfile = fs.readFileSync(
+    path.join(repoRoot, "ios-deps/overlay-ports/gl4es/portfile.cmake"),
+    "utf8",
+);
+const gl4esDarwinNoAliasPatch = fs.readFileSync(
+    path.join(
+        repoRoot,
+        "ios-deps/overlay-ports/gl4es/darwin-no-alias.patch",
+    ),
+    "utf8",
+);
+const gl4esOverlayManifest = JSON.parse(
+    fs.readFileSync(
+        path.join(repoRoot, "ios-deps/overlay-ports/gl4es/vcpkg.json"),
+        "utf8",
+    ),
+);
+const osgPortfile = fs.readFileSync(
+    path.join(repoRoot, "ios-deps/overlay-ports/osg/portfile.cmake"),
+    "utf8",
+);
+const renderProbe = fs.readFileSync(
+    path.join(repoRoot, "ios-deps/smoke/RenderProbe.cpp"),
+    "utf8",
+);
 const iosProductProfile = fs.readFileSync(
     path.join(repoRoot, "cmake/OpenMWIOSProfile.cmake"),
     "utf8",
@@ -109,11 +134,16 @@ const boostUninstallSpdxValidator = path.join(
     __dirname,
     "validate-boost-uninstall-spdx.jq",
 );
+const osgSpdxNormalizer = path.join(
+    __dirname,
+    "normalize-osg-spdx.jq",
+);
 const cmake = process.env.CMAKE_COMMAND || "cmake";
 const bash = process.env.BASH_COMMAND || "bash";
 const jq = process.env.JQ_COMMAND || "jq";
 let closureFixturesSkipped = false;
 let spdxFixturesSkipped = false;
+let osgSpdxFixturesSkipped = false;
 const temporaryRoot = fs.mkdtempSync(
     path.join(os.tmpdir(), "openmw-ios-lock-contract-"),
 );
@@ -330,14 +360,87 @@ function runBoostUninstallSpdxValidator(
     );
 }
 
-try {
-    const multimediaFoundationBuildJob = workflowJob(
-        dependenciesWorkflow,
-        "multimedia-foundation",
+function runOsgSpdxNormalizer(
+    testName,
+    document,
+    extractedText,
+    shouldPass,
+    verifyResult = undefined,
+) {
+    if (osgSpdxFixturesSkipped)
+        return;
+
+    const licensePath = path.join(
+        temporaryRoot,
+        `${testName}.osg-license.txt`,
     );
-    const multimediaFoundationRuntimeJob = workflowJob(
+    fs.writeFileSync(licensePath, extractedText);
+    const result = childProcess.spawnSync(
+        jq,
+        [
+            "-e",
+            "--rawfile",
+            "extractedText",
+            licensePath,
+            "-f",
+            osgSpdxNormalizer,
+        ],
+        {
+            encoding: "utf8",
+            input: `${JSON.stringify(document)}\n`,
+        },
+    );
+    if (result.error?.code === "ENOENT") {
+        process.stdout.write(
+            `OSG SPDX fixtures skipped: '${jq}' is unavailable; Ubuntu CI must execute them\n`,
+        );
+        osgSpdxFixturesSkipped = true;
+        return;
+    }
+    if (result.error)
+        throw result.error;
+    const passed = result.status === 0;
+    if (passed !== shouldPass) {
+        process.stderr.write(result.stdout);
+        process.stderr.write(result.stderr);
+        throw new Error(
+            `${testName}: expected OSG SPDX normalizer to ${shouldPass ? "accept" : "reject"}`,
+        );
+    }
+    if (passed && verifyResult)
+        verifyResult(JSON.parse(result.stdout));
+    process.stdout.write(
+        `${testName}: OSG SPDX ${shouldPass ? "normalized" : "rejected"} as expected\n`,
+    );
+}
+
+function requireCanonicalOsgLicensingInfo(document, extractedText) {
+    const expected = {
+        licenseId: "LicenseRef-OSGPL-1.0",
+        name: "OpenSceneGraph Public License, Version 1.0",
+        extractedText,
+    };
+    const matchingInfos = document.hasExtractedLicensingInfos?.filter(
+        (info) => info.licenseId === expected.licenseId,
+    );
+    if (
+        matchingInfos?.length !== 1 ||
+        JSON.stringify(matchingInfos[0]) !== JSON.stringify(expected)
+    ) {
+        throw new Error(
+            "OSG SPDX output must contain exactly one canonical extracted licensing information entry",
+        );
+    }
+}
+
+try {
+    const renderFoundationBuildJob = workflowJob(
         dependenciesWorkflow,
-        "multimedia-foundation-runtime",
+        "render-foundation",
+    );
+    const renderFoundationRuntimeJob = workflowJob(
+        dependenciesWorkflow,
+        "render-foundation-runtime",
     );
     requireBuildScriptContract(
         "dependency-workflow-watches-runtime-runner",
@@ -349,80 +452,80 @@ try {
         "pull-request and ios/main push filters must both run dependency CI when the shared simulator runner changes",
     );
     requireBuildScriptContract(
-        "multimedia-build-matrix-only-produces-evidence",
-        multimediaFoundationBuildJob.includes("matrix:") &&
-            multimediaFoundationBuildJob.includes(
-                "name: ios-deps-multimedia-foundation-${{ matrix.platform }}-${{ github.sha }}",
+        "render-build-matrix-only-produces-evidence",
+        renderFoundationBuildJob.includes("matrix:") &&
+            renderFoundationBuildJob.includes(
+                "name: ios-deps-render-foundation-${{ matrix.platform }}-${{ github.sha }}",
             ) &&
-            multimediaFoundationBuildJob.includes(
+            renderFoundationBuildJob.includes(
                 "build/ios-deps/${{ matrix.platform }}/smoke/**/OpenMWDepsSmoke.app",
             ) &&
             /name: Archive simulator runtime input[\s\S]*?if: matrix\.platform == 'iphonesimulator'[\s\S]*?tar -C[\s\S]*?OpenMWDepsSmoke\.app\.tar\.gz/.test(
-                multimediaFoundationBuildJob,
+                renderFoundationBuildJob,
             ) &&
-            /name: Upload simulator runtime input[\s\S]*?if: matrix\.platform == 'iphonesimulator'[\s\S]*?name: ios-deps-multimedia-foundation-runtime-input-\$\{\{ github\.sha \}\}[\s\S]*?path: build\/ios-deps\/\$\{\{ matrix\.platform \}\}\/runtime-input\/OpenMWDepsSmoke\.app\.tar\.gz[\s\S]*?overwrite: true/.test(
-                multimediaFoundationBuildJob,
+            /name: Upload simulator runtime input[\s\S]*?if: matrix\.platform == 'iphonesimulator'[\s\S]*?name: ios-deps-render-foundation-runtime-input-\$\{\{ github\.sha \}\}[\s\S]*?path: build\/ios-deps\/\$\{\{ matrix\.platform \}\}\/runtime-input\/OpenMWDepsSmoke\.app\.tar\.gz[\s\S]*?overwrite: true/.test(
+                renderFoundationBuildJob,
             ) &&
-            !multimediaFoundationBuildJob.includes("smoke-simulator.sh") &&
-            !multimediaFoundationBuildJob.includes("simctl") &&
-            !multimediaFoundationBuildJob.includes("runtime-smoke"),
-        "the expensive multimedia matrix must build and upload each platform artifact without starting a simulator",
+            !renderFoundationBuildJob.includes("smoke-simulator.sh") &&
+            !renderFoundationBuildJob.includes("simctl") &&
+            !renderFoundationBuildJob.includes("runtime-smoke"),
+        "the expensive render matrix must build and upload each platform artifact without starting a simulator",
     );
     requireBuildScriptContract(
-        "multimedia-runtime-job-consumes-exact-simulator-artifact",
-        multimediaFoundationRuntimeJob.includes("needs: multimedia-foundation") &&
-            multimediaFoundationRuntimeJob.includes("runs-on: macos-15") &&
-            multimediaFoundationRuntimeJob.includes(
+        "render-runtime-job-consumes-exact-simulator-artifact",
+        renderFoundationRuntimeJob.includes("needs: render-foundation") &&
+            renderFoundationRuntimeJob.includes("runs-on: macos-15") &&
+            renderFoundationRuntimeJob.includes(
                 "DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer",
             ) &&
-            multimediaFoundationRuntimeJob.includes(
+            renderFoundationRuntimeJob.includes(
                 'test "$(xcodebuild -version | sed -n \'1p\')" = "Xcode 16.4"',
             ) &&
             /uses: actions\/download-artifact@v\d+/.test(
-                multimediaFoundationRuntimeJob,
+                renderFoundationRuntimeJob,
             ) &&
-            multimediaFoundationRuntimeJob.includes(
-                "name: ios-deps-multimedia-foundation-runtime-input-${{ github.sha }}",
+            renderFoundationRuntimeJob.includes(
+                "name: ios-deps-render-foundation-runtime-input-${{ github.sha }}",
             ) &&
-            !multimediaFoundationRuntimeJob.includes(
-                "ios-deps-multimedia-foundation-iphonesimulator",
+            !renderFoundationRuntimeJob.includes(
+                "ios-deps-render-foundation-iphonesimulator",
             ) &&
-            !multimediaFoundationRuntimeJob.includes("pattern:") &&
-            !multimediaFoundationRuntimeJob.includes("merge-multiple:") &&
-            multimediaFoundationRuntimeJob.includes(
+            !renderFoundationRuntimeJob.includes("pattern:") &&
+            !renderFoundationRuntimeJob.includes("merge-multiple:") &&
+            renderFoundationRuntimeJob.includes(
                 '-type f -name OpenMWDepsSmoke.app.tar.gz -print >"$archives_file"',
             ) &&
-            multimediaFoundationRuntimeJob.includes(
+            renderFoundationRuntimeJob.includes(
                 'if [[ "$archive_count" -ne 1 ]]; then',
             ) &&
-            multimediaFoundationRuntimeJob.includes(
+            renderFoundationRuntimeJob.includes(
                 'tar -xzf "$archive" -C "$extracted_root"',
             ) &&
-            multimediaFoundationRuntimeJob.includes(
+            renderFoundationRuntimeJob.includes(
                 '-type d -name OpenMWDepsSmoke.app -print >"$apps_file"',
             ) &&
-            multimediaFoundationRuntimeJob.includes(
+            renderFoundationRuntimeJob.includes(
                 'if [[ "$app_count" -ne 1 ]]; then',
             ) &&
-            multimediaFoundationRuntimeJob.includes(
+            renderFoundationRuntimeJob.includes(
                 'test "$bundle_id" = "org.openmw.ios.deps-smoke"',
             ) &&
-            multimediaFoundationRuntimeJob.includes('test -n "$executable_name"') &&
-            multimediaFoundationRuntimeJob.includes(
+            renderFoundationRuntimeJob.includes('test -n "$executable_name"') &&
+            renderFoundationRuntimeJob.includes(
                 'test -x "${app}/${executable_name}"',
             ) &&
-            multimediaFoundationRuntimeJob.includes(
+            renderFoundationRuntimeJob.includes(
                 "bash CI/ios/smoke-simulator.sh",
             ) &&
-            multimediaFoundationRuntimeJob.includes(
+            renderFoundationRuntimeJob.includes(
                 '"org.openmw.ios.deps-smoke"',
             ) &&
-            multimediaFoundationRuntimeJob.includes('"multimedia foundation PASS"') &&
-            multimediaFoundationRuntimeJob.includes(
-                "name: ios-deps-multimedia-foundation-runtime-${{ github.sha }}-${{ github.run_attempt }}",
+            renderFoundationRuntimeJob.includes('"render foundation PASS"') &&
+            renderFoundationRuntimeJob.includes(
+                "name: ios-deps-render-foundation-runtime-${{ github.sha }}-${{ github.run_attempt }}",
             ) &&
-            !multimediaFoundationRuntimeJob.includes("CI/ios/deps/build.sh"),
-        "the short runtime job must wait for the full matrix, download only the SHA-pinned tar input, restore and validate one executable app under Xcode 16.4, and execute the multimedia probes",
+            !renderFoundationRuntimeJob.includes("CI/ios/deps/build.sh"),
+        "the short runtime job must wait for the full matrix, download only the SHA-pinned tar input, restore and validate one executable app under Xcode 16.4, and execute the render probes",
     );
 
     const runtimeResultNames = [
@@ -435,6 +538,7 @@ try {
         "myGuiResult",
         "openALResult",
         "ffmpegResult",
+        "renderResult",
     ];
     const runtimeLogFields = [
         "sdlInitResult",
@@ -465,10 +569,12 @@ try {
         "openALPassed",
         "ffmpegResult",
         "ffmpegPassed",
+        "renderResult",
+        "renderPassed",
         "smokePassed",
     ];
     requireBuildScriptContract(
-        "multimedia-runtime-log-is-complete",
+        "render-runtime-log-is-complete",
         runtimeResultNames.every((resultName) =>
             new RegExp(`const int ${resultName}\\s*=`).test(smokeMain),
         ) &&
@@ -484,11 +590,17 @@ try {
             runtimeLogFields.every((field) =>
                 smokeMain.includes(`${field}=%{public}d`),
             ),
-        "the unified log must expose every dependency probe result and pass/fail boolean, including raw MyGUI, OpenAL and FFmpeg results",
+        "the unified log must expose every dependency probe result and pass/fail boolean, including raw MyGUI, OpenAL, FFmpeg and render results",
     );
 
     const unifiedLogCapture = simulatorSmokeScript.indexOf(
         'xcrun simctl spawn "$udid" log show',
+    );
+    const processLogCapture = simulatorSmokeScript.indexOf(
+        '--predicate "processIdentifier == ${app_pid}"',
+    );
+    const diagnosticReportCapture = simulatorSmokeScript.indexOf(
+        'Library/Logs/DiagnosticReports',
     );
     const screenshotCapture = simulatorSmokeScript.indexOf(
         'xcrun simctl io "$udid" screenshot',
@@ -505,9 +617,13 @@ try {
     requireBuildScriptContract(
         "simulator-diagnostics-are-fail-closed",
         unifiedLogCapture !== -1 &&
+            processLogCapture !== -1 &&
+            diagnosticReportCapture !== -1 &&
             screenshotCapture !== -1 &&
             markerEvaluation !== -1 &&
             unifiedLogCapture < markerEvaluation &&
+            processLogCapture < markerEvaluation &&
+            diagnosticReportCapture < markerEvaluation &&
             screenshotCapture < markerEvaluation &&
             installBlock !== undefined &&
             launchBlock !== undefined &&
@@ -519,12 +635,18 @@ try {
                 'runtime_failures+=("unified-log")',
             ) &&
             simulatorSmokeScript.includes(
+                'runtime_failures+=("process-log")',
+            ) &&
+            simulatorSmokeScript.includes(
+                'runtime_failures+=("launch-pid")',
+            ) &&
+            simulatorSmokeScript.includes(
                 'runtime_failures+=("screenshot")',
             ) &&
             /if \[\[ "\$\{#runtime_failures\[@\]\}" -ne 0 \]\]; then[\s\S]*exit 1\s*\nfi/.test(
                 simulatorSmokeScript,
             ),
-        "install and launch failures must survive through unconditional log/screenshot collection, marker evaluation, and a final non-zero exit",
+        "install and launch failures must survive through unconditional subsystem/process/crash-report/screenshot collection, marker evaluation, and a final non-zero exit",
     );
 
     requireBuildScriptContract(
@@ -576,10 +698,10 @@ try {
         "only overlay ports selected by the active lock profile may reach vcpkg",
     );
     requireBuildScriptContract(
-        "language-ui-and-multimedia-host-tools-are-validated",
+        "language-ui-multimedia-and-render-host-tools-are-validated",
         /validate-host-tools\.sh/.test(buildScript) &&
             /profile="\$1"/.test(hostToolsScript) &&
-            /case "\$profile" in\s*language-foundation\|ui-foundation\|multimedia-foundation\) ;;\s*\*\) exit 0 ;;\s*esac/.test(
+            /case "\$profile" in\s*language-foundation\|ui-foundation\|multimedia-foundation\|render-foundation\) ;;\s*\*\) exit 0 ;;\s*esac/.test(
                 hostToolsScript,
             ) &&
             /icuinfo/.test(hostToolsScript) &&
@@ -588,7 +710,7 @@ try {
             /echo "Validated ICU 70\.1#1 host tools and target\/host separation"/.test(
                 hostToolsScript,
             ),
-        "the language, UI and multimedia profiles must validate pinned ICU host tools and report success",
+        "the language, UI, multimedia and render profiles must validate pinned ICU host tools and report success",
     );
     requireBuildScriptContract(
         "stdout-is-reserved-for-prefix",
@@ -792,6 +914,110 @@ try {
         "FFmpeg must retain its exact no-network LGPL allowlist and compliance evidence",
     );
     requireBuildScriptContract(
+        "gl4es-gles2-manual-init-contract",
+        /-DDEFAULT_ES=2/.test(gl4esPortfile) &&
+            /-DNOX11=ON/.test(gl4esPortfile) &&
+            /-DNOEGL=ON/.test(gl4esPortfile) &&
+            /-DSTATICLIB=ON/.test(gl4esPortfile) &&
+            /-DNO_LOADER=ON/.test(gl4esPortfile) &&
+            /-DNO_INIT_CONSTRUCTOR=ON/.test(gl4esPortfile) &&
+            !/set_getprocaddress\(/.test(renderProbe) &&
+            /RTLD_DEFAULT/.test(renderProbe) &&
+            /RTLD_NEXT/.test(renderProbe) &&
+            /SDL_GL_GetDrawableSize/.test(renderProbe) &&
+            /initialize_gl4es\(\)/.test(renderProbe) &&
+            /SDL_GL_CONTEXT_MAJOR_VERSION, 2/.test(renderProbe) &&
+            /glReadPixels/.test(renderProbe),
+        "GL4ES must remain static, GLES2-backed and manually initialized after SDL without feeding its wrappers back through UIKit RTLD_DEFAULT lookup",
+    );
+    const gl4esLockEntry = lock.dependencies.find(
+        (dependency) => dependency.name === "gl4es",
+    );
+    requireBuildScriptContract(
+        "gl4es-darwin-alias-wrapper-contract",
+        /PATCHES\s+disable-tests\.patch\s+darwin-no-alias\.patch/.test(
+            gl4esPortfile,
+        ) &&
+            /defined\(__APPLE__\) && defined\(__aarch64__\)/.test(
+                gl4esDarwinNoAliasPatch,
+            ) &&
+            /__attribute__\(\(naked\)\) RET APIENTRY_GL4ES ENM DEF/.test(
+                gl4esDarwinNoAliasPatch,
+            ) &&
+            /__asm__\("b _gl4es_" _STR\(INM\)\)/.test(
+                gl4esDarwinNoAliasPatch,
+            ) &&
+            (gl4esDarwinNoAliasPatch.match(
+                /^\+\s+#define AliasExport(?:_A|_D|_D_1|_M|_V)?\(/gm,
+            )?.length ?? 0) === 6 &&
+            /^-AliasExport_A\(void,glDisableClientStatei,EXT,\(GLenum array, GLuint index\),glEnableClientStateIndexed\);$/m.test(
+                gl4esDarwinNoAliasPatch,
+            ) &&
+            /^\+AliasExport_A\(void,glDisableClientStatei,EXT,\(GLenum array, GLuint index\),glDisableClientStateIndexed\);$/m.test(
+                gl4esDarwinNoAliasPatch,
+            ) &&
+            (gl4esDarwinNoAliasPatch.match(
+                /^\+void APIENTRY_GL4ES gl4es_gl(?:Enable|Disable)ClientStatei/gm,
+            )?.length ?? 0) === 2 &&
+            (gl4esDarwinNoAliasPatch.match(
+                /^\+\s+gl4es_gl(?:Enable|Disable)ClientStateIndexed\(array, index\);/gm,
+            )?.length ?? 0) === 2 &&
+            (gl4esDarwinNoAliasPatch.match(
+                /^\+#if defined\(__APPLE__\)/gm,
+            )?.length ?? 0) === 2 &&
+            gl4esOverlayManifest["port-version"] === 1 &&
+            gl4esLockEntry?.vcpkg_port_source === "overlay" &&
+            gl4esLockEntry?.vcpkg_port_version === 1,
+        "Darwin must use AArch64 public tail-call wrappers and real internal forwarding wrappers instead of unsupported ELF aliases in locked GL4ES 1.1.6#1",
+    );
+    requireBuildScriptContract(
+        "osg-minimal-static-plugin-contract",
+        /BUILD_OSG_PLUGIN_DAE=OFF/.test(osgPortfile) &&
+            /BUILD_OSG_APPLICATIONS=OFF/.test(osgPortfile) &&
+            /BUILD_OSG_EXAMPLES=OFF/.test(osgPortfile) &&
+            /DYNAMIC_OPENSCENEGRAPH=OFF/.test(osgPortfile) &&
+            /find_package\(unofficial-osg 3\.6\.5 EXACT CONFIG REQUIRED/.test(
+                smokeCmake,
+            ) &&
+            (smokeCmake.match(/LINKER:-force_load/g) ?? []).length === 1 &&
+            /foreach\(osg_plugin_target IN LISTS osg_plugin_targets\)/.test(
+                smokeCmake,
+            ) &&
+            !/(?:LINKER:|Wl,)-all_load/.test(smokeCmake) &&
+            ["bmp", "dds", "freetype", "jpeg", "osg", "png", "tga"].every(
+                (plugin) =>
+                    new RegExp(`USE_OSGPLUGIN\\(${plugin}\\)`).test(
+                        renderProbe,
+                    ),
+            ) &&
+            /USE_DOTOSGWRAPPER_LIBRARY\(osg\)/.test(renderProbe) &&
+            /USE_SERIALIZER_WRAPPER_LIBRARY\(osg\)/.test(renderProbe) &&
+            /getReaderWriterForExtension\("osgt"\)/.test(renderProbe) &&
+            /getReaderWriterForExtension\("osg"\)/.test(renderProbe) &&
+            (prefixValidator.match(
+                /<<<"\$osg_(?:plugin|legacy_wrapper|serializer_wrapper|undefined)_symbols"/g,
+            )?.length ?? 0) === 4 &&
+            (prefixValidator.match(
+                /osg_(?:plugin|legacy_wrapper|serializer_wrapper|undefined)_symbols="\$\(\s*nm -[gu]\b/g,
+            )?.length ?? 0) === 4 &&
+            !/nm -[gu](?:[^\r\n]*\\\r?\n)*[^\r\n]*\|\s*grep\b/.test(
+                prefixValidator,
+            ),
+        "OSG must expose only the allowlisted statically registered plugins and serializers, and symbol audits must drain nm before grep under pipefail",
+    );
+    requireBuildScriptContract(
+        "osg-custom-license-is-normalized",
+        /osg_spdx_normalizer=.*normalize-osg-spdx\.jq/.test(
+            packageMetadataScript,
+        ) &&
+            /published_spdx="\$\{output_dir\}\/sbom\/\$\{package\}\.spdx\.json"[\s\S]*case "\$package" in[\s\S]*osg\)[\s\S]*jq -e --rawfile extractedText "\$copyright_file"[\s\S]*-f "\$osg_spdx_normalizer" "\$spdx_file"[\s\S]*>"\$published_spdx"[\s\S]*\*\)[\s\S]*cp "\$spdx_file" "\$published_spdx"/.test(
+                packageMetadataScript,
+            ) &&
+            (packageMetadataScript.match(/\$osg_spdx_normalizer/g) ?? [])
+                .length === 1,
+        "only OSG may be normalized with the installed copyright text; all other SPDX files must be copied unchanged",
+    );
+    requireBuildScriptContract(
         "boost-uninstall-notice-is-narrow",
         /IOS_DEPS_BUILD_ROOT/.test(packageMetadataScript) &&
             /IOS_DEPS_VCPKG_ROOT/.test(packageMetadataScript) &&
@@ -804,6 +1030,132 @@ try {
             /git -C "\$vcpkg_root" show/.test(packageMetadataScript) &&
             /cmp - "\$vcpkg_license"/.test(packageMetadataScript),
         "only the identified MIT boost-uninstall helper may use the pinned vcpkg notice",
+    );
+
+    const osgLicenseText =
+        "OpenSceneGraph Public License fixture\nPinned LICENSE.txt text.\n";
+    const canonicalOsgLicensingInfo = {
+        licenseId: "LicenseRef-OSGPL-1.0",
+        name: "OpenSceneGraph Public License, Version 1.0",
+        extractedText: osgLicenseText,
+    };
+    const validOsgSpdx = {
+        packages: [
+            {
+                name: "osg",
+                description:
+                    "Minimal static OpenMW OpenSceneGraph fork for iOS",
+                licenseConcluded: "LicenseRef-OSGPL-1.0",
+            },
+            {
+                name: "osg:arm64-ios-openmw",
+                licenseConcluded: "LicenseRef-OSGPL-1.0",
+            },
+        ],
+    };
+    runOsgSpdxNormalizer(
+        "valid-osg-spdx-adds-extracted-license",
+        validOsgSpdx,
+        osgLicenseText,
+        true,
+        (document) =>
+            requireCanonicalOsgLicensingInfo(document, osgLicenseText),
+    );
+
+    const validSimulatorOsgSpdx = clone(validOsgSpdx);
+    validSimulatorOsgSpdx.packages[1].name =
+        "osg:arm64-ios-simulator-openmw";
+    runOsgSpdxNormalizer(
+        "valid-simulator-osg-spdx-adds-extracted-license",
+        validSimulatorOsgSpdx,
+        osgLicenseText,
+        true,
+        (document) =>
+            requireCanonicalOsgLicensingInfo(document, osgLicenseText),
+    );
+
+    const osgSpdxWithCanonicalInfo = clone(validOsgSpdx);
+    osgSpdxWithCanonicalInfo.hasExtractedLicensingInfos = [
+        canonicalOsgLicensingInfo,
+    ];
+    runOsgSpdxNormalizer(
+        "valid-osg-spdx-keeps-single-extracted-license",
+        osgSpdxWithCanonicalInfo,
+        osgLicenseText,
+        true,
+        (document) =>
+            requireCanonicalOsgLicensingInfo(document, osgLicenseText),
+    );
+
+    const wrongOsgLicense = clone(validOsgSpdx);
+    wrongOsgLicense.packages[0].licenseConcluded = "MIT";
+    runOsgSpdxNormalizer(
+        "wrong-osg-license",
+        wrongOsgLicense,
+        osgLicenseText,
+        false,
+    );
+
+    const missingOsgCustomReference = clone(validOsgSpdx);
+    delete missingOsgCustomReference.packages[1].licenseConcluded;
+    runOsgSpdxNormalizer(
+        "missing-osg-custom-license-reference",
+        missingOsgCustomReference,
+        osgLicenseText,
+        false,
+    );
+
+    const missingOsgIdentity = clone(validOsgSpdx);
+    missingOsgIdentity.packages[0].name = "not-osg";
+    runOsgSpdxNormalizer(
+        "missing-osg-source-identity",
+        missingOsgIdentity,
+        osgLicenseText,
+        false,
+    );
+
+    const incorrectOsgIdentity = clone(validOsgSpdx);
+    incorrectOsgIdentity.packages[0].description = "Unexpected OSG package";
+    runOsgSpdxNormalizer(
+        "incorrect-osg-source-identity",
+        incorrectOsgIdentity,
+        osgLicenseText,
+        false,
+    );
+
+    const tamperedOsgBinaryIdentity = clone(validOsgSpdx);
+    tamperedOsgBinaryIdentity.packages[1].name = "osg:tampered-triplet";
+    runOsgSpdxNormalizer(
+        "tampered-osg-binary-identity",
+        tamperedOsgBinaryIdentity,
+        osgLicenseText,
+        false,
+    );
+
+    const duplicateOsgLicensingInfo = clone(validOsgSpdx);
+    duplicateOsgLicensingInfo.hasExtractedLicensingInfos = [
+        canonicalOsgLicensingInfo,
+        clone(canonicalOsgLicensingInfo),
+    ];
+    runOsgSpdxNormalizer(
+        "duplicate-osg-extracted-license",
+        duplicateOsgLicensingInfo,
+        osgLicenseText,
+        false,
+    );
+
+    const conflictingOsgLicensingInfo = clone(validOsgSpdx);
+    conflictingOsgLicensingInfo.hasExtractedLicensingInfos = [
+        {
+            ...canonicalOsgLicensingInfo,
+            extractedText: "Not the installed license text\n",
+        },
+    ];
+    runOsgSpdxNormalizer(
+        "conflicting-osg-extracted-license",
+        conflictingOsgLicensingInfo,
+        osgLicenseText,
+        false,
     );
 
     const validBoostUninstallSpdx = {
@@ -1293,6 +1645,69 @@ try {
         ),
         false,
         "multimedia-foundation",
+    );
+
+    const missingRenderGl4es = clone(manifest);
+    missingRenderGl4es.features["render-foundation"].dependencies =
+        missingRenderGl4es.features["render-foundation"].dependencies.filter(
+            (dependency) => dependency.name !== "gl4es",
+        );
+    runValidator(
+        "missing-render-gl4es",
+        lock,
+        missingRenderGl4es,
+        false,
+    );
+
+    const missingRenderOsg = clone(manifest);
+    missingRenderOsg.features["render-foundation"].dependencies =
+        missingRenderOsg.features["render-foundation"].dependencies.filter(
+            (dependency) => dependency.name !== "osg",
+        );
+    runValidator("missing-render-osg", lock, missingRenderOsg, false);
+
+    const renderDefaultsEnabled = clone(manifest);
+    renderDefaultsEnabled.features["render-foundation"].dependencies.find(
+        (dependency) => dependency.name === "osg",
+    )["default-features"] = true;
+    runValidator(
+        "render-osg-default-features-enabled",
+        lock,
+        renderDefaultsEnabled,
+        false,
+    );
+
+    const renderTriplet = "arm64-ios-openmw";
+    const renderHostTriplet = "arm64-osx";
+    const renderClosureRecords = [
+        ...directPortEntries(lock, "render-foundation", renderTriplet),
+        ...lock.expected_vcpkg_transitive_ports[
+            "render-foundation"
+        ].target.map((entry) =>
+            installedRecord(entry.port, renderTriplet, entry.features ?? []),
+        ),
+        ...lock.expected_vcpkg_transitive_ports[
+            "render-foundation"
+        ].host.map((entry) =>
+            installedRecord(entry.port, renderHostTriplet, entry.features ?? []),
+        ),
+    ];
+    runClosureValidator(
+        "valid-render-installed-closure",
+        lock,
+        renderClosureRecords,
+        true,
+        "render-foundation",
+    );
+
+    runClosureValidator(
+        "missing-render-cmake-get-vars",
+        lock,
+        renderClosureRecords.filter(
+            (record) => record.package_name !== "vcpkg-cmake-get-vars",
+        ),
+        false,
+        "render-foundation",
     );
 
     const missingPortSource = clone(lock);

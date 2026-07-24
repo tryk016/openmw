@@ -361,6 +361,110 @@ else()
         "The locked libjpeg-turbo package has no TurboJPEG C API target")
 endif()
 
+# OSG's static exports are deliberately exposed through an unofficial package
+# so the iOS fork cannot silently fall back to a system OpenSceneGraph. Its
+# nested dependencies resolve only from the same verified prefix.
+block()
+    list(PREPEND CMAKE_PREFIX_PATH "${IOS_DEPS_PREFIX}")
+    set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE NEVER)
+    find_package(gl4es CONFIG REQUIRED
+        PATHS "${IOS_DEPS_PREFIX}/share/gl4es"
+        NO_DEFAULT_PATH
+        NO_CMAKE_FIND_ROOT_PATH)
+    find_package(unofficial-osg 3.6.5 EXACT CONFIG REQUIRED
+        PATHS "${IOS_DEPS_PREFIX}/share/unofficial-osg"
+        NO_DEFAULT_PATH
+        NO_CMAKE_FIND_ROOT_PATH)
+endblock()
+if(NOT TARGET gl4es::GL)
+    message(FATAL_ERROR "The locked GL4ES package has no gl4es::GL target")
+endif()
+get_target_property(gl4es_target_type gl4es::GL TYPE)
+get_target_property(gl4es_target_location gl4es::GL IMPORTED_LOCATION)
+if(NOT gl4es_target_type STREQUAL "STATIC_LIBRARY"
+        OR NOT gl4es_target_location STREQUAL
+            "${IOS_DEPS_PREFIX}/lib/libGL.a")
+    message(FATAL_ERROR "GL4ES did not resolve to the locked static archive")
+endif()
+
+set(osg_core_names
+    osgAnimation
+    osgParticle
+    osgFX
+    osgShadow
+    osgSim
+    osgViewer
+    osgGA
+    osgText
+    osgDB
+    osgUtil
+    osg
+    OpenThreads)
+set(osg_plugin_names
+    osgdb_bmp
+    osgdb_dds
+    osgdb_deprecated_osg
+    osgdb_freetype
+    osgdb_jpeg
+    osgdb_osg
+    osgdb_png
+    osgdb_serializers_osg
+    osgdb_tga)
+set(osg_core_targets)
+foreach(osg_name IN LISTS osg_core_names)
+    set(osg_target "unofficial::osg::${osg_name}")
+    if(NOT TARGET "${osg_target}")
+        message(FATAL_ERROR "The locked OSG package has no ${osg_target} target")
+    endif()
+    get_target_property(osg_target_type "${osg_target}" TYPE)
+    get_target_property(osg_target_location
+        "${osg_target}" IMPORTED_LOCATION_RELEASE)
+    if(NOT osg_target_type STREQUAL "STATIC_LIBRARY"
+            OR NOT osg_target_location STREQUAL
+                "${IOS_DEPS_PREFIX}/lib/lib${osg_name}.a")
+        message(FATAL_ERROR
+            "${osg_target} did not resolve to its locked static archive")
+    endif()
+    list(APPEND osg_core_targets "${osg_target}")
+endforeach()
+
+set(osg_plugin_targets)
+foreach(osg_name IN LISTS osg_plugin_names)
+    set(osg_target "unofficial::osg::${osg_name}")
+    if(NOT TARGET "${osg_target}")
+        message(FATAL_ERROR "The locked OSG package has no ${osg_target} target")
+    endif()
+    get_target_property(osg_target_type "${osg_target}" TYPE)
+    get_target_property(osg_target_location
+        "${osg_target}" IMPORTED_LOCATION_RELEASE)
+    if(NOT osg_target_type STREQUAL "STATIC_LIBRARY"
+            OR NOT osg_target_location STREQUAL
+                "${IOS_DEPS_PREFIX}/lib/osgPlugins-3.6.5/lib${osg_name}.a")
+        message(FATAL_ERROR
+            "${osg_target} did not resolve to its locked static plugin archive")
+    endif()
+    list(APPEND osg_plugin_targets "${osg_target}")
+endforeach()
+if(TARGET unofficial::osg::osgdb_dae
+        OR EXISTS "${IOS_DEPS_PREFIX}/lib/osgPlugins-3.6.5/libosgdb_dae.a")
+    message(FATAL_ERROR "The DAE plugin leaked into the render foundation")
+endif()
+
+add_library(OpenMWIOSRender INTERFACE)
+add_library(OpenMWIOS::Render ALIAS OpenMWIOSRender)
+target_compile_definitions(OpenMWIOSRender INTERFACE OSG_LIBRARY_STATIC)
+target_link_libraries(OpenMWIOSRender INTERFACE
+    ${osg_plugin_targets}
+    ${osg_core_targets}
+    gl4es::GL)
+# Apple does not recursively load plugin registration objects from archives.
+# Force-load each allowlisted archive separately; -all_load is intentionally
+# forbidden because it would conceal accidental plugin growth.
+foreach(osg_plugin_target IN LISTS osg_plugin_targets)
+    target_link_options(OpenMWIOSRender INTERFACE
+        "LINKER:-force_load,$<TARGET_FILE:${osg_plugin_target}>")
+endforeach()
+
 find_library(UIKIT_FRAMEWORK UIKit REQUIRED)
 find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
 
@@ -373,11 +477,13 @@ add_executable(openmw-ios-deps-smoke MACOSX_BUNDLE
     MyGUIProbe.cpp
     OpenALProbe.c
     RecastProbe.cpp
+    RenderProbe.cpp
     YamlProbe.cpp
     SQLiteProbe.c)
 target_compile_definitions(openmw-ios-deps-smoke PRIVATE
     SDL_MAIN_HANDLED
-    OPENMW_IOS_PROBE_NO_MAIN)
+    OPENMW_IOS_PROBE_NO_MAIN
+    OSG_LIBRARY_STATIC)
 target_compile_features(openmw-ios-deps-smoke PRIVATE c_std_11 cxx_std_20)
 target_link_options(openmw-ios-deps-smoke PRIVATE "LINKER:-ObjC")
 target_link_libraries(openmw-ios-deps-smoke PRIVATE
@@ -401,6 +507,7 @@ target_link_libraries(openmw-ios-deps-smoke PRIVATE
     OpenMWIOS::MyGUI
     OpenMWIOS::OpenAL
     OpenMWIOS::FFmpeg
+    OpenMWIOS::Render
     yaml-cpp::yaml-cpp
     SQLite3::SQLite3
     Threads::Threads
@@ -416,6 +523,21 @@ set_target_properties(openmw-ios-deps-smoke PROPERTIES
     XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "16.4"
     XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "org.openmw.ios.deps-smoke"
     XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")
+
+add_executable(openmw-ios-render-probe RenderProbe.cpp)
+target_compile_definitions(openmw-ios-render-probe PRIVATE
+    SDL_MAIN_HANDLED
+    OSG_LIBRARY_STATIC)
+target_compile_features(openmw-ios-render-probe PRIVATE cxx_std_20)
+target_link_libraries(openmw-ios-render-probe PRIVATE
+    OpenMWIOS::Render
+    "${sdl2_target}")
+set_target_properties(openmw-ios-render-probe PROPERTIES
+    OUTPUT_NAME "OpenMWRenderProbe"
+    XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
+    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
+    XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "16.4")
 
 add_executable(openmw-ios-openal-probe OpenALProbe.c)
 target_compile_features(openmw-ios-openal-probe PRIVATE c_std_11)

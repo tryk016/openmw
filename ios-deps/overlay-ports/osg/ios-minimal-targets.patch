@@ -1,0 +1,124 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -16,16 +16,10 @@ FOREACH( mylibfolder
+         osgText
+         osgViewer
+         osgAnimation
+         osgFX
+-        osgManipulator
+         osgParticle
+-        osgUI
+-        osgVolume
+         osgShadow
+         osgSim
+-        osgTerrain
+-        osgWidget
+-        osgPresentation
+         osgWrappers/serializers
+         osgPlugins
+     )
+diff --git a/src/osgWrappers/serializers/CMakeLists.txt b/src/osgWrappers/serializers/CMakeLists.txt
+--- a/src/osgWrappers/serializers/CMakeLists.txt
++++ b/src/osgWrappers/serializers/CMakeLists.txt
+@@ -46,16 +46,3 @@ SET(TARGET_COMMON_LIBRARIES
+ )
+-
++
+ ADD_SUBDIRECTORY(osg)
+-ADD_SUBDIRECTORY(osgUtil)
+-ADD_SUBDIRECTORY(osgAnimation)
+-ADD_SUBDIRECTORY(osgFX)
+-ADD_SUBDIRECTORY(osgManipulator)
+-ADD_SUBDIRECTORY(osgParticle)
+-ADD_SUBDIRECTORY(osgSim)
+-ADD_SUBDIRECTORY(osgShadow)
+-ADD_SUBDIRECTORY(osgGA)
+-ADD_SUBDIRECTORY(osgTerrain)
+-ADD_SUBDIRECTORY(osgText)
+-ADD_SUBDIRECTORY(osgVolume)
+-ADD_SUBDIRECTORY(osgViewer)
+-ADD_SUBDIRECTORY(osgUI)
+diff --git a/src/osgWrappers/deprecated-dotosg/CMakeLists.txt b/src/osgWrappers/deprecated-dotosg/CMakeLists.txt
+--- a/src/osgWrappers/deprecated-dotosg/CMakeLists.txt
++++ b/src/osgWrappers/deprecated-dotosg/CMakeLists.txt
+@@ -33,14 +33,3 @@ SET(TARGET_COMMON_LIBRARIES
+ )
+-
++
+ ADD_SUBDIRECTORY(osg)
+-ADD_SUBDIRECTORY(osgParticle)
+-ADD_SUBDIRECTORY(osgAnimation)
+-ADD_SUBDIRECTORY(osgFX)
+-ADD_SUBDIRECTORY(osgSim)
+-ADD_SUBDIRECTORY(osgText)
+-ADD_SUBDIRECTORY(osgViewer)
+-ADD_SUBDIRECTORY(osgShadow)
+-ADD_SUBDIRECTORY(osgTerrain)
+-ADD_SUBDIRECTORY(osgVolume)
+-ADD_SUBDIRECTORY(osgWidget)
+-
+diff --git a/src/osgPlugins/jpeg/CMakeLists.txt b/src/osgPlugins/jpeg/CMakeLists.txt
+--- a/src/osgPlugins/jpeg/CMakeLists.txt
++++ b/src/osgPlugins/jpeg/CMakeLists.txt
+@@ -5,6 +5,6 @@ SET(TARGET_SRC
+     ReaderWriterJPEG.cpp
+ )
+-
++
+-SET(TARGET_LIBRARIES_VARS JPEG_LIBRARY )
++SET(TARGET_EXTERNAL_LIBRARIES JPEG::JPEG )
+ #### end var setup  ###
+ SETUP_PLUGIN(jpeg)
+diff --git a/src/osgPlugins/png/CMakeLists.txt b/src/osgPlugins/png/CMakeLists.txt
+--- a/src/osgPlugins/png/CMakeLists.txt
++++ b/src/osgPlugins/png/CMakeLists.txt
+@@ -5,7 +5,7 @@ IF(OSG_CPP_EXCEPTIONS_AVAILABLE)
+ ENDIF()
+-
++
+ SET(TARGET_SRC ReaderWriterPNG.cpp )
+-SET(TARGET_LIBRARIES_VARS PNG_LIBRARY ZLIB_LIBRARIES )
++SET(TARGET_EXTERNAL_LIBRARIES PNG::PNG ZLIB::ZLIB )
+-
++
+-
++
+ #### end var setup  ###
+diff --git a/src/osgPlugins/freetype/CMakeLists.txt b/src/osgPlugins/freetype/CMakeLists.txt
+--- a/src/osgPlugins/freetype/CMakeLists.txt
++++ b/src/osgPlugins/freetype/CMakeLists.txt
+@@ -23,7 +23,7 @@ SET(TARGET_H
+-
++
+ SET(TARGET_ADDED_LIBRARIES osgText )
+-
++
+-SET(TARGET_EXTERNAL_LIBRARIES ${FREETYPE_LIBRARIES} )
++SET(TARGET_EXTERNAL_LIBRARIES Freetype::Freetype )
+-
++
+ #### end var setup  ###
+ SETUP_PLUGIN(freetype)
+diff --git a/src/osgDB/CMakeLists.txt b/src/osgDB/CMakeLists.txt
+--- a/src/osgDB/CMakeLists.txt
++++ b/src/osgDB/CMakeLists.txt
+@@ -162,6 +162,6 @@ IF( ZLIB_FOUND )
+     ADD_DEFINITIONS( -DUSE_ZLIB )
+     INCLUDE_DIRECTORIES( ${ZLIB_INCLUDE_DIR} )
+-    SET(COMPRESSION_LIBRARIES ZLIB_LIBRARIES)
++    SET(COMPRESSION_LIBRARIES ZLIB::ZLIB)
+ ENDIF()
+-
++
+ ################################################################################
+@@ -180,7 +180,6 @@ SET(TARGET_LIBRARIES
+     osgUtil
+     OpenThreads
+ )
+-SET(TARGET_EXTERNAL_LIBRARIES ${OSGDB_PLATFORM_SPECIFIC_LIBRARIES} ${DL_LIBRARY})
+-SET(TARGET_LIBRARIES_VARS  ${COMPRESSION_LIBRARIES})
++SET(TARGET_EXTERNAL_LIBRARIES ${OSGDB_PLATFORM_SPECIFIC_LIBRARIES} ${DL_LIBRARY} ${COMPRESSION_LIBRARIES})
+-
++
+ SETUP_LIBRARY(${LIB_NAME})

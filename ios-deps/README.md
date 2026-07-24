@@ -37,11 +37,11 @@ On macOS with Xcode 16.4:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature multimedia-foundation \
+  --feature render-foundation \
   --clean
 bash CI/ios/deps/build.sh \
   --platform iphonesimulator \
-  --feature multimedia-foundation \
+  --feature render-foundation \
   --clean
 ```
 
@@ -89,6 +89,15 @@ avformat, avcodec, swresample, swscale and avutil with a no-network,
 no-device, no-program, LGPL-only allowlist. The exact closure is 18 direct
 target ports, the same 79 transitive target ports and five host ports; the new
 host helper is `vcpkg-cmake-get-vars`.
+`render-foundation` adds two iOS-only static overlays. GL4ES 1.1.6 is built
+as `libGL.a` over OpenGLES with GLES2 defaults, no X11/EGL, no loader and
+manual initialization. The pinned OpenMW OSG fork exposes exactly 12 core
+archives and nine allowlisted plugin/wrapper archives; DAE, window-system
+backends, applications and examples are absent. All nine plugin archives use
+individual Apple `-force_load` options and the smoke registers bmp, dds,
+freetype, jpeg, osg, png, tga, the legacy dot-osg wrapper and the native osg
+serializer. The exact closure is 20 direct target ports, 79 transitive target
+ports and five host ports.
 `bootstrap` remains available as the smaller zlib-only pipeline proof. The
 profile-to-source mapping lives in `dependencies.lock.json`; every profile must
 have a matching vcpkg manifest feature. After installation, the build also
@@ -102,7 +111,7 @@ link the smoke app:
 ```bash
 bash CI/ios/deps/validate-prefix.sh iphoneos <device-prefix>
 bash CI/ios/deps/validate-host-tools.sh \
-  multimedia-foundation \
+  render-foundation \
   build/ios-deps/iphoneos/vcpkg_installed \
   arm64-osx \
   <device-prefix> \
@@ -116,7 +125,7 @@ access:
 ```bash
 bash CI/ios/deps/build.sh \
   --platform iphoneos \
-  --feature multimedia-foundation \
+  --feature render-foundation \
   --clean \
   --offline
 ```

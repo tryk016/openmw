@@ -96,6 +96,31 @@ włączone default features, dodatkowy direct port i duplikaty funkcji.
   Closure to 18 bezpośrednich portów targetu, niezmienione 79 portów
   tranzytywnych targetu oraz 5 portów hosta; nowym helperem jest
   `vcpkg-cmake-get-vars`.
+- `render-foundation`: profil kumulatywny dodający statyczny GL4ES 1.1.6 oraz
+  przypięty fork OSG 3.6.5. Closure to 20 bezpośrednich portów targetu,
+  niezmienione 79 portów tranzytywnych targetu oraz 5 portów hosta.
+
+### Kontrakt GL4ES i OSG
+
+GL4ES jest budowany jako statyczne `libGL.a` nad systemowym OpenGLES, z
+`DEFAULT_ES=2`, bez X11, EGL, loadera i konstruktora inicjalizującego. Adapter
+wywołuje `set_getprocaddress`, przekazuje rozmiar drawable przez
+`SDL_GL_GetDrawableSize`, a następnie uruchamia `initialize_gl4es` dopiero po
+utworzeniu i aktywowaniu kontekstu SDL GLES2.
+
+Overlay OSG przypina commit
+`01cc2b585c8456a4ff843066b7e1a8715558289f` forka OpenMW i instaluje dokładnie
+12 archiwów core oraz dziewięć archiwów pluginów/wrapperów. Dozwolone są
+`bmp`, `dds`, `freetype`, `jpeg`, `osg`, `png`, `tga`, legacy dot-osg wrapper
+i serializer `osg`; DAE jest wyłączone. Import odbywa się wyłącznie przez
+`unofficial-osg` 3.6.5 EXACT. Każde z dziewięciu archiwów ma osobny linkerowy
+`-force_load`; globalne `-all_load` jest niedozwolone.
+
+Simulator smoke tworzy kontekst SDL GLES2, ręcznie inicjalizuje GL4ES, rysuje
+trójkąt fixed-function i potwierdza środkowy piksel przez `glReadPixels`.
+Niezależnie sprawdza rejestr pluginów OSG oraz round-trip formatu `.osgt` i
+zapis legacy `.osg`. Widoczny rendering na fizycznym iPhonie pozostaje osobnym
+punktem bramkowym fazy urządzeniowej.
 
 ### Kontrakt PUC Lua
 
